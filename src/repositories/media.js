@@ -11,12 +11,13 @@ function hydrate (row) {
     hash: row.hash,
     originalName: row.original_name,
     derivatives: jsonValue(row.derivatives, []),
+    managedKey: row.managed_key,
     createdAt: row.created_at
   }
 }
 
 const COLUMNS =
-  'id, path, mime, width, height, bytes, hash, original_name, derivatives, created_at'
+  'id, path, mime, width, height, bytes, hash, original_name, derivatives, managed_key, created_at'
 
 async function findMediaByHash (hash, conn) {
   const row = await db(conn).one(`SELECT ${COLUMNS} FROM media WHERE hash = ?`, [hash])
@@ -54,11 +55,33 @@ async function countMedia (conn) {
 
 async function insertMedia (record, conn) {
   return db(conn).insert(
-    'INSERT INTO media (path, mime, width, height, bytes, hash, original_name, derivatives) ' +
-    'VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb) RETURNING id',
+    'INSERT INTO media (path, mime, width, height, bytes, hash, original_name, derivatives, managed_key) ' +
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?) RETURNING id',
     [
       record.path, record.mime, record.width, record.height, record.bytes,
-      record.hash, record.originalName, JSON.stringify(record.derivatives ?? [])
+      record.hash, record.originalName, JSON.stringify(record.derivatives ?? []),
+      record.managedKey ?? null
+    ]
+  )
+}
+
+/** Запись, которой управляет репозиторий: ключ = имя файла в seed-assets. */
+async function getMediaByManagedKey (key, conn) {
+  const row = await db(conn).one(`SELECT ${COLUMNS} FROM media WHERE managed_key = ?`, [key])
+  return row ? hydrate(row) : null
+}
+
+/**
+ * Заменяет содержимое записи, сохраняя её идентификатор: все ссылки
+ * из блоков и альбомов продолжают работать и показывают новый файл.
+ */
+async function updateMediaFile (id, record, conn) {
+  await db(conn).run(
+    'UPDATE media SET path = ?, mime = ?, width = ?, height = ?, bytes = ?, ' +
+    'hash = ?, original_name = ?, derivatives = ?::jsonb WHERE id = ?',
+    [
+      record.path, record.mime, record.width, record.height, record.bytes,
+      record.hash, record.originalName, JSON.stringify(record.derivatives ?? []), id
     ]
   )
 }
@@ -119,7 +142,8 @@ async function deleteMedia (id, conn) {
 }
 
 export {
-  findMediaByHash, getMedia, getMediaByIds, listMedia, countMedia, insertMedia,
+  findMediaByHash, getMedia, getMediaByIds, getMediaByManagedKey,
+  listMedia, countMedia, insertMedia, updateMediaFile,
   textsForMedia, getMediaTexts, saveMediaTexts,
   mediaUsage, usageCounts, deleteMedia
 }

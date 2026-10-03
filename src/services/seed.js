@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { dirname, extname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { query, transaction } from '../db/pool.js'
 import { db } from '../repositories/helpers.js'
@@ -13,7 +13,6 @@ import { defaultSettings } from '../blocks/index.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SEED_ASSETS = join(ROOT, 'seed-assets')
-const BRAND_ASSETS = join(ROOT, 'public', 'brand')
 
 const MIME_BY_EXT = {
   '.webp': 'image/webp',
@@ -23,14 +22,19 @@ const MIME_BY_EXT = {
   '.avif': 'image/avif'
 }
 
-/** Кладёт файл с диска в медиатеку. Отсутствие файла не валит сидирование. */
+/**
+ * Кладёт файл репозитория в медиатеку и помечает его ключом: по нему
+ * запись потом обновится, если файл в репозитории заменят.
+ * Отсутствие файла не валит сидирование.
+ */
 async function importAsset (directory, filename, texts, logger) {
   try {
     const buffer = await readFile(join(directory, filename))
     const { media } = await processUpload({
       buffer,
       originalName: filename,
-      mime: MIME_BY_EXT[extname(filename).toLowerCase()] ?? 'image/webp'
+      mime: MIME_BY_EXT[extname(filename).toLowerCase()] ?? 'image/webp',
+      managedKey: basename(filename, extname(filename))
     })
     if (texts) await saveMediaTexts(media.id, texts)
     return media.id
@@ -71,7 +75,7 @@ async function ensureSeeded ({ logger = console } = {}) {
   })
 
   /* ─── Медиатека ───────────────────────────────────────── */
-  const bandPhotoId = await importAsset(SEED_ASSETS, 'band-photo.webp', {
+  const bandPhotoId = await importAsset(SEED_ASSETS, 'band-photo.png', {
     en: { alt: 'PADALI band' }, sr: { alt: 'Bend PADALI' }
   }, logger)
   const coverId = await importAsset(SEED_ASSETS, 'single-cover.webp', {
@@ -81,7 +85,7 @@ async function ensureSeeded ({ logger = console } = {}) {
     en: { alt: 'PADALI live at SKC NS Fabrika, 16.10.2026' },
     sr: { alt: 'PADALI uživo u SKC NS Fabrika, 16.10.2026.' }
   }, logger)
-  const markId = await importAsset(BRAND_ASSETS, 'padali-mark.webp', {
+  const markId = await importAsset(SEED_ASSETS, 'padali-mark.webp', {
     en: { alt: 'PADALI mark' }, sr: { alt: 'Znak PADALI' }
   }, logger)
 

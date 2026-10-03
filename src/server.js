@@ -14,6 +14,7 @@ import { migrate, waitForDatabase } from './db/migrate.js'
 import { closePool } from './db/pool.js'
 import { bootstrapAdminUser } from './services/auth.js'
 import { ensureSeeded } from './services/seed.js'
+import { syncManagedAssets } from './services/managed-assets.js'
 import publicRoutes from './routes/public.js'
 import adminRoutes from './routes/admin/index.js'
 
@@ -72,6 +73,9 @@ async function start () {
     await waitForDatabase({ logger: app.log })
     await migrate({ logger: app.log })
     await ensureSeeded({ logger: app.log })
+    // Файлы репозитория доезжают до сайта так же, как код: заменили
+    // картинку в seed-assets, выкатили — медиатека обновилась.
+    await syncManagedAssets({ logger: app.log })
     await bootstrapAdminUser(app.log)
 
     await app.listen({ port: config.port, host: config.host })

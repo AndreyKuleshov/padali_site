@@ -13,7 +13,8 @@
     "seed": "node --env-file=.env.development scripts/seed.js",
     "test": "node --env-file=.env.test --test --test-concurrency=1 tests/*.test.js",
     "db:up": "docker run -d --name padali-pg-dev -e POSTGRES_USER=padali -e POSTGRES_PASSWORD=padalidev -e POSTGRES_DB=padali -p 54321:5432 postgres:16-alpine",
-    "db:down": "docker rm -f padali-pg-dev"
+    "db:down": "docker rm -f padali-pg-dev",
+    "rebuild-derivatives": "node --env-file=.env.development scripts/rebuild-derivatives.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 import { stat } from 'node:fs/promises'
 import { resetDatabase, makeImage, closePool } from './helpers.js'
 import config from '../src/config.js'
-import { processUpload, deleteFiles, absolutePath, derivativeRelPath, UploadError } from '../src/services/media-processor.js'
+import {
+  processUpload, deleteFiles, absolutePath, derivativeRelPath, pictureSources, UploadError
+} from '../src/services/media-processor.js'
 import { createPage } from '../src/repositories/pages.js'
 import { createBlock, saveBlockMedia } from '../src/repositories/blocks.js'
 import { createGallery, setGalleryItems } from '../src/repositories/galleries.js'
@@ -24,7 +26,8 @@ test('загрузка создаёт деривативы по всем под�
     mime: 'image/png'
   })
 
-  assert.deepEqual(media.derivatives, [320, 640, 1280], 'шире оригинала деривативов нет')
+  assert.deepEqual(media.derivatives, [320, 640, 1280, 1500],
+    'ступени ниже оригинала плюс его полная ширина')
   assert.equal(media.width, 1500)
   assert.ok(await exists(absolutePath(media.path)), 'оригинал сохранён')
   for (const width of media.derivatives) {
@@ -39,6 +42,35 @@ test('узкая картинка не растягивается', async () => 
     mime: 'image/png'
   })
   assert.deepEqual(media.derivatives, [200])
+})
+
+/**
+ * Без полной ширины в наборе srcset обрывался на предыдущей ступени:
+ * у снимка 1100px лучшим кандидатом оказывался 640px, и браузер
+ * растягивал его на всю шапку.
+ */
+test('srcset включает полную ширину оригинала', async () => {
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 1100, height: 688, seed: 21 }),
+    originalName: 'hero.png',
+    mime: 'image/png'
+  })
+
+  assert.deepEqual(media.derivatives, [320, 640, 1100])
+
+  const sources = pictureSources(media)
+  assert.match(sources.srcset, /1100w/, 'крупнейший кандидат — полная ширина')
+  assert.match(sources.src, /-1100\.webp$/, 'запасной src тоже полноразмерный')
+  assert.ok(await exists(absolutePath(derivativeRelPath(media.path, 1100))))
+})
+
+test('ширина, совпадающая со ступенью, не дублируется', async () => {
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 640, height: 400, seed: 22 }),
+    originalName: 'exact.png',
+    mime: 'image/png'
+  })
+  assert.deepEqual(media.derivatives, [320, 640])
 })
 
 test('повторная загрузка того же файла не создаёт дубль', async () => {

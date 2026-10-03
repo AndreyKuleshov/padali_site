@@ -12,6 +12,14 @@ const EXTENSION_BY_MIME = {
   'image/avif': '.avif'
 }
 
+const MIME_BY_EXTENSION = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif'
+}
+
 class UploadError extends Error {
   constructor (message) {
     super(message)
@@ -22,6 +30,19 @@ class UploadError extends Error {
 
 function hashOf (buffer) {
   return createHash('sha256').update(buffer).digest('hex')
+}
+
+/**
+ * Ширины, которые должны существовать для оригинала такой ширины.
+ * Апскейла нет, но полная ширина входит всегда: без неё srcset
+ * обрывался бы на предыдущей ступени и браузер растягивал бы кадр,
+ * хотя на диске есть версия крупнее.
+ */
+function expectedWidths (width) {
+  return [...new Set([
+    ...config.derivativeWidths.filter((candidate) => candidate < width),
+    width
+  ])].sort((a, b) => a - b)
 }
 
 /** Папка по году и месяцу: каталог загрузок не превращается в свалку. */
@@ -47,22 +68,12 @@ function derivativeRelPath (relativeOriginal, width) {
 }
 
 /**
- * Сохраняет загруженный файл и его webp-деривативы.
- * Повторная загрузка того же содержимого возвращает существующую запись:
- * hash уникален, файлы не дублируются.
+ * Кладёт оригинал на диск и генерирует webp-версии.
+ * Общая часть загрузки через админку и обновления файлов репозитория.
+ *
+ * @returns {{path: string, width: number, height: number, derivatives: number[]}}
  */
-async function processUpload ({ buffer, originalName, mime }) {
-  if (!config.allowedImageMimes.includes(mime)) {
-    throw new UploadError(`Тип файла «${mime}» не поддерживается. Разрешены: JPEG, PNG, WebP, AVIF.`)
-  }
-  if (buffer.length > config.uploadMaxBytes) {
-    throw new UploadError(`Файл больше ${Math.round(config.uploadMaxBytes / 1024 / 1024)} МБ.`)
-  }
-
-  const hash = hashOf(buffer)
-  const existing = await findMediaByHash(hash)
-  if (existing) return { media: existing, deduplicated: true }
-
+async function writeDerivatives ({ buffer, mime, hash }) {
   let image = sharp(buffer, { failOn: 'error' })
   let metadata
   try {
@@ -86,29 +97,46 @@ async function processUpload ({ buffer, originalName, mime }) {
   await mkdir(absolutePath(folder), { recursive: true })
   await writeFile(absolutePath(relativeOriginal), buffer)
 
-  // Апскейл не делаем: шире оригинала деривативов не бывает.
-  const widths = config.derivativeWidths.filter((candidate) => candidate <= width)
-  if (widths.length === 0) widths.push(width)
+  const widths = expectedWidths(width)
 
-  const written = []
   for (const targetWidth of widths) {
-    const relative = derivativeRelPath(relativeOriginal, targetWidth)
     await sharp(normalized.data)
       .resize({ width: targetWidth, withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toFile(absolutePath(relative))
-    written.push(targetWidth)
+      // Мелкие кадры сжимаем сильнее: на превью разницы не видно,
+      // а крупные идут в шапку и на весь экран.
+      .webp({ quality: targetWidth <= 640 ? 82 : 88 })
+      .toFile(absolutePath(derivativeRelPath(relativeOriginal, targetWidth)))
   }
 
+  return { path: relativeOriginal, width, height, derivatives: widths }
+}
+
+/**
+ * Сохраняет загруженный файл и его webp-деривативы.
+ * Повторная загрузка того же содержимого возвращает существующую запись:
+ * hash уникален, файлы не дублируются.
+ */
+async function processUpload ({ buffer, originalName, mime, managedKey = null }) {
+  if (!config.allowedImageMimes.includes(mime)) {
+    throw new UploadError(`Тип файла «${mime}» не поддерживается. Разрешены: JPEG, PNG, WebP, AVIF.`)
+  }
+  if (buffer.length > config.uploadMaxBytes) {
+    throw new UploadError(`Файл больше ${Math.round(config.uploadMaxBytes / 1024 / 1024)} МБ.`)
+  }
+
+  const hash = hashOf(buffer)
+  const existing = await findMediaByHash(hash)
+  if (existing) return { media: existing, deduplicated: true }
+
+  const written = await writeDerivatives({ buffer, mime, hash })
+
   const record = {
-    path: relativeOriginal,
+    ...written,
     mime,
-    width,
-    height,
     bytes: buffer.length,
     hash,
     originalName: originalName.slice(0, 255),
-    derivatives: written
+    managedKey
   }
   record.id = await insertMedia(record)
 
@@ -150,6 +178,7 @@ function thumbnailUrl (media) {
 }
 
 export {
-  processUpload, deleteFiles, pictureSources, thumbnailUrl,
-  mediaUrl, derivativeRelPath, absolutePath, hashOf, UploadError
+  processUpload, writeDerivatives, deleteFiles, pictureSources, thumbnailUrl,
+  mediaUrl, derivativeRelPath, absolutePath, hashOf,
+  MIME_BY_EXTENSION, EXTENSION_BY_MIME, expectedWidths, UploadError
 }
