@@ -389,7 +389,27 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 .media-upload { cursor: pointer; }
 .media-upload-note { margin: 0; }
 
-.gallery-chip { cursor: grab; }
+/* Плитка альбома выросла: под снимком строка цены для мерча.
+   В обычном альбоме её просто оставляют пустой. */
+.gallery-chip {
+  cursor: grab;
+  width: 120px;
+  height: auto;
+}
+
+.gallery-chip img { height: 120px; }
+
+.chip-price {
+  width: 100%;
+  border: 0 !important;
+  border-top: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  padding: 5px 7px !important;
+  font-size: .82rem;
+  background: var(--panel) !important;
+  /* Перетаскивают плитку за снимок; в поле нужно попадать курсором. */
+  cursor: text;
+}
 
 .media-remove {
   position: absolute;
@@ -799,3 +819,34 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .translate-note { margin: 0; grid-column: 1 / -1; }
 .translate-note[data-state="error"] { color: var(--danger); }
+
+/* ─── Сообщения с сайта ──────────────────────────────────── */
+
+.hint--warn { color: var(--danger); }
+
+.message-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+
+.message {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+/* Непрочитанное отмечаем краем, а не цветом всей карточки:
+   читать текст на подсвеченном фоне тяжелее. */
+.message--new { border-left: 3px solid var(--neon); }
+
+.message-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--soft); font-size: .88rem; }
+.message-ok { color: var(--soft); }
+.message-warn { color: var(--danger); cursor: help; }
+
+.message-item { margin: 0; color: var(--neon); }
+.message-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; }
+.message-facts dt { color: var(--soft); }
+.message-facts dd { margin: 0; }
+
+.message-body { margin: 0; white-space: pre-wrap; }
+.message-actions { display: flex; gap: 8px; }

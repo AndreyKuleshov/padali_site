@@ -63,6 +63,29 @@ async function itemsForGalleries (ids, conn) {
   return grouped
 }
 
+/**
+ * Цены по альбомам: Map<gallery_id, Map<media_id, price>>.
+ *
+ * Отдельным запросом, а не внутри itemsForGalleries: там состав —
+ * плоский список id, на который опирается и композитор страницы,
+ * и тесты, и менять его форму ради поля, нужного одному блоку,
+ * невыгодно.
+ */
+async function pricesForGalleries (ids, conn) {
+  if (ids.length === 0) return new Map()
+  const rows = await db(conn).all(
+    `SELECT gallery_id, media_id, price FROM gallery_items ` +
+    `WHERE gallery_id IN (${placeholders(ids.length)}) AND price <> ''`,
+    ids
+  )
+  const grouped = new Map()
+  for (const row of rows) {
+    if (!grouped.has(row.gallery_id)) grouped.set(row.gallery_id, new Map())
+    grouped.get(row.gallery_id).set(row.media_id, row.price)
+  }
+  return grouped
+}
+
 async function getGalleryItems (id, conn) {
   return (await itemsForGalleries([id], conn)).get(id) ?? []
 }
@@ -71,17 +94,28 @@ async function getGalleryItems (id, conn) {
  * Полная перезапись состава альбома. Порядок — порядок элементов массива.
  * Повторы отбрасываются: ключ таблицы (gallery_id, media_id).
  */
-async function setGalleryItems (galleryId, mediaIds, conn) {
+async function setGalleryItems (galleryId, items, conn) {
   const runner = db(conn)
   await runner.run('DELETE FROM gallery_items WHERE gallery_id = ?', [galleryId])
 
-  const unique = [...new Set(mediaIds.map(Number).filter(Boolean))]
+  /* Принимаем и голые id, и пары с ценой. Иначе цену пришлось бы
+     дописывать вторым запросом после DELETE, и любой вызов без
+     неё молча затирал бы цены всего альбома. */
+  const seen = new Set()
+  const unique = []
+  for (const item of items) {
+    const isPair = item !== null && typeof item === 'object'
+    const mediaId = Number(isPair ? item.mediaId : item)
+    if (!mediaId || seen.has(mediaId)) continue
+    seen.add(mediaId)
+    unique.push({ mediaId, price: String(isPair ? item.price ?? '' : '').trim().slice(0, 64) })
+  }
   if (unique.length === 0) return
 
-  const values = unique.map(() => '(?, ?, ?)').join(', ')
-  const params = unique.flatMap((mediaId, index) => [galleryId, mediaId, index])
+  const values = unique.map(() => '(?, ?, ?, ?)').join(', ')
+  const params = unique.flatMap((item, index) => [galleryId, item.mediaId, index, item.price])
   await runner.run(
-    `INSERT INTO gallery_items (gallery_id, media_id, position) VALUES ${values}`,
+    `INSERT INTO gallery_items (gallery_id, media_id, position, price) VALUES ${values}`,
     params
   )
   await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
@@ -90,5 +124,5 @@ async function setGalleryItems (galleryId, mediaIds, conn) {
 export {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery, deleteGallery,
   textsForGalleries, getGalleryTexts, saveGalleryTexts,
-  itemsForGalleries, getGalleryItems, setGalleryItems
+  itemsForGalleries, pricesForGalleries, getGalleryItems, setGalleryItems
 }

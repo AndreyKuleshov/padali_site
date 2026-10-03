@@ -1,0 +1,42 @@
+<%
+  var block = it.block
+  var sr = it.locale === 'sr'
+  var email = String(block.settings.email || '').trim()
+  var labelMessage = block.text.label_message || (sr ? 'Poruka' : 'Message')
+  var labelContact = block.text.label_contact || (sr ? 'Kako da vam odgovorimo' : 'How to reach you')
+  var submit = block.text.submit || (sr ? 'Pošalji' : 'Send')
+%>
+<section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
+  <% if (block.text.intro) { %><p class="contact-intro"><%= block.text.intro %></p><% } %>
+
+  <% if (email) { %>
+  <p class="contact-email"><a href="mailto:<%= email %>"><%= email %></a></p>
+  <% } %>
+
+  <% if (block.settings.show_form) { %>
+  <form class="contact-form" data-send-form data-kind="contact"
+        data-sent="<%= block.text.sent || (sr ? 'Hvala, poruka je poslata.' : 'Thanks, your message is on its way.') %>"
+        data-failed="<%= block.text.failed || (sr ? 'Nije poslato. Pišite nam na mejl iznad.' : 'Not sent. Please write to the address above.') %>">
+    <label class="field">
+      <span><%= labelMessage %></span>
+      <textarea name="message" rows="5" required maxlength="4000"></textarea>
+    </label>
+
+    <label class="field">
+      <span><%= labelContact %></span>
+      <input type="text" name="contact" maxlength="256" autocomplete="email">
+    </label>
+
+    <% ;/* Приманка для роботов: человек её не видит, а заполненная
+           она отбрасывает отправку. Прячем стилем, а не hidden:
+           часть ботов пропускает скрытые атрибутом поля. */ %>
+    <div class="honeypot" aria-hidden="true">
+      <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+    </div>
+
+    <button type="submit" class="button"><%= submit %></button>
+    <p class="form-note" data-send-note hidden></p>
+  </form>
+  <% } %>
+</section>

@@ -11,6 +11,8 @@ import { recordView, recordClicks } from '../repositories/analytics.js'
 import {
   visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp
 } from '../services/analytics.js'
+import { createMessage, markMailed } from '../repositories/messages.js'
+import { sendMessage } from '../services/mail.js'
 
 function etagOf (html) {
   return `"${createHash('sha1').update(html).digest('base64url')}"`
@@ -56,6 +58,11 @@ async function publicRoutes (app) {
 
   app.get('/healthz', async () => ({ status: 'ok' }))
 
+  /** Строка из формы: обрезаем до длины колонки, лишнее не храним. */
+  function trim (value, limit) {
+    return typeof value === 'string' ? value.trim().slice(0, limit) : ''
+  }
+
   /**
    * Приём событий от счётчика. Отвечаем 204 всегда: маячок не читает
    * ответ, а посетитель не должен ничего заметить, даже если запись
@@ -90,6 +97,56 @@ async function publicRoutes (app) {
     }
 
     return reply.send()
+  })
+
+  /**
+   * Сообщение из формы связи или заказ мерча.
+   *
+   * Сначала запись в базу, потом попытка письма: SMTP отвечает не
+   * всегда, а написанное человеком терять нельзя. Ответ один и тот
+   * же — принято; неотправленное письмо видно в админке.
+   */
+  app.post('/send', {
+    config: { rateLimit: { max: 5, timeWindow: '10 minutes' } }
+  }, async (request, reply) => {
+    const body = request.body ?? {}
+
+    /* Поле-приманка: человек его не видит и не заполняет, а робот
+       заполняет всё подряд. Отвечаем как при успехе, иначе он
+       подберёт форму ответа и попробует снова. */
+    if (String(body.website ?? '') !== '') return reply.send({ ok: true })
+
+    const kind = body.kind === 'order' ? 'order' : 'contact'
+    const message = {
+      kind,
+      contact: trim(body.contact, 256),
+      city: trim(body.city, 128),
+      item: trim(body.item, 256),
+      body: trim(body.message, 4000),
+      locale: trim(body.locale, 8) || null
+    }
+
+    // Заказ без связи бесполезен, письмо без текста — тем более.
+    const empty = kind === 'order' ? message.contact === '' : message.body === ''
+    if (empty) return reply.code(400).send({ ok: false, reason: 'empty' })
+
+    let id
+    try {
+      id = await createMessage(message)
+    } catch (error) {
+      request.log.error({ err: error }, 'Сообщение не записано')
+      return reply.code(500).send({ ok: false, reason: 'failed' })
+    }
+
+    const sent = await sendMessage(message)
+    try {
+      await markMailed(id, sent.ok ? null : sent.error)
+    } catch (error) {
+      request.log.warn({ err: error }, 'Отметка об отправке не записана')
+    }
+    if (!sent.ok) request.log.warn({ id, error: sent.error }, 'Письмо не ушло, сообщение осталось в базе')
+
+    return reply.send({ ok: true })
   })
 
   app.get('/robots.txt', async (request, reply) => {

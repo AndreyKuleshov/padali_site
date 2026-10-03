@@ -1,7 +1,9 @@
 import { getBlockType, sortBlocks } from '../blocks/index.js'
 import { getPageBySlug, getPageTexts } from '../repositories/pages.js'
 import { listBlocks, textsForBlocks, mediaForBlocks } from '../repositories/blocks.js'
-import { itemsForGalleries, textsForGalleries } from '../repositories/galleries.js'
+import {
+  itemsForGalleries, pricesForGalleries, textsForGalleries
+} from '../repositories/galleries.js'
 import { getMediaByIds, textsForMedia } from '../repositories/media.js'
 import { listLocales, getDefaultLocale } from '../repositories/locales.js'
 import { getAllSettings } from '../repositories/settings.js'
@@ -83,8 +85,9 @@ async function composePage ({ slug = 'home', locale }) {
       .map((block) => Number(block.settings?.gallery_id))
       .filter((id) => Number.isInteger(id) && id > 0)
   )]
-  const [itemsByGallery, textsByGallery] = await Promise.all([
+  const [itemsByGallery, pricesByGallery, textsByGallery] = await Promise.all([
     itemsForGalleries(galleryIds),
+    pricesForGalleries(galleryIds),
     textsForGalleries(galleryIds)
   ])
 
@@ -126,7 +129,14 @@ async function composePage ({ slug = 'home', locale }) {
     const galleryId = Number(block.settings?.gallery_id)
     if (Number.isInteger(galleryId) && itemsByGallery.has(galleryId)) {
       const limit = Number(block.settings?.limit) || 0
-      const items = itemsByGallery.get(galleryId).map(toView).filter(Boolean)
+      const prices = pricesByGallery.get(galleryId) ?? new Map()
+      const items = itemsByGallery.get(galleryId)
+        .map((mediaId) => {
+          const view = toView(mediaId)
+          // Цену видит только блок мерча, остальным она не мешает.
+          return view ? { ...view, price: prices.get(mediaId) ?? '' } : null
+        })
+        .filter(Boolean)
       const galleryTexts = textsByGallery.get(galleryId)
       gallery = {
         id: galleryId,

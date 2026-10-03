@@ -1,0 +1,64 @@
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('messages.title') })) %>
+
+<div class="page-head">
+  <div>
+    <h1><%= it.t('messages.title') %></h1>
+    <p class="hint"><%= it.t('messages.subtitle', { total: it.total, unread: it.unread }) %></p>
+    <% if (!it.mailConfigured) { %>
+    <p class="hint hint--warn"><%= it.t('messages.mailOff') %></p>
+    <% } %>
+  </div>
+</div>
+
+<% if (it.items.length === 0) { %>
+<p class="hint"><%= it.t('messages.empty') %></p>
+<% } else { %>
+<ul class="message-list">
+  <% it.items.forEach(function (item) { %>
+  <li class="message<%= item.isRead ? '' : ' message--new' %>">
+    <div class="message-head">
+      <span class="chip<%= item.kind === 'order' ? ' chip--on' : '' %>">
+        <%= it.t(item.kind === 'order' ? 'messages.kindOrder' : 'messages.kindContact') %>
+      </span>
+      <time><%= new Date(item.createdAt).toLocaleString('ru-RS') %></time>
+      <% if (item.mailError) { %>
+      <span class="message-warn" title="<%= item.mailError %>"><%= it.t('messages.notMailed') %></span>
+      <% } else if (item.mailedAt) { %>
+      <span class="message-ok"><%= it.t('messages.mailed') %></span>
+      <% } %>
+    </div>
+
+    <% if (item.item) { %><p class="message-item"><%= item.item %></p><% } %>
+    <dl class="message-facts">
+      <% if (item.city) { %><dt><%= it.t('messages.city') %></dt><dd><%= item.city %></dd><% } %>
+      <% if (item.contact) { %><dt><%= it.t('messages.contact') %></dt><dd><%= item.contact %></dd><% } %>
+    </dl>
+    <% if (item.body) { %><p class="message-body"><%= item.body %></p><% } %>
+
+    <div class="message-actions">
+      <form method="post" action="/admin/messages/<%= item.id %>/read">
+        <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+        <% if (!item.isRead) { %><input type="hidden" name="read" value="on"><% } %>
+        <button type="submit" class="btn btn--small">
+          <%= it.t(item.isRead ? 'messages.markUnread' : 'messages.markRead') %>
+        </button>
+      </form>
+      <form method="post" action="/admin/messages/<%= item.id %>/delete" data-confirm="<%= it.t('messages.confirmDelete') %>">
+        <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+        <button type="submit" class="btn btn--danger btn--small"><%= it.t('common.delete') %></button>
+      </form>
+    </div>
+  </li>
+  <% }) %>
+</ul>
+
+<% if (it.pageCount > 1) { %>
+<nav class="pager">
+  <% for (var page = 1; page <= it.pageCount; page += 1) { %>
+  <a href="/admin/messages?page=<%= page %>"<%= page === it.pageNumber ? ' class="active"' : '' %>><%= page %></a>
+  <% } %>
+</nav>
+<% } %>
+<% } %>
+
+<%~ include('/admin/partials/foot', it) %>

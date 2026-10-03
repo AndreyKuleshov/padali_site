@@ -202,9 +202,11 @@
       var chip = document.createElement('div')
       chip.className = 'gallery-chip'
       chip.setAttribute('data-id', String(item.id))
+      var price = document.getElementById('galleryItems').getAttribute('data-price-label') || ''
       chip.innerHTML =
         '<img src="' + item.thumb + '" alt="" loading="lazy">' +
-        '<button type="button" class="media-remove">×</button>'
+        '<button type="button" class="media-remove">×</button>' +
+        '<input type="text" class="chip-price" name="price[m' + item.id + ']" maxlength="64" placeholder="' + price + '">'
       container.appendChild(chip)
       syncGalleryValue()
     }

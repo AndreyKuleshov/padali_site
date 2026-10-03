@@ -2,7 +2,7 @@ import { query, transaction } from '../../db/pool.js'
 import {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery,
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
-  getGalleryItems, setGalleryItems
+  getGalleryItems, setGalleryItems, pricesForGalleries
 } from '../../repositories/galleries.js'
 import { getMediaByIds, listMedia } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
@@ -59,11 +59,19 @@ async function galleryRoutes (app) {
       getGalleryTexts(id), getGalleryItems(id), listLocales(), listMedia({ limit: 500 })
     ])
 
-    const mediaById = await getMediaByIds(itemIds)
+    const [mediaById, pricesByGallery] = await Promise.all([
+      getMediaByIds(itemIds), pricesForGalleries([id])
+    ])
+    const prices = pricesByGallery.get(id) ?? new Map()
     const items = itemIds
       .map((mediaId) => mediaById.get(mediaId))
       .filter(Boolean)
-      .map((media) => ({ id: media.id, thumb: thumbnailUrl(media), name: media.originalName }))
+      .map((media) => ({
+        id: media.id,
+        thumb: thumbnailUrl(media),
+        name: media.originalName,
+        price: prices.get(media.id) ?? ''
+      }))
 
     // Где этот альбом уже вставлен — чтобы было видно последствия правок.
     const usedIn = await query(
@@ -109,10 +117,18 @@ async function galleryRoutes (app) {
       return reply.redirect(`/admin/galleries/${id}`, 302)
     }
 
+    /* Цена едет вместе с составом: setGalleryItems переписывает
+       строки целиком, и отдельным запросом после неё цену пришлось
+       бы восстанавливать. */
+    const prices = request.body?.price ?? {}
+    const items = mediaIds.map((mediaId) => ({
+      mediaId, price: String(prices['m' + mediaId] ?? '').trim().slice(0, 64)
+    }))
+
     await transaction(async (conn) => {
       await renameGallery(id, slug, conn)
       await saveGalleryTexts(id, textsByLocale, conn)
-      await setGalleryItems(id, mediaIds, conn)
+      await setGalleryItems(id, items, conn)
     })
 
     afterWrite()

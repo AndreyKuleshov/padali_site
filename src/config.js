@@ -51,6 +51,22 @@ function readEnv (env = process.env) {
       timeoutMs: Number(env.OPENAI_TIMEOUT_MS ?? 20000)
     },
 
+    /**
+     * Почта для форм на сайте.
+     *
+     * Без SMTP_HOST отправка выключена, но сами сообщения всё равно
+     * пишутся в базу и видны в админке: форма не должна молчать в
+     * пустоту из-за ненастроенной почты.
+     */
+    mail: {
+      host: env.SMTP_HOST ?? '',
+      port: Number(env.SMTP_PORT ?? 587),
+      user: env.SMTP_USER ?? '',
+      password: env.SMTP_PASSWORD ?? '',
+      from: env.MAIL_FROM || env.SMTP_USER || 'padali-site@localhost',
+      to: env.MAIL_TO ?? 'padaliband@gmail.com'
+    },
+
     sessionSecret: env.SESSION_SECRET,
     /** Срок жизни сессии администратора. */
     sessionTtlMs: 30 * 24 * 60 * 60 * 1000,

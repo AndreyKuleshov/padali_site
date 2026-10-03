@@ -5,6 +5,8 @@ import links from './links.js'
 import gallery from './gallery.js'
 import richtext from './richtext.js'
 import youtube from './youtube.js'
+import merch from './merch.js'
+import contact from './contact.js'
 import footer from './footer.js'
 
 /**
@@ -16,7 +18,9 @@ const INPUT_TYPES = new Set([
   'select', 'date', 'url', 'repeater', 'youtube'
 ])
 
-const DESCRIPTORS = [hero, release, concert, links, gallery, youtube, richtext, footer]
+const DESCRIPTORS = [
+  hero, release, concert, links, gallery, youtube, merch, richtext, contact, footer
+]
 
 /** Падаем на старте, а не на первом открытии формы в админке. */
 function validateDescriptor (descriptor) {

@@ -312,8 +312,82 @@
     })
   }
 
+  /* ── Формы: связь и заказ мерча ──────────────────────────
+     Отправляем из скрипта, чтобы остаться на странице: перезагрузка
+     ради одной строки «спасибо» уводит человека из того места, где
+     он читал. */
+  function initSendForms () {
+    document.addEventListener('submit', function (event) {
+      var form = event.target.closest('[data-send-form]')
+      if (!form) return
+      event.preventDefault()
+
+      var button = form.querySelector('button[type="submit"]')
+      var note = form.querySelector('[data-send-note]')
+      var data = new FormData(form)
+      var payload = { kind: form.getAttribute('data-kind'), locale: document.documentElement.lang }
+      data.forEach(function (value, key) { payload[key] = value })
+
+      function say (text, state) {
+        if (!note) return
+        note.hidden = false
+        note.setAttribute('data-state', state)
+        note.textContent = text
+      }
+
+      if (button) button.disabled = true
+
+      fetch('/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (response) { return response.json().catch(function () { return {} }) })
+        .then(function (result) {
+          if (!result.ok) { say(form.getAttribute('data-failed'), 'error'); return }
+          // Форму убираем: повторная отправка того же — обычно промах.
+          say(form.getAttribute('data-sent'), 'ok')
+          form.reset()
+          var fields = form.querySelectorAll('.field, button[type="submit"]')
+          for (var i = 0; i < fields.length; i += 1) fields[i].hidden = true
+        })
+        .catch(function () { say(form.getAttribute('data-failed'), 'error') })
+        .finally(function () { if (button) button.disabled = false })
+    })
+  }
+
+  /* ── Окно заказа ─────────────────────────────────────────── */
+  function initOrderDialog () {
+    document.addEventListener('click', function (event) {
+      var trigger = event.target.closest('.merch-order')
+      if (trigger) {
+        var section = trigger.closest('section')
+        var dialog = section && section.querySelector('[data-order-dialog]')
+        if (!dialog) return
+
+        var item = trigger.getAttribute('data-order-item') || ''
+        var label = dialog.querySelector('[data-order-label]')
+        var field = dialog.querySelector('[data-order-field]')
+        if (label) label.textContent = item
+        if (field) field.value = item
+
+        dialog.showModal()
+        var first = dialog.querySelector('input:not([type="hidden"]):not([tabindex="-1"])')
+        if (first) first.focus()
+        return
+      }
+
+      if (event.target.closest('[data-order-close]')) {
+        var open = event.target.closest('[data-order-dialog]')
+        if (open) open.close()
+      }
+    })
+  }
+
   initCountdowns()
   initLightbox()
   initGalleryScrollers()
   initVideoFacades()
+  initSendForms()
+  initOrderDialog()
 })()
