@@ -13,7 +13,7 @@ import config from './config.js'
 import { migrate, waitForDatabase } from './db/migrate.js'
 import { closePool } from './db/pool.js'
 import { bootstrapAdminUser } from './services/auth.js'
-import { ensureSeeded } from './services/seed.js'
+import { ensureSeeded, ensureFooterBlock } from './services/seed.js'
 import { syncManagedAssets } from './services/managed-assets.js'
 import { purgeOlderThan } from './repositories/analytics.js'
 import { repairMedia } from './services/media-repair.js'
@@ -77,6 +77,7 @@ async function start () {
     await ensureSeeded({ logger: app.log })
     // Файлы репозитория доезжают до сайта так же, как код: заменили
     // картинку в seed-assets, выкатили — медиатека обновилась.
+    await ensureFooterBlock({ logger: app.log })
     await syncManagedAssets({ logger: app.log })
     // Снимки, загруженные по старым правилам, приводим к текущим.
     await repairMedia({ logger: app.log })

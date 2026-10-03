@@ -202,8 +202,13 @@ test('карта кликов фильтруется по странице и ш
   const mobile = await clickPoints({ path: '/', band: 'mobile', days: 30 })
   assert.deepEqual(mobile.map((p) => p.target), ['телефон'])
 
-  const targets = await topTargets({ path: '/', days: 30 })
-  assert.equal(targets.length, 2)
+  // Список целей фильтруется тем же экраном, что и карта: иначе
+  // «clicks: 0» и непустой список рядом противоречили бы друг другу.
+  const desktopTargets = await topTargets({ path: '/', band: 'desktop', days: 30 })
+  assert.deepEqual(desktopTargets.map((t) => t.target), ['настольный'])
+
+  const mobileTargets = await topTargets({ path: '/', band: 'mobile', days: 30 })
+  assert.deepEqual(mobileTargets.map((t) => t.target), ['телефон'])
 })
 
 test('старые события удаляются', async () => {

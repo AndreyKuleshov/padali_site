@@ -11,7 +11,7 @@
   var ENDPOINT = '/_a'
   var path = location.pathname
   var clicks = []
-  var sent = false
+  var pending = null
 
   function viewport () {
     return window.innerWidth || document.documentElement.clientWidth || 0
@@ -59,7 +59,6 @@
   }, false)
 
   document.addEventListener('click', function (event) {
-    if (clicks.length >= 80) return
     var width = viewport()
     if (width === 0) return
 
@@ -81,17 +80,39 @@
       w: width,
       t: describe(event.target)
     })
+
+    // Пачка набралась — отправляем сразу, не дожидаясь паузы.
+    if (clicks.length >= 20) flush()
+    else scheduleFlush()
   }, { passive: true, capture: true })
 
-  function flush () {
-    if (sent || clicks.length === 0) return
-    sent = true
-    send({ type: 'clicks', path: path, clicks: clicks }, true)
+  /**
+   * Отправка накопленного.
+   *
+   * Ждать ухода со страницы нельзя: если админка открыта во втором
+   * окне рядом, вкладка сайта остаётся видимой, и ни pagehide, ни
+   * visibilitychange не наступают — клики так и лежали бы в буфере.
+   * Поэтому отправляем через паузу после последнего клика, а уход
+   * со страницы лишь добивает остаток.
+   */
+  function flush (beacon) {
+    if (clicks.length === 0) return
+    var batch = clicks
+    // Буфер освобождаем сразу: иначе повторный вызов отправил бы
+    // те же клики второй раз и удвоил статистику.
+    clicks = []
+    clearTimeout(pending)
+    send({ type: 'clicks', path: path, clicks: batch }, beacon === true)
+  }
+
+  function scheduleFlush () {
+    clearTimeout(pending)
+    pending = setTimeout(flush, 3000)
   }
 
   // pagehide надёжнее unload, visibilitychange ловит уход на вкладку.
-  window.addEventListener('pagehide', flush)
+  window.addEventListener('pagehide', function () { flush(true) })
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden') flush()
+    if (document.visibilityState === 'hidden') flush(true)
   })
 })()

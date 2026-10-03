@@ -121,13 +121,19 @@ async function clickPoints ({ path, band = 'desktop', days = 30 }, conn) {
   )
 }
 
-/** Куда чаще всего жмут — читается быстрее карты. */
-async function topTargets ({ path, days = 30 }, conn) {
+/**
+ * Куда чаще всего жмут — читается быстрее карты.
+ * Фильтр по ширине экрана тот же, что у карты: иначе счётчик
+ * «clicks: 0» и непустой список рядом противоречили бы друг другу.
+ */
+async function topTargets ({ path, band = 'desktop', days = 30 }, conn) {
+  const range = DEVICE_BANDS[band] ?? DEVICE_BANDS.desktop
   return db(conn).all(
     'SELECT target, COUNT(*)::int AS clicks FROM analytics_clicks ' +
-    `WHERE path = ? AND target IS NOT NULL AND clicked_at > ${sinceClause(days)} ` +
+    'WHERE path = ? AND target IS NOT NULL AND viewport BETWEEN ? AND ? ' +
+    `AND clicked_at > ${sinceClause(days)} ` +
     'GROUP BY target ORDER BY clicks DESC LIMIT 12',
-    [path]
+    [path, range.min, range.max]
   )
 }
 

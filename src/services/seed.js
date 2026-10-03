@@ -3,11 +3,12 @@ import { basename, dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { query, transaction } from '../db/pool.js'
 import { db } from '../repositories/helpers.js'
-import { createPage, savePageTexts } from '../repositories/pages.js'
-import { createBlock, saveBlockTexts, saveBlockMedia } from '../repositories/blocks.js'
+import { createPage, getPageBySlug, savePageTexts } from '../repositories/pages.js'
+import { createBlock, listBlocks, saveBlockTexts, saveBlockMedia } from '../repositories/blocks.js'
+import { listLocales } from '../repositories/locales.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../repositories/galleries.js'
 import { saveMediaTexts } from '../repositories/media.js'
-import { setSetting } from '../repositories/settings.js'
+import { getSetting, setSetting } from '../repositories/settings.js'
 import { processUpload } from './media-processor.js'
 import { defaultSettings } from '../blocks/index.js'
 
@@ -215,4 +216,45 @@ async function ensureSeeded ({ logger = console } = {}) {
   return true
 }
 
-export { ensureSeeded }
+
+/**
+ * Заводит блок подвала, если его ещё нет.
+ *
+ * Подвал есть у сайта всегда: до появления блока он рисовался
+ * статически и не редактировался. Создаём один раз и помечаем это
+ * в настройках — если редактор потом удалит блок, подвал вернётся
+ * к статическому виду и воскресать не будет.
+ */
+async function ensureFooterBlock ({ logger = console } = {}) {
+  if (await getSetting('footer_block_created', false)) return false
+
+  const page = await getPageBySlug('home')
+  if (!page) return false
+
+  const blocks = await listBlocks(page.id)
+  if (blocks.some((block) => block.type === 'footer')) {
+    await setSetting('footer_block_created', true)
+    return false
+  }
+
+  const id = await createBlock({
+    pageId: page.id,
+    type: 'footer',
+    settings: defaultSettings('footer')
+  })
+
+  // Строку из настроек переносим в блок, чтобы подвал не опустел.
+  const note = await getSetting('footer_note', '')
+  if (note) {
+    const locales = await listLocales()
+    const texts = {}
+    for (const locale of locales) texts[locale.code] = { note }
+    await saveBlockTexts(id, texts)
+  }
+
+  logger.info?.('Создан блок подвала — теперь его можно редактировать.')
+  await setSetting('footer_block_created', true)
+  return true
+}
+
+export { ensureSeeded, ensureFooterBlock }

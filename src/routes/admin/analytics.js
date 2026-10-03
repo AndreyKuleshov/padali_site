@@ -50,7 +50,7 @@ async function analyticsRoutes (app) {
 
     const [points, targets] = await Promise.all([
       clickPoints({ path, band, days }),
-      topTargets({ path, days })
+      topTargets({ path, band, days })
     ])
 
     // Сетка «день недели × час» — 7 строк по 24 часа, с нулями.
