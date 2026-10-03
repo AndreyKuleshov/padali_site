@@ -7,6 +7,10 @@ import { cacheKey, getCached, setCached } from '../services/cache.js'
 import { getMedia } from '../repositories/media.js'
 import { pictureSources } from '../services/media-processor.js'
 import config from '../config.js'
+import { recordView, recordClicks } from '../repositories/analytics.js'
+import {
+  visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp
+} from '../services/analytics.js'
 
 function etagOf (html) {
   return `"${createHash('sha1').update(html).digest('base64url')}"`
@@ -51,6 +55,42 @@ async function publicRoutes (app) {
   app.setNotFoundHandler(notFound)
 
   app.get('/healthz', async () => ({ status: 'ok' }))
+
+  /**
+   * Приём событий от счётчика. Отвечаем 204 всегда: маячок не читает
+   * ответ, а посетитель не должен ничего заметить, даже если запись
+   * не удалась. Боты и мусор отбрасываются молча.
+   */
+  app.post('/_a', {
+    config: { rateLimit: { max: 120, timeWindow: '1 minute' } }
+  }, async (request, reply) => {
+    reply.code(204)
+
+    try {
+      if (isBot(request.headers['user-agent'])) return reply.send()
+
+      const body = request.body ?? {}
+      const path = normalizePath(body.path)
+      if (!path) return reply.send()
+
+      if (body.type === 'view') {
+        await recordView({
+          path,
+          locale: typeof body.locale === 'string' ? body.locale.slice(0, 8) : null,
+          visitorHash: visitorHash(request),
+          referrerHost: referrerHost(body.referrer),
+          viewport: Math.round(clamp(body.w, 200, 10000, 1024)),
+          isMobile: Math.round(clamp(body.w, 200, 10000, 1024)) <= 640
+        })
+      } else if (body.type === 'clicks') {
+        await recordClicks(parseClicks(body.clicks, path))
+      }
+    } catch (error) {
+      request.log.warn({ err: error }, 'Событие статистики не записано')
+    }
+
+    return reply.send()
+  })
 
   app.get('/robots.txt', async (request, reply) => {
     reply.type('text/plain; charset=utf-8')

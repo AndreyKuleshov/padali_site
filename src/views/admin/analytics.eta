@@ -1,0 +1,161 @@
+<%
+  var t = it.t
+  function periodHref (days) { return '/admin/analytics?days=' + days }
+  function heatHref (params) {
+    var search = new URLSearchParams({ days: it.days, path: it.heatmap.path, band: it.heatmap.band })
+    Object.keys(params).forEach(function (key) { search.set(key, params[key]) })
+    return '/admin/analytics?' + search.toString()
+  }
+%>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: t('stats.title') })) %>
+
+<div class="page-head">
+  <div>
+    <h1><%= t('stats.title') %></h1>
+    <p class="hint"><%= t('stats.subtitle') %></p>
+  </div>
+  <nav class="period-switch" aria-label="<%= t('stats.period') %>">
+    <% it.periods.forEach(function (days) { %>
+    <a href="<%= periodHref(days) %>"<%= days === it.days ? ' class="active"' : '' %>><%= t('stats.days' + days) %></a>
+    <% }) %>
+  </nav>
+</div>
+
+<% ;/* Крупные числа — не график: у них одна задача, назвать величину. */ %>
+<div class="stat-row">
+  <div class="stat">
+    <span class="stat-value"><%= it.totals.views %></span>
+    <span class="stat-label"><%= t('stats.views') %></span>
+  </div>
+  <div class="stat">
+    <span class="stat-value"><%= it.totals.visitors %></span>
+    <span class="stat-label"><%= t('stats.visitors') %></span>
+  </div>
+  <div class="stat">
+    <span class="stat-value"><%= it.totals.views === 0 ? '—' : Math.round((it.totals.mobile / it.totals.views) * 100) + '%' %></span>
+    <span class="stat-label"><%= t('stats.mobileShare') %></span>
+  </div>
+</div>
+
+<% if (it.totals.views === 0) { %>
+<p class="empty"><%= t('stats.empty') %></p>
+<% } else { %>
+
+<section class="card">
+  <h2><%= t('stats.perDay') %></h2>
+  <div class="bars" role="img" aria-label="<%= t('stats.perDay') %>">
+    <% it.byDay.forEach(function (row) { %>
+    <div class="bar-slot" title="<%= row.day %> — <%= t('stats.views') %>: <%= row.views %>, <%= t('stats.visitors') %>: <%= row.visitors %>">
+      <div class="bar<%= row.views === 0 ? ' bar--empty' : '' %>" style="height: <%= row.height %>%"></div>
+    </div>
+    <% }) %>
+  </div>
+  <div class="bars-axis">
+    <span><%= it.byDay.length > 0 ? it.byDay[0].day.slice(5) : '' %></span>
+    <span><%= it.byDay.length > 0 ? it.byDay[it.byDay.length - 1].day.slice(5) : '' %></span>
+  </div>
+</section>
+
+<section class="card">
+  <h2><%= t('stats.byHour') %></h2>
+  <div class="hourmap">
+    <% it.hourGrid.forEach(function (row) { %>
+    <div class="hourmap-row">
+      <span class="hourmap-day"><%= t('stats.weekday' + row.weekday) %></span>
+      <% row.hours.forEach(function (cell) { %>
+      <span class="hourmap-cell hourmap-cell--<%= cell.step %>"
+            title="<%= t('stats.weekday' + row.weekday) %> <%= String(cell.hour).padStart(2, '0') %>:00 — <%= cell.views %>"></span>
+      <% }) %>
+    </div>
+    <% }) %>
+    <div class="hourmap-row hourmap-legend">
+      <span class="hourmap-day"></span>
+      <span class="hourmap-scale">
+        <%= t('stats.less') %>
+        <% ;[0,1,2,3,4].forEach(function (step) { %><i class="hourmap-cell hourmap-cell--<%= step %>"></i><% }) %>
+        <%= t('stats.more') %>
+      </span>
+    </div>
+  </div>
+</section>
+
+<div class="stat-columns">
+  <section class="card">
+    <h2><%= t('stats.topPaths') %></h2>
+    <table class="data-table">
+      <thead><tr><th><%= t('stats.page') %></th><th><%= t('stats.views') %></th><th><%= t('stats.visitors') %></th></tr></thead>
+      <tbody>
+        <% it.paths.forEach(function (row) { %>
+        <tr><td><code><%= row.path %></code></td><td><%= row.views %></td><td><%= row.visitors %></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2><%= t('stats.referrers') %></h2>
+    <% if (it.referrers.length === 0) { %>
+    <p class="hint"><%= t('stats.noReferrers') %></p>
+    <% } else { %>
+    <table class="data-table">
+      <tbody>
+        <% it.referrers.forEach(function (row) { %>
+        <tr><td><%= row.referrer_host %></td><td><%= row.views %></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </section>
+</div>
+
+<section class="card">
+  <h2><%= t('stats.heatmap') %></h2>
+  <p class="hint"><%= t('stats.heatmapHint') %></p>
+
+  <div class="heatmap-controls">
+    <nav class="period-switch" aria-label="<%= t('stats.page') %>">
+      <% it.pathsWithClicks.forEach(function (row) { %>
+      <a href="<%= heatHref({ path: row.path }) %>"<%= row.path === it.heatmap.path ? ' class="active"' : '' %>><%= row.path %></a>
+      <% }) %>
+    </nav>
+    <nav class="period-switch" aria-label="<%= t('stats.device') %>">
+      <% it.heatmap.bands.forEach(function (band) { %>
+      <a href="<%= heatHref({ band: band.key }) %>"<%= band.key === it.heatmap.band ? ' class="active"' : '' %>><%= it.localize(band.label) %></a>
+      <% }) %>
+    </nav>
+    <span class="hint"><%= t('stats.clicksCount', { count: it.heatmap.points.length }) %></span>
+  </div>
+
+  <% if (it.heatmap.points.length === 0) { %>
+  <p class="hint"><%= t('stats.noClicks') %></p>
+  <% } else { %>
+  <div class="heatmap" id="heatmap"
+       data-width="<%= it.heatmap.width %>"
+       data-height="<%= it.heatmap.height %>"
+       data-points='<%~ it.h.jsonScript(it.heatmap.points.map(function (p) { return [p.x_ratio, p.y_offset] })) %>'>
+    <div class="heatmap-stage" id="heatmapStage">
+      <iframe id="heatmapFrame" src="<%= it.heatmap.path %>" title="<%= t('stats.heatmap') %>"
+              scrolling="no"></iframe>
+      <canvas id="heatmapCanvas"></canvas>
+    </div>
+  </div>
+  <label class="heatmap-scroll">
+    <span><%= t('stats.scroll') %></span>
+    <input type="range" id="heatmapScroll" min="0" max="0" value="0" step="1">
+  </label>
+  <% } %>
+
+  <% if (it.heatmap.targets.length > 0) { %>
+  <h3 class="heatmap-targets-title"><%= t('stats.topTargets') %></h3>
+  <table class="data-table">
+    <tbody>
+      <% it.heatmap.targets.forEach(function (row) { %>
+      <tr><td><%= row.target %></td><td><%= row.clicks %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</section>
+<% } %>
+
+<%~ include('/admin/partials/foot', it) %>

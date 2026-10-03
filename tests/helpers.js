@@ -9,6 +9,7 @@ import { createUser } from '../src/repositories/users.js'
 import { invalidateCache } from '../src/services/cache.js'
 
 const TABLES = [
+  'analytics_views', 'analytics_clicks',
   'block_media', 'block_texts', 'blocks',
   'gallery_items', 'gallery_texts', 'galleries',
   'media_texts', 'media',

@@ -5,13 +5,6 @@ import sharp from 'sharp'
 import config from '../config.js'
 import { findMediaByHash, insertMedia } from '../repositories/media.js'
 
-const EXTENSION_BY_MIME = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-  'image/avif': '.avif'
-}
-
 const MIME_BY_EXTENSION = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -85,30 +78,54 @@ async function writeDerivatives ({ buffer, mime, hash }) {
     throw new UploadError('Не удалось определить размеры изображения.')
   }
 
-  // EXIF-поворот применяем один раз, дальше работаем с нормализованным кадром.
-  image = image.rotate()
-  const normalized = await image.toBuffer({ resolveWithObject: true })
-  const width = normalized.info.width
-  const height = normalized.info.height
+  /* Присланный файл на диск не кладём: вместо него пишем мастер-копию
+     в webp, повёрнутую по EXIF и ограниченную по ширине. Снимок с
+     телефона на 12 мегабайт превращается в несколько сотен килобайт,
+     а качества хватает и для деривативов, и для полноэкранного показа.
+
+     Исключение — уже готовый webp подходящей ширины: перекодировать
+     его бессмысленно. Это вторая потеря качества, а размер от неё
+     может даже вырасти, если исходник был сжат сильнее нашего. */
+  const alreadyFine =
+    mime === 'image/webp' &&
+    metadata.width <= config.masterMaxWidth &&
+    (metadata.orientation ?? 1) === 1
+
+  const master = alreadyFine
+    ? { data: buffer, info: { width: metadata.width, height: metadata.height } }
+    : await image
+        .rotate()
+        .resize({ width: config.masterMaxWidth, withoutEnlargement: true })
+        .webp({ quality: config.masterQuality })
+        .toBuffer({ resolveWithObject: true })
+
+  const width = master.info.width
+  const height = master.info.height
 
   const folder = datedFolder()
-  const relativeOriginal = `${folder}/${hash}${EXTENSION_BY_MIME[mime] ?? '.bin'}`
+  const relativeMaster = `${folder}/${hash}.webp`
 
   await mkdir(absolutePath(folder), { recursive: true })
-  await writeFile(absolutePath(relativeOriginal), buffer)
+  await writeFile(absolutePath(relativeMaster), master.data)
 
   const widths = expectedWidths(width)
 
   for (const targetWidth of widths) {
-    await sharp(normalized.data)
+    await sharp(master.data)
       .resize({ width: targetWidth, withoutEnlargement: true })
       // Мелкие кадры сжимаем сильнее: на превью разницы не видно,
       // а крупные идут в шапку и на весь экран.
-      .webp({ quality: targetWidth <= 640 ? 82 : 88 })
-      .toFile(absolutePath(derivativeRelPath(relativeOriginal, targetWidth)))
+      .webp({ quality: targetWidth <= 640 ? 80 : 86 })
+      .toFile(absolutePath(derivativeRelPath(relativeMaster, targetWidth)))
   }
 
-  return { path: relativeOriginal, width, height, derivatives: widths }
+  return {
+    path: relativeMaster,
+    width,
+    height,
+    bytes: master.data.length,
+    derivatives: widths
+  }
 }
 
 /**
@@ -132,8 +149,8 @@ async function processUpload ({ buffer, originalName, mime, managedKey = null })
 
   const record = {
     ...written,
-    mime,
-    bytes: buffer.length,
+    // На диске лежит webp-мастер, каким бы ни был присланный формат.
+    mime: 'image/webp',
     hash,
     originalName: originalName.slice(0, 255),
     managedKey
@@ -159,11 +176,15 @@ function pictureSources (media) {
   const srcset = widths
     .map((width) => `${mediaUrl(derivativeRelPath(media.path, width))} ${width}w`)
     .join(', ')
-  const fallbackWidth = widths.at(-1) ?? media.width
+  const largest = widths.at(-1)
+  const best = largest ? mediaUrl(derivativeRelPath(media.path, largest)) : mediaUrl(media.path)
+
   return {
     srcset,
-    src: widths.length > 0 ? mediaUrl(derivativeRelPath(media.path, fallbackWidth)) : mediaUrl(media.path),
-    original: mediaUrl(media.path),
+    src: best,
+    /* Полноэкранный показ берёт самый крупный дериватив, а не
+       мастер-копию: разницы на экране не видно, а вес заметно меньше. */
+    original: best,
     width: media.width,
     height: media.height
   }
@@ -180,5 +201,5 @@ function thumbnailUrl (media) {
 export {
   processUpload, writeDerivatives, deleteFiles, pictureSources, thumbnailUrl,
   mediaUrl, derivativeRelPath, absolutePath, hashOf,
-  MIME_BY_EXTENSION, EXTENSION_BY_MIME, expectedWidths, UploadError
+  MIME_BY_EXTENSION, expectedWidths, UploadError
 }

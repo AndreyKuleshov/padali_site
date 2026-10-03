@@ -136,6 +136,20 @@ test('устаревший набор ширин чинится при неиз�
   assert.ok(await exists(absolutePath(derivativeRelPath(after.path, 900))))
 })
 
+/** Старые записи хранили присланный файл как есть, включая тяжёлые png. */
+test('мастер-копия не в webp пересобирается при неизменном файле', async () => {
+  const { media } = await seedManagedHero()
+  await query('UPDATE media SET mime = ?, path = ? WHERE id = ?',
+    ['image/png', media.path.replace(/\.webp$/, '.png'), media.id])
+
+  const updated = await syncManagedAssets({ logger: silent, dir })
+  assert.equal(updated.length, 1)
+
+  const after = await getMedia(media.id)
+  assert.equal(after.mime, 'image/webp')
+  assert.match(after.path, /\.webp$/)
+})
+
 test('совпадение с уже загруженным файлом не нарушает уникальность', async () => {
   const { media } = await seedManagedHero()
   const duplicate = await makeImage({ width: 1400, height: 900, seed: 9 })

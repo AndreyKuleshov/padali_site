@@ -50,5 +50,6 @@
 <%~ include('/partials/lightbox', it) %>
 
 <script src="<%= it.h.asset('/js/site.js') %>" defer></script>
+<script src="<%= it.h.asset('/js/analytics.js') %>" defer></script>
 </body>
 </html>

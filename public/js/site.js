@@ -181,7 +181,6 @@
       var next = frame.querySelector('.gallery-arrow--next')
       if (!scroller) return
 
-      var status = frame.parentNode.querySelector('[data-gallery-status]')
       var pages = Array.prototype.slice.call(scroller.querySelectorAll('.gallery-page'))
 
       function maxScroll () {
@@ -216,18 +215,10 @@
         var scrollable = maxScroll() > 2
         if (prev) prev.hidden = !scrollable
         if (next) next.hidden = !scrollable
-        if (!scrollable) {
-          if (status) status.textContent = ''
-          return
-        }
+        if (!scrollable) return
 
         if (prev) prev.disabled = scroller.scrollLeft <= 2
         if (next) next.disabled = scroller.scrollLeft >= maxScroll() - 2
-
-        if (status && pages.length > 1) {
-          status.textContent = scroller.getAttribute('data-label-page') + ' ' +
-            (currentIndex() + 1) + ' / ' + pages.length
-        }
       }
 
       function step (direction) {

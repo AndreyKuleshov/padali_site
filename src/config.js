@@ -75,6 +75,9 @@ function readEnv (env = process.env) {
       })
       .filter((user) => user && user.email && user.password.length >= 10),
 
+    /** Сколько дней держать сырые события статистики. */
+    analyticsRetentionDays: Number(env.ANALYTICS_RETENTION_DAYS ?? 180),
+
     uploadDir: resolve(env.UPLOAD_DIR ?? './data/uploads'),
     /** Предел на один загружаемый файл. */
     uploadMaxBytes: 20 * 1024 * 1024,
@@ -85,7 +88,15 @@ function readEnv (env = process.env) {
      * что между ступенями, терялось бы: у снимка 1100px лучшим
      * кандидатом оказывался бы 640px.
      */
-    derivativeWidths: [320, 640, 1280, 1920, 2560]
+    derivativeWidths: [320, 640, 1280, 1920, 2560],
+
+    /**
+     * Мастер-копия: то, что реально ложится на диск вместо присланного
+     * файла. Снимок с телефона — это десятки мегабайт, держать их
+     * незачем, а отдавать тем более.
+     */
+    masterMaxWidth: Number(env.MASTER_MAX_WIDTH ?? 2560),
+    masterQuality: Number(env.MASTER_QUALITY ?? 90)
   }
 }
 

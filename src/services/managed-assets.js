@@ -53,19 +53,31 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
     const hash = hashOf(buffer)
 
     if (hash === media.hash) {
-      // Содержимое прежнее, но набор ширин мог устареть после правки
-      // лестницы — дочиниваем, иначе srcset так и останется обрезанным.
+      /* Содержимое прежнее, но устареть мог и набор ширин, и сам
+         мастер: раньше на диск клался присланный файл как есть,
+         включая многомегабайтные png. Чиним оба случая. */
       const expected = expectedWidths(media.width)
       const actual = [...(media.derivatives ?? [])].sort((a, b) => a - b)
-      if (JSON.stringify(expected) === JSON.stringify(actual)) continue
+      const widthsOk = JSON.stringify(expected) === JSON.stringify(actual)
+      const masterOk = media.mime === 'image/webp' && media.path.endsWith('.webp')
+      if (widthsOk && masterOk) continue
 
-      const rebuilt = await writeDerivatives({ buffer, mime: media.mime, hash })
+      const previousPath = media.path
+      const previousBytes = media.bytes
+      const rebuilt = await writeDerivatives({ buffer, mime: source.mime, hash })
       await updateMediaFile(media.id, {
-        path: rebuilt.path, mime: media.mime,
-        width: rebuilt.width, height: rebuilt.height, bytes: buffer.length,
+        path: rebuilt.path, mime: 'image/webp',
+        width: rebuilt.width, height: rebuilt.height, bytes: rebuilt.bytes,
         hash, originalName: media.originalName, derivatives: rebuilt.derivatives
       })
-      logger.info?.(`Пересобраны размеры ${media.originalName}: [${actual}] → [${rebuilt.derivatives}].`)
+      // Прежний мастер другого формата остался бы висеть на диске.
+      if (previousPath !== rebuilt.path) {
+        await deleteFiles({ path: previousPath, derivatives: [] })
+      }
+      logger.info?.(
+        `Пересобран ${media.originalName}: [${actual}] → [${rebuilt.derivatives}], ` +
+        `${Math.round(previousBytes / 1024)} КБ → ${Math.round(rebuilt.bytes / 1024)} КБ.`
+      )
       updated.push({ key: source.key, file: source.file, width: rebuilt.width, height: rebuilt.height })
       continue
     }
@@ -83,10 +95,10 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
 
     await updateMediaFile(media.id, {
       path: written.path,
-      mime: source.mime,
+      mime: 'image/webp',
       width: written.width,
       height: written.height,
-      bytes: buffer.length,
+      bytes: written.bytes,
       hash,
       originalName: source.file,
       derivatives: written.derivatives

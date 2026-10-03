@@ -8,7 +8,7 @@
 </div>
 
 <form class="card upload-form" method="post" action="/admin/media/upload" enctype="multipart/form-data">
-  <% /* Токен должен идти ДО файла: загрузка читает поток по частям. */ %>
+  <% ;/* Токен должен идти ДО файла: загрузка читает поток по частям. */ %>
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 
   <div class="upload-drop" id="uploadDrop"

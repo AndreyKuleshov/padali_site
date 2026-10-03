@@ -518,3 +518,131 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   .block-row { flex-wrap: wrap; }
   .admin-top-right { width: 100%; margin-left: 0; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Статистика
+   ══════════════════════════════════════════════════════════════ */
+
+.period-switch { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.period-switch a {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: .84rem;
+  text-decoration: none;
+  color: var(--soft);
+}
+
+.period-switch a:hover { color: var(--ink); border-color: var(--soft); }
+.period-switch a.active { color: var(--bg); background: var(--neon); border-color: var(--neon); }
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+/* Число — главное, поэтому крупное; подпись остаётся служебной. */
+.stat-value { display: block; font-size: 1.9rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat-label { display: block; margin-top: 4px; font-size: .82rem; color: var(--soft); }
+
+.stat-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* ─── Столбики по дням ───────────────────────────────────── */
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 140px;
+}
+
+.bar-slot { flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; min-width: 3px; }
+
+.bar {
+  width: 100%;
+  background: var(--neon);
+  /* Скруглён только верх: низ прижат к базовой линии. */
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.bar--empty { background: var(--line); }
+.bar-slot:hover .bar { filter: brightness(1.15); }
+
+.bars-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: .74rem;
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Сетка «день × час» ─────────────────────────────────── */
+
+.hourmap { display: grid; gap: 3px; }
+.hourmap-row { display: flex; align-items: center; gap: 3px; }
+.hourmap-day { width: 34px; font-size: .74rem; color: var(--soft); }
+
+/* Одна краска, пять ступеней насыщенности: порядок читается сразу. */
+.hourmap-cell { flex: 1 1 0; height: 15px; border-radius: 2px; background: var(--panel-2); }
+.hourmap-cell--1 { background: rgba(214, 255, 46, .22); }
+.hourmap-cell--2 { background: rgba(214, 255, 46, .42); }
+.hourmap-cell--3 { background: rgba(214, 255, 46, .66); }
+.hourmap-cell--4 { background: rgba(214, 255, 46, .95); }
+
+.hourmap-legend { margin-top: 6px; }
+.hourmap-scale { display: flex; align-items: center; gap: 4px; font-size: .74rem; color: var(--soft); }
+.hourmap-scale i { flex: 0 0 15px; height: 15px; }
+
+/* ─── Таблицы ────────────────────────────────────────────── */
+
+.data-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.data-table th { text-align: left; font-weight: 500; color: var(--soft); font-size: .78rem; padding-bottom: 6px; }
+.data-table td { padding: 6px 0; border-top: 1px solid var(--line); }
+.data-table td:not(:first-child) { text-align: right; width: 70px; font-variant-numeric: tabular-nums; }
+
+/* ─── Карта кликов ───────────────────────────────────────── */
+
+.heatmap-controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+.heatmap-controls .hint { margin: 0; }
+
+.heatmap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #000;
+}
+
+.heatmap-stage { position: relative; transform-origin: top left; }
+.heatmap-stage iframe { display: block; border: 0; width: 100%; pointer-events: none; }
+.heatmap-stage canvas { position: absolute; inset: 0; pointer-events: none; }
+
+.heatmap-targets-title { margin-top: 22px; }
+
+@media (max-width: 720px) {
+  .stat-columns { grid-template-columns: 1fr; }
+}
+
+.heatmap-scroll {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: .82rem;
+  color: var(--soft);
+}
+
+.heatmap-scroll input { flex: 1; accent-color: var(--neon); }
+.heatmap-scroll input:disabled { opacity: .4; }

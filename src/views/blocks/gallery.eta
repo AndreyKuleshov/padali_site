@@ -21,25 +21,38 @@
 
   var scrollable = paged || layout === 'strip'
 
-  // Ширина слота зависит от раскладки — подсказываем браузеру, какой
-  // дериватив брать, иначе он скачает самый широкий.
+  /* Ширина слота считается от колонки содержимого, а не от экрана.
+     Галерея живёт внутри .wrap (максимум 760px с полями по 24px),
+     поэтому «33vw» заставляло браузер качать версию 1280px туда,
+     где нужно 240 — отсюда и долгая загрузка. */
+  var GAP = 10
+  var WRAP = 760
+  var PAD = 24
+  var PAD_SMALL = 20
+  var content = WRAP - PAD * 2
+  var gaps = (columns - 1) * GAP
+  var slot = Math.round((content - gaps) / columns)
+  var mobileGaps = GAP // на узком экране всегда две колонки
+
   var sizes = layout === 'strip'
     ? '(max-width: 640px) 72vw, 320px'
-    : '(max-width: 640px) 50vw, ' + Math.round(100 / columns) + 'vw'
+    : '(max-width: 640px) calc((100vw - ' + (PAD_SMALL * 2 + mobileGaps) + 'px) / 2), ' +
+      '(max-width: ' + WRAP + 'px) calc((100vw - ' + (PAD * 2 + gaps) + 'px) / ' + columns + '), ' +
+      slot + 'px'
 %>
 <% if (items.length > 0) { %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
   <% if (block.text.intro) { %><p class="note gallery-intro"><%= block.text.intro %></p><% } %>
 
-  <% /* Группа листания охватывает все экраны: полноэкранный просмотр
+  <% ;/* Группа листания охватывает все экраны: полноэкранный просмотр
         ходит по всему альбому, а не по видимой странице. */ %>
   <div class="gallery-frame<%= scrollable ? ' gallery-frame--scrollable' : '' %>"
        <% if (useLightbox) { %>data-lightbox-group="block-<%= block.id %>"<% } %>>
 
     <% if (paged) { %>
     <div class="gallery-track" data-gallery-scroll
-         data-label-page="<%= sr ? 'Ekran' : 'Screen' %>">
+     >
       <% pages.forEach(function (page) { %>
       <div class="gallery-page gallery gallery--grid" style="--gallery-columns: <%= columns %>">
         <% page.forEach(function (item) { %>
@@ -77,10 +90,6 @@
     </button>
     <% } %>
   </div>
-
-  <% if (paged) { %>
-  <p class="gallery-progress note" data-gallery-status aria-live="polite"></p>
-  <% } %>
 
   <% if (gallery.totalCount > items.length) { %>
   <p class="gallery-more note">

@@ -15,6 +15,7 @@ import { closePool } from './db/pool.js'
 import { bootstrapAdminUser } from './services/auth.js'
 import { ensureSeeded } from './services/seed.js'
 import { syncManagedAssets } from './services/managed-assets.js'
+import { purgeOlderThan } from './repositories/analytics.js'
 import publicRoutes from './routes/public.js'
 import adminRoutes from './routes/admin/index.js'
 
@@ -77,6 +78,21 @@ async function start () {
     // картинку в seed-assets, выкатили — медиатека обновилась.
     await syncManagedAssets({ logger: app.log })
     await bootstrapAdminUser(app.log)
+
+    // Статистика — не архив: сырые события чистим на старте и раз в сутки.
+    const purge = async () => {
+      try {
+        const removed = await purgeOlderThan(config.analyticsRetentionDays)
+        if (removed.views + removed.clicks > 0) {
+          app.log.info(`Статистика: удалено старых записей — просмотров ${removed.views}, кликов ${removed.clicks}.`)
+        }
+      } catch (error) {
+        app.log.warn({ err: error }, 'Чистка статистики не удалась')
+      }
+    }
+    await purge()
+    const purgeTimer = setInterval(purge, 24 * 60 * 60 * 1000)
+    purgeTimer.unref()
 
     await app.listen({ port: config.port, host: config.host })
   } catch (error) {

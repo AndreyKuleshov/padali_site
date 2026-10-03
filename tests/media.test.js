@@ -144,6 +144,60 @@ test('файлы раскладываются по году и месяцу вн
   const { media } = await processUpload({
     buffer: await makeImage({ seed: 8 }), originalName: 'dated.png', mime: 'image/png'
   })
-  assert.match(media.path, /^\d{4}\/\d{2}\/[a-f0-9]{64}\.png$/)
+  assert.match(media.path, /^\d{4}\/\d{2}\/[a-f0-9]{64}\.webp$/)
   assert.ok(absolutePath(media.path).startsWith(config.uploadDir))
+})
+
+/**
+ * Присланный файл на диск не попадает: вместо него пишется webp-мастер.
+ * Иначе снимок с телефона на десяток мегабайт так и лежал бы в томе,
+ * а полноэкранный показ тянул бы его целиком.
+ */
+test('загруженный файл сжимается в мастер-копию', async () => {
+  const buffer = await makeImage({ width: 1800, height: 1200, seed: 51 })
+  const { media } = await processUpload({
+    buffer, originalName: 'heavy.png', mime: 'image/png'
+  })
+
+  assert.equal(media.mime, 'image/webp', 'на диске webp, а не присланный png')
+  assert.ok(media.bytes < buffer.length, `мастер ${media.bytes} меньше присланных ${buffer.length}`)
+  assert.equal(await exists(absolutePath(media.path)), true)
+  assert.equal(media.originalName, 'heavy.png', 'имя исходника сохраняется для человека')
+})
+
+/** Повторное сжатие уже готового webp только портит кадр. */
+test('готовый webp подходящей ширины не перекодируется', async () => {
+  const sharp = (await import('sharp')).default
+  const webp = await sharp({
+    create: { width: 900, height: 600, channels: 3, background: { r: 10, g: 90, b: 160 } }
+  }).webp({ quality: 60 }).toBuffer()
+
+  const { media } = await processUpload({
+    buffer: webp, originalName: 'ready.webp', mime: 'image/webp'
+  })
+
+  assert.equal(media.bytes, webp.length, 'байты мастера совпадают с присланными')
+  assert.equal(media.width, 900)
+})
+
+test('слишком широкий кадр ужимается до предела мастер-копии', async () => {
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 4000, height: 2500, seed: 52 }),
+    originalName: 'huge.png',
+    mime: 'image/png'
+  })
+  assert.equal(media.width, config.masterMaxWidth)
+  assert.deepEqual(media.derivatives, [320, 640, 1280, 1920, 2560])
+})
+
+test('полноэкранный показ берёт дериватив, а не мастер-копию', async () => {
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 1800, height: 1200, seed: 53 }),
+    originalName: 'light.png',
+    mime: 'image/png'
+  })
+
+  const sources = pictureSources(media)
+  assert.match(sources.original, /-1800\.webp$/, 'открывается самый крупный дериватив')
+  assert.notEqual(sources.original, '/uploads/' + media.path, 'мастер-копия наружу не отдаётся')
 })

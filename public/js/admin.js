@@ -312,9 +312,106 @@
     })
   }
 
+  /* ── Карта кликов ─────────────────────────────────────────
+     Страница показывается живьём во фрейме размером с настоящий
+     экран: если растянуть фрейм на всю высоту документа, единицы
+     svh раздуют шапку и страница перестанет быть похожей на то,
+     что видят люди. Поэтому фрейм — «окно», а по документу его
+     двигает ползунок; пятна смещаются вместе с ним. */
+  function initHeatmap () {
+    var root = document.getElementById('heatmap')
+    var stage = document.getElementById('heatmapStage')
+    var frame = document.getElementById('heatmapFrame')
+    var canvas = document.getElementById('heatmapCanvas')
+    var slider = document.getElementById('heatmapScroll')
+    if (!root || !frame || !canvas) return
+
+    var width = Number(root.getAttribute('data-width')) || 1440
+    var height = Number(root.getAttribute('data-height')) || 900
+    var points = []
+    try { points = JSON.parse(root.getAttribute('data-points')) || [] } catch (error) { points = [] }
+
+    var offset = 0
+    var radius = Math.max(26, Math.round(width / 28))
+
+    frame.style.width = width + 'px'
+    frame.style.height = height + 'px'
+    stage.style.width = width + 'px'
+    stage.style.height = height + 'px'
+    canvas.width = width
+    canvas.height = height
+
+    function draw () {
+      var context = canvas.getContext('2d')
+      context.clearRect(0, 0, width, height)
+      // Пятна складываются по яркости: скопление светится сильнее.
+      context.globalCompositeOperation = 'lighter'
+
+      points.forEach(function (point) {
+        var y = point[1] - offset
+        if (y < -radius || y > height + radius) return
+        var x = point[0] * width
+        var gradient = context.createRadialGradient(x, y, 0, x, y, radius)
+        gradient.addColorStop(0, 'rgba(214, 255, 46, 0.5)')
+        gradient.addColorStop(0.45, 'rgba(214, 255, 46, 0.2)')
+        gradient.addColorStop(1, 'rgba(214, 255, 46, 0)')
+        context.fillStyle = gradient
+        context.beginPath()
+        context.arc(x, y, radius, 0, Math.PI * 2)
+        context.fill()
+      })
+    }
+
+    function scrollTo (value) {
+      offset = value
+      if (frame.contentWindow) frame.contentWindow.scrollTo(0, offset)
+      draw()
+    }
+
+    function fit () {
+      var document_ = frame.contentDocument
+      if (!document_) return
+
+      var documentHeight = Math.max(
+        document_.documentElement.scrollHeight,
+        document_.body ? document_.body.scrollHeight : 0
+      )
+      // Ползунок ходит по той части документа, что не влезла в окно,
+      // но не меньше самого нижнего клика — иначе до него не добраться.
+      var lowestClick = points.reduce(function (max, point) { return Math.max(max, point[1]) }, 0)
+      var reach = Math.max(0, Math.max(documentHeight, lowestClick + radius) - height)
+
+      if (slider) {
+        slider.max = String(Math.round(reach))
+        slider.disabled = reach === 0
+      }
+      scrollTo(Math.min(offset, reach))
+
+      // Панель уже страницы — ужимаем целиком, сохраняя пропорции.
+      var scale = Math.min(1, root.clientWidth / width)
+      stage.style.transform = 'scale(' + scale + ')'
+      root.style.height = Math.round(height * scale) + 'px'
+    }
+
+    if (slider) {
+      slider.addEventListener('input', function () { scrollTo(Number(slider.value)) })
+    }
+
+    // Высота документа меняется, пока догружаются шрифты и картинки.
+    frame.addEventListener('load', function () {
+      fit()
+      var document_ = frame.contentDocument
+      if (document_ && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(fit).observe(document_.documentElement)
+      }
+    })
+    window.addEventListener('resize', fit)
+  }
+
   initBlockOrder()
   initRepeaters()
   initGalleryItems()
   initMediaPicker()
   initUpload()
+  initHeatmap()
 })()

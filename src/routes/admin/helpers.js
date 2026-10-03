@@ -11,7 +11,8 @@ const NAV = [
   { href: '/admin/galleries', key: 'nav.galleries', match: /^\/admin\/galleries/ },
   { href: '/admin/media', key: 'nav.media', match: /^\/admin\/media/ },
   { href: '/admin/settings', key: 'nav.settings', match: /^\/admin\/settings/ },
-  { href: '/admin/users', key: 'nav.users', match: /^\/admin\/users/ }
+  { href: '/admin/users', key: 'nav.users', match: /^\/admin\/users/ },
+  { href: '/admin/analytics', key: 'nav.analytics', match: /^\/admin\/analytics/ }
 ]
 
 /**
