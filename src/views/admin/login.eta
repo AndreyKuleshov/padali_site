@@ -1,4 +1,4 @@
-<%~ include('/admin/partials/head', { title: 'Вход', csrf: it.csrf }) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { title: 'Вход' })) %>
 <div class="login-box">
   <h1>Вход в админку</h1>
   <% if (it.error) { %><p class="flash flash--error"><%= it.error %></p><% } %>

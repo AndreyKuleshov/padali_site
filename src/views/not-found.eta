@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>404 — PADALI</title>
-<link rel="icon" href="/brand/favicon.png">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="icon" href="<%= it.h.asset('/brand/favicon.png') %>">
+<link rel="stylesheet" href="<%= it.h.asset('/css/site.css') %>">
 </head>
 <body>
 <main class="wrap section" style="min-height:60svh">

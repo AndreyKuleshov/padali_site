@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><%= it.title || 'Админка' %> — PADALI</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="/brand/favicon.png">
-<link rel="stylesheet" href="/css/admin.css">
+<link rel="icon" href="<%= it.h.asset('/brand/favicon.png') %>">
+<link rel="stylesheet" href="<%= it.h.asset('/css/admin.css') %>">
 </head>
 <body class="admin">
 <% if (it.nav) { %>

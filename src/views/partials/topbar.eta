@@ -1,7 +1,7 @@
 <header class="topbar">
   <div class="wrap topbar-inner">
     <a class="logo-mark" href="<%= it.h.localeUrl(it.locale, it.defaultLocale) %>" aria-label="PADALI">
-      <img src="/brand/padali-wordmark.webp" alt="PADALI" width="160" height="22">
+      <img src="<%= it.h.asset('/brand/padali-wordmark.webp') %>" alt="PADALI" width="160" height="22">
     </a>
     <div class="topbar-right">
       <% if ((it.settings.social || []).length > 0) { %>

@@ -7,7 +7,7 @@
 <% if (it.meta.description) { %>
 <meta name="description" content="<%= it.meta.description %>">
 <% } %>
-<link rel="icon" href="/brand/favicon.png">
+<link rel="icon" href="<%= it.h.asset('/brand/favicon.png') %>">
 
 <link rel="canonical" href="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale) %>">
 <% it.locales.forEach(function (locale) { %>
@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="<%= it.h.asset('/css/site.css') %>">
 </head>
 <body>
 
@@ -49,6 +49,6 @@
 <%~ include('/partials/footer', it) %>
 <%~ include('/partials/lightbox', it) %>
 
-<script src="/js/site.js" defer></script>
+<script src="<%= it.h.asset('/js/site.js') %>" defer></script>
 </body>
 </html>

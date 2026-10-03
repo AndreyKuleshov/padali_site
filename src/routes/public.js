@@ -44,11 +44,7 @@ function sendHtml (request, reply, rendered) {
 async function notFound (request, reply) {
   const defaultLocale = await getDefaultLocale()
   reply.code(404).type('text/html; charset=utf-8')
-  return reply.send(render('not-found', {
-    locale: defaultLocale,
-    h: {},
-    homeUrl: '/'
-  }))
+  return reply.send(render('not-found', { locale: defaultLocale, homeUrl: '/' }))
 }
 
 async function publicRoutes (app) {

@@ -4,6 +4,7 @@ import { Eta } from 'eta'
 import sanitizeHtml from 'sanitize-html'
 import config from '../config.js'
 import { icon, ICON_NAMES } from './icons.js'
+import { assetUrl } from './assets.js'
 
 const VIEWS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'views')
 
@@ -44,6 +45,7 @@ function localeUrl (code, defaultLocale, path = '') {
 
 const helpers = {
   icon,
+  asset: assetUrl,
   iconNames: ICON_NAMES,
   sanitize,
   formatDate,

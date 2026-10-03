@@ -173,6 +173,14 @@ test('текст из базы экранируется при выводе', as
   assert.match(response.body, /<p>ок<\/p>/, 'разрешённая разметка сохранена')
 })
 
+test('страница ссылается на статику с отпечатком', async () => {
+  await buildPage()
+  const response = await app.inject({ method: 'GET', url: '/' })
+
+  assert.match(response.body, /href="\/css\/site\.css\?v=[a-f0-9]{10}"/)
+  assert.match(response.body, /src="\/js\/site\.js\?v=[a-f0-9]{10}"/)
+})
+
 test('две галереи получают разные группы листания', async () => {
   const { pageId, mediaId } = await buildPage()
 
