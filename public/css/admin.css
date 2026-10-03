@@ -2,6 +2,12 @@
    PADALI — админка
    ══════════════════════════════════════════════════════════════ */
 
+/* Свой display у класса перебивает скрытие из браузерных стилей:
+   у .btn это inline-flex, и кнопка с атрибутом hidden оставалась
+   видимой. Правило общее — проблема повторяется у всего, чему
+   назначен display. */
+[hidden] { display: none !important; }
+
 :root {
   --bg: #0E0E0E;
   --panel: #171717;
@@ -753,3 +759,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 @media (max-width: 520px) {
   .youtube-preview img { width: 84px; height: 48px; }
 }
+
+/* ─── Перевод полей ──────────────────────────────────────── */
+
+.translate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+/* Исходник шире кнопки: в него пишут фразу, а не слово. */
+.translate-source { flex: 1 1 280px; min-width: 0; }
+
+.translate-run { flex: none; }
+
+.translate-note { margin: 0; flex: 1 1 100%; }
+.translate-note[data-state="error"] { color: var(--danger); }

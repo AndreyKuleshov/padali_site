@@ -1,0 +1,129 @@
+/**
+ * Перевод строк админки.
+ *
+ * Редактор пишет текст на том языке, на котором думает, и получает
+ * обе версии сразу. Перевод — подсказка, а не истина: поля остаются
+ * обычными и правятся руками, поэтому ошибка модели стоит дёшево.
+ *
+ * Ключа может не быть — тогда функция честно говорит об этом, а
+ * админка не показывает кнопок.
+ */
+import config from '../config.js'
+
+/** Как называть язык модели: код вроде «sr» она понимает хуже. */
+const LANGUAGE_NAMES = {
+  en: 'English',
+  sr: 'Serbian (latin script, as spoken in Serbia)',
+  ru: 'Russian',
+  de: 'German',
+  fr: 'French',
+  es: 'Spanish',
+  it: 'Italian',
+  hr: 'Croatian',
+  bs: 'Bosnian'
+}
+
+function languageName (code, title) {
+  return LANGUAGE_NAMES[code] ?? title ?? code
+}
+
+export function isConfigured (settings = config.openai) {
+  return Boolean(settings.apiKey)
+}
+
+const SYSTEM = [
+  'You translate short strings for the website of PADALI, a Serbian rapcore band.',
+  'The text is a heading, a menu label, a caption or a short paragraph on that site.',
+  'Rules:',
+  '- Translate meaning, not words. Keep the register of a band site: direct, informal, no corporate wording.',
+  '- Keep the length close to the source. These strings sit in a layout.',
+  '- Keep placeholders such as {days} exactly as they are.',
+  '- Keep HTML tags, markdown and line breaks exactly as they are.',
+  '- Keep proper names, band names, venue names and track titles unchanged.',
+  '- Return the translation only, with no quotes and no commentary.'
+].join('\n')
+
+/**
+ * @param {object} input
+ * @param {string} input.text исходный текст на любом языке
+ * @param {Array<{code: string, title?: string}>} input.locales куда переводить
+ * @returns {Promise<{ok: true, translations: Record<string, string>}
+ *                 | {ok: false, reason: 'not_configured'|'empty'|'unreachable'|'refused'}>}
+ */
+export async function translate ({ text, locales }, {
+  fetchImpl = fetch, settings = config.openai
+} = {}) {
+  const source = String(text ?? '').trim()
+  if (source === '') return { ok: false, reason: 'empty' }
+  if (!isConfigured(settings)) return { ok: false, reason: 'not_configured' }
+
+  const targets = (locales ?? []).filter((locale) => locale?.code)
+  if (targets.length === 0) return { ok: false, reason: 'empty' }
+
+  const wanted = targets
+    .map((locale) => `- "${locale.code}": ${languageName(locale.code, locale.title)}`)
+    .join('\n')
+
+  let response
+  try {
+    response = await fetchImpl(`${settings.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${settings.apiKey}`
+      },
+      body: JSON.stringify({
+        model: settings.model,
+        // Перевод не место для выдумки: нужен предсказуемый ответ.
+        temperature: 0,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SYSTEM },
+          {
+            role: 'user',
+            content: `Translate the text below into each of these languages:\n${wanted}\n\n` +
+              'Answer with a JSON object whose keys are exactly those language codes ' +
+              'and whose values are the translations. If the text is already in one of ' +
+              'the target languages, repeat it under that key unchanged.\n\n' +
+              `Text:\n${source}`
+          }
+        ]
+      }),
+      signal: AbortSignal.timeout(settings.timeoutMs)
+    })
+  } catch {
+    return { ok: false, reason: 'unreachable' }
+  }
+
+  // 401 и 429 — это про ключ и квоту, а не про текст; разделять их
+  // в интерфейсе незачем, но «отказано» и «не доехало» — разное.
+  if (response.status === 401 || response.status === 403 || response.status === 429) {
+    return { ok: false, reason: 'refused' }
+  }
+  if (!response.ok) return { ok: false, reason: 'unreachable' }
+
+  let payload
+  try {
+    payload = await response.json()
+  } catch {
+    return { ok: false, reason: 'unreachable' }
+  }
+
+  const content = payload?.choices?.[0]?.message?.content
+  let parsed
+  try {
+    parsed = JSON.parse(String(content ?? ''))
+  } catch {
+    return { ok: false, reason: 'unreachable' }
+  }
+
+  const translations = {}
+  for (const locale of targets) {
+    const value = parsed?.[locale.code]
+    // Пропуск языка — не повод терять остальные: отдаём что есть.
+    if (typeof value === 'string' && value.trim() !== '') translations[locale.code] = value.trim()
+  }
+
+  if (Object.keys(translations).length === 0) return { ok: false, reason: 'unreachable' }
+  return { ok: true, translations }
+}

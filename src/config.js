@@ -36,6 +36,21 @@ function readEnv (env = process.env) {
       schema: env.DB_SCHEMA ?? 'padali'
     },
 
+    /**
+     * Перевод полей админки.
+     *
+     * Ключа может не быть: без него кнопки перевода просто не
+     * показываются, а остальная админка работает как раньше.
+     * Модель вынесена в переменную — сменить её должно быть
+     * можно без правки кода и выкладки.
+     */
+    openai: {
+      apiKey: env.OPENAI_API_KEY ?? '',
+      model: env.OPENAI_MODEL ?? 'gpt-4.1-mini',
+      baseUrl: (env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/+$/, ''),
+      timeoutMs: Number(env.OPENAI_TIMEOUT_MS ?? 20000)
+    },
+
     sessionSecret: env.SESSION_SECRET,
     /** Срок жизни сессии администратора. */
     sessionTtlMs: 30 * 24 * 60 * 60 * 1000,

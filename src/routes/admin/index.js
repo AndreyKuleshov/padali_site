@@ -7,6 +7,7 @@ import galleryRoutes from './galleries.js'
 import settingsRoutes from './settings.js'
 import userRoutes from './users.js'
 import analyticsRoutes from './analytics.js'
+import translateRoutes from './translate.js'
 
 /**
  * Охрана админки: сессия обязательна, POST обязан нести CSRF-токен.
@@ -44,6 +45,7 @@ async function adminRoutes (app) {
     await scope.register(settingsRoutes)
     await scope.register(userRoutes)
     await scope.register(analyticsRoutes)
+    await scope.register(translateRoutes)
   })
 }
 

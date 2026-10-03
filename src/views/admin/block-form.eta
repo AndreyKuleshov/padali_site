@@ -27,8 +27,9 @@
       <span><%= it.t('blockForm.showOnSite') %></span>
     </label>
 
-    <div class="field">
+    <div class="field" data-translate>
       <label><%= it.t('blockForm.navLabel') %></label>
+      <%~ include('/admin/partials/translate-row', it) %>
       <div class="locale-grid">
         <% locales.forEach(function (locale) { %>
         <div>
@@ -45,8 +46,9 @@
   <section class="card">
     <h2><%= it.t('blockForm.texts') %></h2>
     <% descriptor.texts.forEach(function (field) { %>
-    <div class="field">
+    <div class="field" data-translate>
       <label><%= it.localize(field.label) %></label>
+      <%~ include('/admin/partials/translate-row', it) %>
       <div class="locale-grid<%= field.input === 'richtext' || field.input === 'textarea' ? ' locale-grid--stacked' : '' %>">
         <% locales.forEach(function (locale) { %>
         <div>

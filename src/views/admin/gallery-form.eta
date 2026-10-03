@@ -27,8 +27,9 @@
       <input type="text" id="slug" name="slug" value="<%= it.gallery.slug %>" pattern="[a-z0-9-]+" required>
     </div>
 
-    <div class="field">
+    <div class="field" data-translate>
       <label><%= it.t('galleries.name') %></label>
+      <%~ include('/admin/partials/translate-row', it) %>
       <div class="locale-grid">
         <% it.locales.forEach(function (locale) { %>
         <div>
@@ -39,8 +40,9 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="field" data-translate>
       <label><%= it.t('common.description') %></label>
+      <%~ include('/admin/partials/translate-row', it) %>
       <div class="locale-grid locale-grid--stacked">
         <% it.locales.forEach(function (locale) { %>
         <div>

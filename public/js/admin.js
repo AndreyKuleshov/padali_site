@@ -689,6 +689,92 @@
     }
   }
 
+  /* ── Перевод полей ───────────────────────────────────────
+     Редактор пишет на том языке, на котором думает, и получает
+     обе версии разом. Результат попадает в обычные поля: это
+     подсказка, а не истина, и правится руками. */
+  function initTranslate () {
+    var strings = document.getElementById('translateStrings')
+    if (!strings) return
+
+    function targetsOf (field) {
+      var found = []
+      var inputs = field.querySelectorAll('[name^="text["]')
+      for (var i = 0; i < inputs.length; i += 1) {
+        var match = /^text\[([^\]]+)\]/.exec(inputs[i].getAttribute('name'))
+        if (match) found.push({ locale: match[1], node: inputs[i] })
+      }
+      return found
+    }
+
+    function csrfOf (node) {
+      var form = node.closest('form')
+      var field = form && form.querySelector('input[name="_csrf"]')
+      return field ? field.value : ''
+    }
+
+    document.addEventListener('input', function (event) {
+      var source = event.target
+      if (!source.matches || !source.matches('[data-translate-source]')) return
+      var field = source.closest('[data-translate]')
+      var button = field && field.querySelector('[data-translate-run]')
+      if (button) button.hidden = source.value.trim() === ''
+    })
+
+    document.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-translate-run]')
+      if (!button) return
+
+      var field = button.closest('[data-translate]')
+      var source = field.querySelector('[data-translate-source]')
+      var note = field.querySelector('[data-translate-note]')
+      var targets = targetsOf(field)
+      var text = source.value.trim()
+      if (text === '' || targets.length === 0) return
+
+      button.disabled = true
+      button.classList.add('is-busy')
+      if (note) { note.hidden = false; note.removeAttribute('data-state'); note.textContent = strings.getAttribute('data-working') }
+
+      fetch('/admin/translate.json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _csrf: csrfOf(button), text: text })
+      })
+        .then(function (response) { return response.json() })
+        .then(function (result) {
+          if (!result.ok) {
+            if (note) { note.setAttribute('data-state', 'error'); note.textContent = result.message || strings.getAttribute('data-failed') }
+            return
+          }
+
+          var filled = 0
+          targets.forEach(function (target) {
+            var value = result.translations[target.locale]
+            if (typeof value !== 'string') return
+            target.node.value = value
+            // Чужой код мог слушать поле — пусть узнает.
+            target.node.dispatchEvent(new Event('input', { bubbles: true }))
+            filled += 1
+          })
+
+          if (note) {
+            note.textContent = ''
+            note.hidden = true
+          }
+          // Исходник больше не нужен: перевод лежит в полях.
+          if (filled > 0) { source.value = ''; button.hidden = true }
+        })
+        .catch(function () {
+          if (note) { note.setAttribute('data-state', 'error'); note.textContent = strings.getAttribute('data-failed') }
+        })
+        .finally(function () {
+          button.disabled = false
+          button.classList.remove('is-busy')
+        })
+    })
+  }
+
   initBlockOrder()
   initRepeaters()
   initGalleryItems()
@@ -697,5 +783,6 @@
   initFieldUpload()
   initLogoPreview()
   initYoutubeField()
+  initTranslate()
   initHeatmap()
 })()

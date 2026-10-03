@@ -76,6 +76,15 @@ const DICTIONARY = {
     'blockForm.manageAlbums': 'Manage albums',
     'blockForm.addRow': 'Add row',
 
+    'translate.placeholder': 'Write it in any language — I will translate',
+    'translate.button': 'Translate',
+    'translate.working': 'Translating…',
+    'translate.failed': 'Translation failed. Fill the fields in by hand.',
+    'translate.notConfigured': 'Translation is switched off: there is no OPENAI_API_KEY.',
+    'translate.empty': 'Nothing to translate.',
+    'translate.unreachable': 'The translation service did not answer. Try again in a moment.',
+    'translate.refused': 'The translation service refused the request — check the key and the quota.',
+
     'youtube.checking': 'Looking the video up…',
     'youtube.invalid': 'This does not look like a YouTube link. Paste a link from the address bar or from «Share».',
     'youtube.not_found': 'Video not found. It may have been deleted, or the link has a typo.',
@@ -286,6 +295,15 @@ const DICTIONARY = {
     'blockForm.galleryHint': 'Jedan album može stajati u više blokova — na primer tračno gore i kao mreža niže.',
     'blockForm.manageAlbums': 'Upravljanje albumima',
     'blockForm.addRow': 'Dodaj red',
+
+    'translate.placeholder': 'Napišite na bilo kom jeziku — prevešću',
+    'translate.button': 'Prevedi',
+    'translate.working': 'Prevodim…',
+    'translate.failed': 'Prevod nije uspeo. Popunite polja ručno.',
+    'translate.notConfigured': 'Prevod je isključen: nema OPENAI_API_KEY.',
+    'translate.empty': 'Nema šta da se prevede.',
+    'translate.unreachable': 'Servis za prevod nije odgovorio. Pokušajte ponovo.',
+    'translate.refused': 'Servis za prevod je odbio zahtev — proverite ključ i kvotu.',
 
     'youtube.checking': 'Tražim video…',
     'youtube.invalid': 'Ovo ne liči na YouTube link. Nalepite link iz adresne trake ili iz «Podeli».',

@@ -1,0 +1,13 @@
+<% ;/* Строка «напиши на любом языке → перевести». Ставится над
+       набором языковых полей; скрипт заполняет их по ответу
+       модели. Кнопка появляется, когда есть что переводить. */ %>
+<% if (it.canTranslate) { %>
+<div class="translate-row">
+  <input type="text" class="translate-source" data-translate-source
+         placeholder="<%= it.t('translate.placeholder') %>" autocomplete="off">
+  <button type="button" class="btn btn--small translate-run" data-translate-run hidden>
+    <%= it.t('translate.button') %>
+  </button>
+  <span class="translate-note hint" data-translate-note hidden></span>
+</div>
+<% } %>

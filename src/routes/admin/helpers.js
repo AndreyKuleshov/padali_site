@@ -3,6 +3,7 @@ import { ensureCsrfToken, takeFlash } from '../../services/auth.js'
 import { listLocales, getDefaultLocale } from '../../repositories/locales.js'
 import { invalidateCache } from '../../services/cache.js'
 import { adminTranslator, translatedLocales, localize } from '../../i18n/admin.js'
+import { isConfigured } from '../../services/translate.js'
 
 const LANG_COOKIE = 'padali_admin_lang'
 
@@ -66,6 +67,9 @@ async function renderAdmin (request, reply, template, data = {}) {
     })),
     localize: (value) => localize(value, request.adminLocale ?? 'en'),
     csrf: ensureCsrfToken(request, reply),
+    // Без ключа к модели кнопок перевода просто нет: пустая
+    // кнопка, которая всегда отвечает ошибкой, хуже её отсутствия.
+    canTranslate: isConfigured(),
     user: request.adminUser ?? null,
     flash: takeFlash(request, reply),
     nav: NAV.map((item) => ({

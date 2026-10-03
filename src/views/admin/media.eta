@@ -50,17 +50,23 @@
       <summary><%= it.t('common.description') %></summary>
       <form method="post" action="/admin/media/<%= item.id %>" class="stack">
         <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-        <% it.locales.forEach(function (locale) { %>
-        <label>
-          <span>alt <%= locale.code.toUpperCase() %></span>
-          <input type="text" name="text[<%= locale.code %>][alt]"
-                 value="<%= (item.texts[locale.code] && item.texts[locale.code].alt) || '' %>">
-        </label>
-        <label>
-          <span>caption <%= locale.code.toUpperCase() %></span>
-          <input type="text" name="text[<%= locale.code %>][caption]"
-                 value="<%= (item.texts[locale.code] && item.texts[locale.code].caption) || '' %>">
-        </label>
+        <% ;/* Группируем по смыслу, а не по языку: перевод идёт
+               по одному полю сразу на все языки, и его строка
+               должна стоять над своей группой. */ %>
+        <% ;['alt', 'caption'].forEach(function (key) { %>
+        <div class="field" data-translate>
+          <label><%= key %></label>
+          <%~ include('/admin/partials/translate-row', it) %>
+          <div class="locale-grid">
+            <% it.locales.forEach(function (locale) { %>
+            <div>
+              <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+              <input type="text" name="text[<%= locale.code %>][<%= key %>]"
+                     value="<%= (item.texts[locale.code] && item.texts[locale.code][key]) || '' %>">
+            </div>
+            <% }) %>
+          </div>
+        </div>
         <% }) %>
         <button type="submit" class="btn btn--small btn--primary"><%= it.t('common.save') %></button>
       </form>
