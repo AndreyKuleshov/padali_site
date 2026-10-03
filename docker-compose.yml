@@ -31,6 +31,11 @@ services:
       UPLOAD_DIR: /app/data/uploads
       LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-10}
 
+      # Перевод полей админки. Без ключа кнопки просто не
+      # показываются, поэтому переменная необязательная.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+
     volumes:
       # Загруженные изображения. В Coolify сюда монтируется persistent
       # storage: без него фотографии пропадут при следующем деплое.
