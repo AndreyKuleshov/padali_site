@@ -9,9 +9,14 @@
 import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  resetDatabase, createTestServer, createTestAdmin, loginAs, closePool
+  resetDatabase, createTestServer, createTestAdmin, loginAs, form, closePool
 } from './helpers.js'
-import { translate, isConfigured, toLatin } from '../src/services/translate.js'
+import { createPage } from '../src/repositories/pages.js'
+import { createBlock, getBlockTexts } from '../src/repositories/blocks.js'
+import { defaultSettings } from '../src/blocks/index.js'
+import {
+  translate, isConfigured, toLatin, capitalizeFirst
+} from '../src/services/translate.js'
 import { render } from '../src/services/renderer.js'
 import { adminTranslator } from '../src/i18n/admin.js'
 
@@ -53,11 +58,12 @@ test('перевод разбирается и возвращается по я�
   const seen = {}
   const result = await translate(
     { text: 'Слушайте наш новый сингл', locales: LOCALES },
-    { fetchImpl: reply(200, '{"en":"Listen to our new single","sr":"Slušajte naš novi singl"}', seen), settings: SETTINGS }
+    { fetchImpl: reply(200, '{"source":"other","en":"Listen to our new single","sr":"Slušajte naš novi singl"}', seen), settings: SETTINGS }
   )
 
   assert.deepEqual(result, {
     ok: true,
+    source: 'other',
     translations: { en: 'Listen to our new single', sr: 'Slušajte naš novi singl' }
   })
   assert.equal(seen.url, 'https://api.openai.test/v1/chat/completions')
@@ -69,10 +75,10 @@ test('перевод разбирается и возвращается по я�
 test('частичный ответ не отбрасывается целиком', async () => {
   const result = await translate(
     { text: 'Фотографии', locales: LOCALES },
-    { fetchImpl: reply(200, '{"en":"Photos"}'), settings: SETTINGS }
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos"}'), settings: SETTINGS }
   )
 
-  assert.deepEqual(result, { ok: true, translations: { en: 'Photos' } })
+  assert.deepEqual(result, { ok: true, source: 'other', translations: { en: 'Photos' } })
 })
 
 test('пустой текст до сети не доходит', async () => {
@@ -135,7 +141,7 @@ test('в запросе перечислены языки сайта с чело
   const seen = {}
   await translate(
     { text: 'Фото', locales: LOCALES },
-    { fetchImpl: reply(200, '{"en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
   )
 
   const prompt = seen.body.messages[1].content
@@ -221,7 +227,7 @@ test('кириллический ответ модели чинится на м�
   const result = await translate(
     { text: 'Слушайте наш новый сингл', locales: LOCALES },
     {
-      fetchImpl: reply(200, '{"en":"Listen to our new single","sr":"Слушајте наш нови сингл"}'),
+      fetchImpl: reply(200, '{"source":"other","en":"Listen to our new single","sr":"Слушајте наш нови сингл"}'),
       settings: SETTINGS
     }
   )
@@ -234,10 +240,169 @@ test('в запросе прямо сказано про латиницу', asyn
   const seen = {}
   await translate(
     { text: 'Фото', locales: LOCALES },
-    { fetchImpl: reply(200, '{"en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
   )
 
   const system = seen.body.messages[0].content
   assert.match(system, /Latin script/)
   assert.match(system, /never in Cyrillic/)
+})
+
+/* ─── Направление перевода и регистр ─────────────────────── */
+
+/** Переводить сербский в сербский незачем — и пересказывать тоже. */
+test('сербский источник ложится в своё поле без изменений', async () => {
+  const result = await translate(
+    { text: 'slušajte naš novi singl', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"sr","en":"Listen to our new single"}'), settings: SETTINGS }
+  )
+
+  assert.equal(result.source, 'sr')
+  assert.equal(result.translations.sr, 'Slušajte naš novi singl', 'исходник как есть, но с заглавной')
+  assert.equal(result.translations.en, 'Listen to our new single')
+})
+
+test('английский источник переводится только на сербский', async () => {
+  const result = await translate(
+    { text: 'Listen to our new single', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"en","sr":"Slušajte naš novi singl"}'), settings: SETTINGS }
+  )
+
+  assert.equal(result.translations.en, 'Listen to our new single')
+  assert.equal(result.translations.sr, 'Slušajte naš novi singl')
+})
+
+test('посторонний язык переводится на оба', async () => {
+  const result = await translate(
+    { text: 'Слушайте наш новый сингл', locales: LOCALES },
+    {
+      fetchImpl: reply(200, '{"source":"other","en":"Listen to our new single","sr":"Slušajte naš novi singl"}'),
+      settings: SETTINGS
+    }
+  )
+
+  assert.deepEqual(Object.keys(result.translations).sort(), ['en', 'sr'])
+})
+
+/** Описания модели не хватило: на «other» она отдавала один язык. */
+test('контракт ответа задан примерами на все три случая', async () => {
+  const seen = {}
+  await translate(
+    { text: 'Фото', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+  )
+
+  const prompt = seen.body.messages[1].content
+  assert.match(prompt, /"source"/)
+  assert.match(prompt, /except the one you put in "source"/)
+  assert.match(prompt, /written in Serbian -> \{"source": "sr", "en"/)
+  assert.match(prompt, /written in English -> \{"source": "en", "sr"/)
+  assert.match(prompt, /any other language -> \{"source": "other", "en": "…", "sr"/)
+})
+
+test('перевод начинается с заглавной буквы', () => {
+  assert.equal(capitalizeFirst('listen to our new single'), 'Listen to our new single')
+  assert.equal(capitalizeFirst('šta ima?'), 'Šta ima?')
+  assert.equal(capitalizeFirst('Already capital'), 'Already capital')
+})
+
+/** Разметку в начале пропускаем: «<p>» не должно стать «<P>». */
+test('заглавная ставится в тексте, а не в теге', () => {
+  assert.equal(capitalizeFirst('<p>listen up</p>'), '<p>Listen up</p>')
+  assert.equal(capitalizeFirst('  \n slušaj'), '  \n Slušaj')
+})
+
+test('текст без букв в начале не портится', () => {
+  assert.equal(capitalizeFirst('22.10.2026'), '22.10.2026')
+  assert.equal(capitalizeFirst(''), '')
+  assert.equal(capitalizeFirst('{days} dana do izlaska'), '{days} dana do izlaska')
+})
+
+test('кириллица в поле sr сперва латинизируется, потом поднимается регистр', async () => {
+  const result = await translate(
+    { text: 'слушайте', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"other","en":"listen","sr":"слушајте"}'), settings: SETTINGS }
+  )
+
+  assert.equal(result.translations.sr, 'Slušajte')
+  assert.equal(result.translations.en, 'Listen')
+})
+
+/** Набор букв нельзя молча положить в поля: это выглядит как перевод. */
+test('бессмыслица отвергается с понятной причиной', async () => {
+  const result = await translate(
+    { text: 'йщлокйдцлтадйцтадцтйадй', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"gibberish"}'), settings: SETTINGS }
+  )
+
+  assert.deepEqual(result, { ok: false, reason: 'gibberish' })
+})
+
+test('короткое настоящее слово бессмыслицей не считается', async () => {
+  const result = await translate(
+    { text: 'Фото', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}'), settings: SETTINGS }
+  )
+
+  assert.equal(result.ok, true)
+  assert.equal(result.translations.en, 'Photos')
+})
+
+test('в запросе описано, что считать бессмыслицей', async () => {
+  const seen = {}
+  await translate(
+    { text: 'Фото', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+  )
+
+  const prompt = seen.body.messages[1].content
+  assert.match(prompt, /gibberish/)
+  assert.match(prompt, /is not gibberish/, 'оговорка про короткие слова на месте')
+})
+
+/* ─── Запертые поля и сохранение ─────────────────────────── */
+
+/**
+ * Пустое языковое поле запирается, а браузер не отправляет
+ * отключённые поля. Сохранение обязано это пережить: иначе
+ * запирание ломало бы запись.
+ */
+test('сохранение переживает отсутствие языка в форме', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  const id = await createBlock({
+    pageId, type: 'gallery', settings: defaultSettings('gallery')
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({ _csrf: auth.csrf, 'text[en][heading]': 'Photos', 'settings[gallery_id]': '' })
+  })
+
+  const texts = await getBlockTexts(id)
+  assert.equal(texts.en.heading, 'Photos')
+  assert.equal(texts.sr?.heading ?? '', '', 'непришедший язык просто пуст')
+})
+
+test('существующий перевод не стирается, пока его поле прислано', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  const id = await createBlock({
+    pageId, type: 'gallery', settings: defaultSettings('gallery')
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({
+      _csrf: auth.csrf,
+      'text[en][heading]': 'Photos',
+      'text[sr][heading]': 'Fotografije',
+      'settings[gallery_id]': ''
+    })
+  })
+
+  const texts = await getBlockTexts(id)
+  assert.equal(texts.sr.heading, 'Fotografije')
 })

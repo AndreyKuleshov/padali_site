@@ -63,6 +63,23 @@ export function toLatin (text) {
   return out
 }
 
+/**
+ * Первая буква — прописная.
+ *
+ * Модель иногда отвечает со строчной, повторяя регистр источника,
+ * а на странице это заголовок или пункт меню. Разметку в начале
+ * пропускаем: «<p>текст» должен стать «<p>Текст», а не «<P>».
+ */
+export function capitalizeFirst (text) {
+  const prefix = /^(?:\s|<[^>]*>)*/.exec(text)[0]
+  const rest = text.slice(prefix.length)
+  if (rest === '') return text
+
+  const [first] = Array.from(rest)
+  const upper = first.toUpperCase()
+  return upper === first ? text : prefix + upper + rest.slice(first.length)
+}
+
 export function isConfigured (settings = config.openai) {
   return Boolean(settings.apiKey)
 }
@@ -78,6 +95,7 @@ const SYSTEM = [
   '- Keep proper names, band names, venue names and track titles unchanged.',
   '- Serbian is ALWAYS written in Latin script (gajica), never in Cyrillic.',
   '  Use the letters č ć ž š đ where they belong.',
+  '- Start every translation with a capital letter.',
   '- Return the translation only, with no quotes and no commentary.'
 ].join('\n')
 
@@ -85,8 +103,8 @@ const SYSTEM = [
  * @param {object} input
  * @param {string} input.text исходный текст на любом языке
  * @param {Array<{code: string, title?: string}>} input.locales куда переводить
- * @returns {Promise<{ok: true, translations: Record<string, string>}
- *                 | {ok: false, reason: 'not_configured'|'empty'|'unreachable'|'refused'}>}
+ * @returns {Promise<{ok: true, translations: Record<string, string>, source: string}
+ *                 | {ok: false, reason: 'not_configured'|'empty'|'gibberish'|'unreachable'|'refused'}>}
  */
 export async function translate ({ text, locales }, {
   fetchImpl = fetch, settings = config.openai
@@ -119,10 +137,22 @@ export async function translate ({ text, locales }, {
           { role: 'system', content: SYSTEM },
           {
             role: 'user',
-            content: `Translate the text below into each of these languages:\n${wanted}\n\n` +
-              'Answer with a JSON object whose keys are exactly those language codes ' +
-              'and whose values are the translations. If the text is already in one of ' +
-              'the target languages, repeat it under that key unchanged.\n\n' +
+            content: `The site is published in these languages:\n${wanted}\n\n` +
+              'First decide which language the text below is written in. Then answer ' +
+              'with a JSON object holding:\n' +
+              '- "source": the code of that language if it is one of the codes above, ' +
+              'otherwise the string "other";\n' +
+              '- one key for EVERY code above except the one you put in "source", each ' +
+              'holding the translation into that language.\n\n' +
+              /* Без примеров модель на «other» всё равно отдавала один
+                 язык из двух — контракт задаём показом, а не описанием. */
+              'For codes "en" and "sr" that means:\n' +
+              '- text written in Serbian -> {"source": "sr", "en": "…"}\n' +
+              '- text written in English -> {"source": "en", "sr": "…"}\n' +
+              '- text in any other language -> {"source": "other", "en": "…", "sr": "…"}\n\n' +
+              'If the text is not language at all — random letters, a keyboard mash, ' +
+              'a jumble with no words in it — answer exactly {"source": "gibberish"} ' +
+              'and nothing else. A real word or a name, however short, is not gibberish.\n\n' +
               `Text:\n${source}`
           }
         ]
@@ -155,14 +185,26 @@ export async function translate ({ text, locales }, {
     return { ok: false, reason: 'unreachable' }
   }
 
+  const detected = typeof parsed?.source === 'string' ? parsed.source.trim().toLowerCase() : ''
+
+  /* Набор букв переводить не во что, и подсунуть его в поля
+     молча нельзя: редактор решит, что перевод сделан. */
+  if (detected === 'gibberish') return { ok: false, reason: 'gibberish' }
+
   const translations = {}
+
   for (const locale of targets) {
-    const value = parsed?.[locale.code]
+    /* В поле того языка, на котором писали, кладём исходник как
+       есть. Через модель он вернулся бы пересказанным, а править
+       то, что уже написано рукой редактора, незачем. */
+    const value = locale.code === detected ? source : parsed?.[locale.code]
     // Пропуск языка — не повод терять остальные: отдаём что есть.
     if (typeof value !== 'string' || value.trim() === '') continue
-    translations[locale.code] = locale.code === 'sr' ? toLatin(value.trim()) : value.trim()
+
+    const latin = locale.code === 'sr' ? toLatin(value.trim()) : value.trim()
+    translations[locale.code] = capitalizeFirst(latin)
   }
 
   if (Object.keys(translations).length === 0) return { ok: false, reason: 'unreachable' }
-  return { ok: true, translations }
+  return { ok: true, translations, source: detected || 'other' }
 }

@@ -713,6 +713,21 @@
       return field ? field.value : ''
     }
 
+    /* Пустое языковое поле заперто: заполняется оно переводом, а
+       не руками. Как только значение появилось — обычное поле.
+       Запираем только здесь, где строка перевода есть: без ключа
+       её не рисуют, и запертая админка осталась бы без выхода.
+       Пока редактор правит поле сам, не трогаем: иначе стёртое
+       до конца значение заперло бы поле прямо под курсором. */
+    function lockEmpty (field) {
+      targetsOf(field).forEach(function (target) {
+        if (target.node.value.trim() === '') target.node.disabled = true
+      })
+    }
+
+    var fields = document.querySelectorAll('[data-translate]')
+    for (var index = 0; index < fields.length; index += 1) lockEmpty(fields[index])
+
     document.addEventListener('input', function (event) {
       var source = event.target
       if (!source.matches || !source.matches('[data-translate-source]')) return
@@ -736,6 +751,21 @@
       button.classList.add('is-busy')
       if (note) { note.hidden = false; note.removeAttribute('data-state'); note.textContent = strings.getAttribute('data-working') }
 
+      /* Перевод не вышел — отпираем поля. Запертые они потому,
+         что заполняться должны переводом; раз его нет, остаётся
+         руки, и запереть редактора наедине с ошибкой нельзя. */
+      function unlock () {
+        targets.forEach(function (target) { target.node.disabled = false })
+      }
+
+      function fail (message) {
+        unlock()
+        if (!note) return
+        note.hidden = false
+        note.setAttribute('data-state', 'error')
+        note.textContent = message
+      }
+
       fetch('/admin/translate.json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -744,7 +774,7 @@
         .then(function (response) { return response.json() })
         .then(function (result) {
           if (!result.ok) {
-            if (note) { note.setAttribute('data-state', 'error'); note.textContent = result.message || strings.getAttribute('data-failed') }
+            fail(result.message || strings.getAttribute('data-failed'))
             return
           }
 
@@ -753,10 +783,16 @@
             var value = result.translations[target.locale]
             if (typeof value !== 'string') return
             target.node.value = value
+            // Значение есть — поле снова обычное.
+            target.node.disabled = false
             // Чужой код мог слушать поле — пусть узнает.
             target.node.dispatchEvent(new Event('input', { bubbles: true }))
             filled += 1
           })
+
+          // Язык, который модель пропустила, остаётся пустым —
+          // запирать его дальше незачем, заполнять придётся руками.
+          unlock()
 
           if (note) {
             note.textContent = ''
@@ -765,9 +801,7 @@
           // Исходник больше не нужен: перевод лежит в полях.
           if (filled > 0) { source.value = ''; button.hidden = true }
         })
-        .catch(function () {
-          if (note) { note.setAttribute('data-state', 'error'); note.textContent = strings.getAttribute('data-failed') }
-        })
+        .catch(function () { fail(strings.getAttribute('data-failed')) })
         .finally(function () {
           button.disabled = false
           button.classList.remove('is-busy')

@@ -762,18 +762,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 /* ─── Перевод полей ──────────────────────────────────────── */
 
+/* Сетка, а не флексы: при флексах ширина исходника менялась от
+   того, видна ли сейчас кнопка и есть ли подпись, и поле
+   дёргалось на каждое нажатие. Колонка под кнопку отведена
+   всегда, подпись живёт своей строкой. */
 .translate-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  flex-wrap: wrap;
 }
 
-/* Исходник шире кнопки: в него пишут фразу, а не слово. */
-.translate-source { flex: 1 1 280px; min-width: 0; }
+/* Исходник — главное поле в группе: писать начинают с него, а
+   языковые ниже заперты, пока пусты. Отмечаем акцентной рамкой,
+   иначе взгляд уходит на привычные поля под ним. */
+.translate-source {
+  min-width: 0;
+  border-color: color-mix(in srgb, var(--neon) 45%, var(--line)) !important;
+  background: color-mix(in srgb, var(--neon) 5%, var(--bg)) !important;
+}
 
-.translate-run { flex: none; }
+.translate-source::placeholder { color: color-mix(in srgb, var(--neon) 55%, var(--soft)); }
 
-.translate-note { margin: 0; flex: 1 1 100%; }
+/* Запертое поле не выглядит сломанным — просто ждёт перевода. */
+.locale-grid input:disabled, .locale-grid textarea:disabled {
+  color: var(--soft);
+  background: var(--panel);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+/* Кнопку прячем видимостью, а не раскладкой: место под неё
+   остаётся занятым, и поле ввода не меняет ширину. */
+.translate-run[hidden] { display: inline-flex !important; visibility: hidden; }
+
+.translate-note { margin: 0; grid-column: 1 / -1; }
 .translate-note[data-state="error"] { color: var(--danger); }

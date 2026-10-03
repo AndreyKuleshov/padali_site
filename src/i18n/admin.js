@@ -82,6 +82,7 @@ const DICTIONARY = {
     'translate.failed': 'Translation failed. Fill the fields in by hand.',
     'translate.notConfigured': 'Translation is switched off: there is no OPENAI_API_KEY.',
     'translate.empty': 'Nothing to translate.',
+    'translate.gibberish': 'This does not look like text in any language — there is nothing to translate.',
     'translate.unreachable': 'The translation service did not answer. Try again in a moment.',
     'translate.refused': 'The translation service refused the request — check the key and the quota.',
 
@@ -302,6 +303,7 @@ const DICTIONARY = {
     'translate.failed': 'Prevod nije uspeo. Popunite polja ručno.',
     'translate.notConfigured': 'Prevod je isključen: nema OPENAI_API_KEY.',
     'translate.empty': 'Nema šta da se prevede.',
+    'translate.gibberish': 'Ovo ne liči na tekst ni na jednom jeziku — nema šta da se prevede.',
     'translate.unreachable': 'Servis za prevod nije odgovorio. Pokušajte ponovo.',
     'translate.refused': 'Servis za prevod je odbio zahtev — proverite ključ i kvotu.',
 

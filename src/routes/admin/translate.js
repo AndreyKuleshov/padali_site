@@ -21,7 +21,9 @@ async function translateRoutes (app) {
 
     if (result.ok) return reply.send(result)
 
-    return reply.code(result.reason === 'empty' ? 400 : 502).send({
+    // Пустота и набор букв — про присланный текст, а не про сервис.
+    const clientFault = result.reason === 'empty' || result.reason === 'gibberish'
+    return reply.code(clientFault ? 400 : 502).send({
       ok: false,
       reason: result.reason,
       message: request.t(`translate.${result.reason}`)
