@@ -101,7 +101,6 @@ test('сохранение блока пишет настройки и оба п
     ...form({
       _csrf: session.csrf,
       is_visible: 'on',
-      anchor: 'photos',
       'text[en][heading]': 'Photos',
       'text[sr][heading]': 'Fotografije',
       'text[en][nav_label]': 'Photos',
@@ -116,7 +115,7 @@ test('сохранение блока пишет настройки и оба п
   assert.equal(response.statusCode, 302)
   const saved = await getBlock(block.id)
   assert.equal(saved.isVisible, true)
-  assert.equal(saved.anchor, 'photos')
+  assert.equal(saved.anchor, 'photos', 'якорь выдан при создании и сохранение его не стирает')
   assert.equal(saved.settings.layout, 'masonry')
   assert.equal(saved.settings.columns, 4)
   assert.equal(saved.settings.show_captions, false)

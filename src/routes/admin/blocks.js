@@ -153,8 +153,18 @@ async function blockRoutes (app) {
       return reply.redirect(`/admin/blocks/${id}`, 302)
     }
 
+    /* Якорь при сохранении только сохраняем, а не принимаем из
+       формы. Заодно доназначаем тем блокам, что заводились до
+       автоматической выдачи: без якоря блок не попадает в меню,
+       а поля, чтобы вписать его руками, больше нет. */
+    const blocks = await listBlocks(block.pageId)
+    const anchor = block.anchor || nextAnchor(
+      descriptor.defaults?.anchor,
+      blocks.map((other) => other.anchor)
+    )
+
     await transaction(async (conn) => {
-      await updateBlock(id, parsed, conn)
+      await updateBlock(id, { ...parsed, anchor }, conn)
       await saveBlockTexts(id, parsed.textsByLocale, conn)
       await saveBlockMedia(id, parsed.mediaByField, conn)
     })

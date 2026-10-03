@@ -88,7 +88,7 @@ function isEmptySubmission (rawRow, fields) {
 
 /**
  * @returns {{settings: object, textsByLocale: object, mediaByField: object,
- *            anchor: string|null, isVisible: boolean}}
+ *            isVisible: boolean}}
  */
 function parseBlockForm (descriptor, body = {}, locales = []) {
   const settings = {}
@@ -168,13 +168,14 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
     mediaByField[field.key] = field.multiple ? ids : ids.slice(0, 1)
   }
 
-  const anchor = asString(body.anchor).toLowerCase().replace(/[^a-z0-9-]/g, '')
-
+  /* Якоря среди полей формы нет: он служебный, его назначает
+     сервер при создании блока и дальше не меняет. Ссылки вида
+     «/#photos» живут в меню и в переписке, и переименование
+     ломало бы их без всякой пользы для редактора. */
   return {
     settings,
     textsByLocale,
     mediaByField,
-    anchor: anchor === '' ? null : anchor,
     isVisible: asBoolean(body.is_visible)
   }
 }

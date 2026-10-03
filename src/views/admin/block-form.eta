@@ -28,13 +28,6 @@
     </label>
 
     <div class="field">
-      <label for="anchor"><%= it.t('blockForm.anchor') %></label>
-      <input type="text" id="anchor" name="anchor" value="<%= block.anchor || '' %>"
-             pattern="[a-z0-9-]*" placeholder="photos">
-      <p class="hint"><%~ it.t('blockForm.anchorHint', { example: '<code>/#photos</code>' }) %></p>
-    </div>
-
-    <div class="field">
       <label><%= it.t('blockForm.navLabel') %></label>
       <div class="locale-grid">
         <% locales.forEach(function (locale) { %>

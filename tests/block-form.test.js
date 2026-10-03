@@ -17,7 +17,6 @@ test('дата принимается только в формате ГГГГ-М
 
 test('настройки галереи приводятся к нужным типам', () => {
   const parsed = parseBlockForm(gallery, {
-    anchor: 'Фото Photos!',
     is_visible: 'on',
     text: { en: { heading: 'Photos' }, sr: { heading: '' } },
     settings: { gallery_id: '7', layout: 'strip', columns: '4', lightbox: 'on', limit: '2' }
@@ -29,7 +28,7 @@ test('настройки галереи приводятся к нужным т�
   assert.equal(parsed.settings.lightbox, true)
   assert.equal(parsed.settings.show_captions, false, 'снятая галочка должна стать false')
   assert.equal(parsed.settings.limit, 2)
-  assert.equal(parsed.anchor, 'photos', 'якорь очищается до латиницы')
+  assert.equal(parsed.anchor, undefined, 'якорь не приходит из формы — его назначает сервер')
   assert.equal(parsed.isVisible, true)
   assert.deepEqual(parsed.textsByLocale.en, { heading: 'Photos' })
   assert.deepEqual(parsed.textsByLocale.sr, {}, 'пустой перевод не сохраняется')

@@ -60,8 +60,6 @@ const DICTIONARY = {
 
     'blockForm.general': 'General',
     'blockForm.showOnSite': 'Show this block on the site',
-    'blockForm.anchor': 'Anchor',
-    'blockForm.anchorHint': 'Latin letters, digits and hyphens. Needed for the menu and for links like {example}.',
     'blockForm.navLabel': 'Menu label',
     'blockForm.navLabelHint': 'Leave empty to keep the block out of the menu.',
     'blockForm.texts': 'Texts',
@@ -273,8 +271,6 @@ const DICTIONARY = {
 
     'blockForm.general': 'Opšte',
     'blockForm.showOnSite': 'Prikaži blok na sajtu',
-    'blockForm.anchor': 'Sidro',
-    'blockForm.anchorHint': 'Latinica, cifre i crtice. Potrebno da blok uđe u meni i dobije link oblika {example}.',
     'blockForm.navLabel': 'Naziv u meniju',
     'blockForm.navLabelHint': 'Prazno — blok se ne prikazuje u meniju.',
     'blockForm.texts': 'Tekstovi',

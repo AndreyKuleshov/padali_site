@@ -5,7 +5,7 @@ import {
 } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
 import {
-  createBlock, saveBlockTexts, saveBlockMedia, listBlocks, getBlockTexts
+  createBlock, saveBlockTexts, saveBlockMedia, listBlocks, getBlockTexts, getBlock
 } from '../src/repositories/blocks.js'
 import { composePage } from '../src/services/page-composer.js'
 import { processUpload } from '../src/services/media-processor.js'
@@ -295,4 +295,64 @@ test('у закреплённых блоков якоря и пункта мен
   for (const type of ['hero', 'footer']) {
     assert.equal(getBlockType(type).defaults, undefined, `${type} в меню не выводится`)
   }
+})
+
+/* ─── Якорь служебный ────────────────────────────────────── */
+
+test('поля якоря в форме нет', async () => {
+  const id = await createBlock({
+    pageId, type: 'gallery', anchor: 'photos', settings: defaultSettings('gallery')
+  })
+
+  const response = await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: session.cookies
+  })
+
+  assert.doesNotMatch(response.body, /name="anchor"/)
+  assert.match(response.body, /name="text\[en\]\[nav_label\]"/, 'пункт меню остался редактируемым')
+})
+
+/** Ссылки «/#photos» живут в меню и в переписке — ломать их нечем. */
+test('якорь не меняется ни из формы, ни подделанным запросом', async () => {
+  const id = await createBlock({
+    pageId, type: 'gallery', anchor: 'photos', settings: defaultSettings('gallery')
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf, anchor: 'podmena', 'settings[gallery_id]': '' })
+  })
+
+  assert.equal((await getBlock(id)).anchor, 'photos')
+})
+
+/** Блоки, заведённые до автоматической выдачи, остались без якоря. */
+test('блоку без якоря он доназначается при сохранении', async () => {
+  const id = await createBlock({
+    pageId, type: 'gallery', anchor: null, settings: defaultSettings('gallery')
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf, 'settings[gallery_id]': '' })
+  })
+
+  assert.equal((await getBlock(id)).anchor, 'photos')
+})
+
+test('у шапки и подвала якорь так и не появляется', async () => {
+  const id = await createBlock({ pageId, type: 'footer', settings: defaultSettings('footer') })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf })
+  })
+
+  assert.equal((await getBlock(id)).anchor, null)
 })
