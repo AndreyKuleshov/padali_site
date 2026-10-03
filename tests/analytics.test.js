@@ -1,6 +1,9 @@
 import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { resetDatabase, createTestServer, createTestAdmin, loginAs, closePool } from './helpers.js'
+import { createPage } from '../src/repositories/pages.js'
+import { createBlock, deleteBlock } from '../src/repositories/blocks.js'
+import { defaultSettings } from '../src/blocks/index.js'
 import { query } from '../src/db/pool.js'
 import {
   recordView, recordClicks, viewTotals, viewsByDay, topPaths, topReferrers,
@@ -11,10 +14,16 @@ import { intensityStep, isoDay } from '../src/routes/admin/analytics.js'
 
 let app
 let session
+let galleryBlock
+let linksBlock
 
 beforeEach(async () => {
   await resetDatabase()
   await createTestAdmin()
+  // Клик ссылается на настоящий блок: связь в базе с внешним ключом.
+  const pageId = await createPage({ slug: 'home' })
+  galleryBlock = await createBlock({ pageId, type: 'gallery', settings: defaultSettings('gallery') })
+  linksBlock = await createBlock({ pageId, type: 'links', settings: defaultSettings('links') })
   if (!app) app = await createTestServer()
   session = await loginAs(app)
 })
@@ -89,16 +98,16 @@ test('клики пишутся пачкой, мусор отбрасывает�
     type: 'clicks',
     path: '/',
     clicks: [
-      { b: '4', x: -340, y: 214, w: 1440, t: '→ #photos' },
-      { b: '4', x: 99999, y: 100, w: 1440, t: 'вне страницы' },
+      { b: String(galleryBlock), x: -340, y: 214, w: 1440, t: '→ #photos' },
+      { b: String(galleryBlock), x: 99999, y: 100, w: 1440, t: 'вне страницы' },
       { x: 10, y: 20, w: 1440, t: 'без якоря' },
-      { b: '5', x: 120, y: 60, w: 390, t: 'фото' }
+      { b: String(linksBlock), x: 120, y: 60, w: 390, t: 'фото' }
     ]
   })
-  const rows = await query('SELECT x_offset, anchor FROM analytics_clicks ORDER BY id')
+  const rows = await query('SELECT x_offset, block_id FROM analytics_clicks ORDER BY id')
   assert.equal(rows.length, 2, 'клик вне страницы и клик без якоря отброшены')
   assert.deepEqual(rows.map((r) => r.x_offset), [-340, 120])
-  assert.deepEqual(rows.map((r) => r.anchor), ['4', '5'])
+  assert.deepEqual(rows.map((r) => r.block_id), [galleryBlock, linksBlock])
 })
 
 /**
@@ -111,13 +120,15 @@ test('клик запоминает блок и смещение от его ц�
     type: 'clicks',
     path: '/',
     clicks: [
-      { b: '12', x: 372, y: 240, w: 2056, t: 'кнопка: Next' },
+      { b: String(galleryBlock), x: 372, y: 240, w: 2056, t: 'кнопка: Next' },
       { b: 'header', x: -600, y: 20, w: 2056, t: 'кнопка: SR' }
     ]
   })
 
-  const rows = await query('SELECT anchor, x_offset, y_offset FROM analytics_clicks ORDER BY id')
-  assert.deepEqual(rows.map((r) => r.anchor), ['12', 'header'])
+  const rows = await query('SELECT block_id, anchor, x_offset, y_offset FROM analytics_clicks ORDER BY id')
+  assert.deepEqual(rows.map((r) => r.block_id), [galleryBlock, null])
+  assert.deepEqual(rows.map((r) => r.anchor), [null, 'header'],
+    'шапка сайта блоком не является и опознаётся именем')
   assert.equal(rows[0].x_offset, 372, 'горизонталь — пиксели от центра блока')
   assert.equal(rows[0].y_offset, 240, 'вертикаль — пиксели от верха блока')
 })
@@ -141,8 +152,8 @@ test('одна и та же кнопка при разных окнах даёт
     type: 'clicks',
     path: '/',
     clicks: [
-      { b: '4', x: 372, y: 214, w: 2056, t: 'кнопка: Next' },
-      { b: '4', x: 372, y: 214, w: 1440, t: 'кнопка: Next' }
+      { b: String(galleryBlock), x: 372, y: 214, w: 2056, t: 'кнопка: Next' },
+      { b: String(galleryBlock), x: 372, y: 214, w: 1440, t: 'кнопка: Next' }
     ]
   })
   const rows = await query('SELECT x_offset, y_offset, viewport FROM analytics_clicks ORDER BY id')
@@ -151,7 +162,7 @@ test('одна и та же кнопка при разных окнах даёт
 })
 
 test('пачка кликов ограничена сверху', () => {
-  const many = Array.from({ length: 200 }, () => ({ b: '1', x: 5, y: 10, w: 1000, t: 'x' }))
+  const many = Array.from({ length: 200 }, () => ({ b: String(galleryBlock), x: 5, y: 10, w: 1000, t: 'x' }))
   assert.equal(parseClicks(many, '/').length, 80)
 })
 
@@ -180,9 +191,9 @@ test('итоги считают просмотры, посетителей и д
 
 test('карта кликов фильтруется по странице и ширине экрана', async () => {
   await recordClicks([
-    { path: '/', anchor: '4', xOffset: 0, yOffset: 100, viewport: 1440, target: 'настольный' },
-    { path: '/', anchor: '4', xOffset: 0, yOffset: 200, viewport: 390, target: 'телефон' },
-    { path: '/sr', anchor: '4', xOffset: 0, yOffset: 300, viewport: 1440, target: 'другая страница' }
+    { path: '/', blockId: galleryBlock, xOffset: 0, yOffset: 100, viewport: 1440, target: 'настольный' },
+    { path: '/', blockId: galleryBlock, xOffset: 0, yOffset: 200, viewport: 390, target: 'телефон' },
+    { path: '/sr', blockId: galleryBlock, xOffset: 0, yOffset: 300, viewport: 1440, target: 'другая страница' }
   ])
 
   const desktop = await clickPoints({ path: '/', band: 'desktop', days: 30 })
@@ -222,7 +233,7 @@ test('ступени насыщенности монотонны и не вых�
 
 test('страница статистики открывается и показывает числа', async () => {
   await recordView({ path: '/', locale: 'en', visitorHash: 'e'.repeat(32), referrerHost: null, viewport: 1440, isMobile: false })
-  await recordClicks([{ path: '/', anchor: '4', xOffset: -200, yOffset: 400, viewport: 1440, target: '→ #photos' }])
+  await recordClicks([{ path: '/', blockId: galleryBlock, xOffset: -200, yOffset: 400, viewport: 1440, target: '→ #photos' }])
 
   const response = await app.inject({ method: 'GET', url: '/admin/analytics', cookies: session.cookies })
   assert.equal(response.statusCode, 200)
@@ -243,4 +254,61 @@ test('нормализация пути отбрасывает параметр�
   assert.equal(normalizePath('https://evil.example/'), null)
   assert.equal(normalizePath('/admin'), null)
   assert.equal(isBot('Mozilla/5.0 Chrome/140'), false)
+})
+
+/**
+ * Клики привязаны к блоку: переставили блок — точки едут с ним,
+ * удалили — исчезают вместе с ним, а не остаются мусором в счётчике.
+ */
+test('удаление блока уносит его клики', async () => {
+  await recordClicks([
+    { path: '/', blockId: galleryBlock, xOffset: 10, yOffset: 20, viewport: 1440, target: 'в галерее' },
+    { path: '/', blockId: linksBlock, xOffset: 30, yOffset: 40, viewport: 1440, target: 'в ссылках' },
+    { path: '/', anchor: 'header', xOffset: 0, yOffset: 10, viewport: 1440, target: 'в шапке сайта' }
+  ])
+  assert.equal((await query('SELECT id FROM analytics_clicks')).length, 3)
+
+  await deleteBlock(galleryBlock)
+
+  const left = await query('SELECT block_id, anchor, target FROM analytics_clicks ORDER BY id')
+  assert.deepEqual(left.map((r) => r.target), ['в ссылках', 'в шапке сайта'],
+    'ушли только клики удалённого блока')
+})
+
+test('перестановка блока клики сохраняет', async () => {
+  await recordClicks([
+    { path: '/', blockId: galleryBlock, xOffset: 10, yOffset: 20, viewport: 1440, target: 'в галерее' }
+  ])
+  await query('UPDATE blocks SET position = 99 WHERE id = ?', [galleryBlock])
+
+  const points = await clickPoints({ path: '/', band: 'desktop', days: 30 })
+  assert.equal(points.length, 1, 'клик остался')
+  assert.equal(points[0].anchor, String(galleryBlock), 'и по-прежнему привязан к блоку')
+})
+
+test('клик по блоку, удалённому пока страница была открыта, не роняет пачку', async () => {
+  const stale = await createBlock({
+    pageId: (await query('SELECT id FROM pages LIMIT 1'))[0].id,
+    type: 'richtext',
+    settings: defaultSettings('richtext')
+  })
+  await deleteBlock(stale)
+
+  const written = await recordClicks([
+    { path: '/', blockId: stale, xOffset: 1, yOffset: 2, viewport: 1440, target: 'устарел' },
+    { path: '/', blockId: galleryBlock, xOffset: 3, yOffset: 4, viewport: 1440, target: 'живой' }
+  ])
+
+  assert.equal(written, 1, 'записан только клик по существующему блоку')
+  const rows = await query('SELECT target FROM analytics_clicks')
+  assert.deepEqual(rows.map((r) => r.target), ['живой'])
+})
+
+test('карта получает единый якорь: номер блока или имя области', async () => {
+  await recordClicks([
+    { path: '/', blockId: galleryBlock, xOffset: 5, yOffset: 6, viewport: 1440, target: 'блок' },
+    { path: '/', anchor: 'header', xOffset: 7, yOffset: 8, viewport: 1440, target: 'шапка' }
+  ])
+  const points = await clickPoints({ path: '/', band: 'desktop', days: 30 })
+  assert.deepEqual(points.map((p) => p.anchor).sort(), [String(galleryBlock), 'header'].sort())
 })

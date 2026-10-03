@@ -48,6 +48,17 @@ function normalizePath (value) {
  * подогнать значение к границе значило бы нарисовать на карте точку
  * там, где никто не нажимал.
  */
+/**
+ * Якорь клика: число — ссылка на блок, слово — служебная область
+ * вне блоков. Всё прочее отбрасывается.
+ */
+function splitAnchor (value) {
+  const raw = String(value ?? '')
+  if (/^\d{1,9}$/.test(raw)) return { blockId: Number(raw), anchor: null }
+  if (/^[a-z][a-z0-9-]{0,31}$/.test(raw)) return { blockId: null, anchor: raw }
+  return { blockId: null, anchor: null }
+}
+
 function inRange (value, min, max) {
   const number = Number(value)
   return Number.isFinite(number) && number >= min && number <= max ? number : NaN
@@ -63,19 +74,23 @@ function parseClicks (raw, path) {
   if (!Array.isArray(raw)) return []
   return raw.slice(0, 80).map((click) => ({
     path,
-    // Якорь — идентификатор блока или служебное имя вроде header.
-    anchor: /^[a-z0-9-]{1,32}$/.test(String(click?.b ?? '')) ? String(click.b) : null,
+    // Якорь — либо идентификатор блока, либо служебное имя вроде
+    // header: в базе это разные колонки, связь с блоком настоящая.
+    ...splitAnchor(click?.b),
     // Пиксели от центра блока по горизонтали и от его верха по вертикали.
     xOffset: Math.round(inRange(click?.x, -5000, 5000)),
     yOffset: Math.round(inRange(click?.y, -5000, 200000)),
     viewport: Math.round(inRange(click?.w, 200, 10000)),
     target: click?.t ? String(click.t).slice(0, 190) : null
   })).filter((click) => (
-    click.anchor !== null &&
+    (click.blockId !== null || click.anchor !== null) &&
     Number.isFinite(click.xOffset) &&
     Number.isFinite(click.yOffset) &&
     Number.isFinite(click.viewport)
   ))
 }
 
-export { visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp, inRange }
+export {
+  visitorHash, isBot, referrerHost, normalizePath, parseClicks,
+  splitAnchor, clamp, inRange
+}

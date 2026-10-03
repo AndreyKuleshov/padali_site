@@ -1,4 +1,4 @@
-import { db } from './helpers.js'
+import { db, placeholders } from './helpers.js'
 
 /** Ширины экранов, по которым раскладываются клики на карте. */
 const DEVICE_BANDS = {
@@ -15,15 +15,39 @@ async function recordView (view, conn) {
   )
 }
 
-/** Клики приходят пачкой в конце визита — пишем одним запросом. */
+/**
+ * Клики приходят пачкой в конце визита — пишем одним запросом.
+ *
+ * Ссылки на несуществующие блоки отсеиваем заранее: внешний ключ
+ * иначе отклонил бы всю пачку из-за одной устаревшей записи, а
+ * посетитель мог кликнуть по блоку, который редактор удалил,
+ * пока страница была открыта.
+ */
 async function recordClicks (clicks, conn) {
   if (clicks.length === 0) return 0
-  const values = clicks.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
-  const params = clicks.flatMap((click) => [
-    click.path, click.xOffset, click.yOffset, click.viewport, click.target, click.anchor
+  const runner = db(conn)
+
+  const referenced = [...new Set(clicks.map((click) => click.blockId).filter(Number.isInteger))]
+  const known = new Set()
+  if (referenced.length > 0) {
+    const rows = await runner.all(
+      `SELECT id FROM blocks WHERE id IN (${placeholders(referenced.length)})`,
+      referenced
+    )
+    for (const row of rows) known.add(row.id)
+  }
+
+  const writable = clicks.filter((click) => click.blockId == null || known.has(click.blockId))
+  if (writable.length === 0) return 0
+
+  const values = writable.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ')
+  const params = writable.flatMap((click) => [
+    click.path, click.xOffset, click.yOffset, click.viewport,
+    click.target, click.blockId ?? null, click.anchor ?? null
   ])
-  const result = await db(conn).run(
-    `INSERT INTO analytics_clicks (path, x_offset, y_offset, viewport, target, anchor) VALUES ${values}`,
+  const result = await runner.run(
+    'INSERT INTO analytics_clicks ' +
+    `(path, x_offset, y_offset, viewport, target, block_id, anchor) VALUES ${values}`,
     params
   )
   return result.rowCount
@@ -89,7 +113,8 @@ async function topReferrers (days, conn) {
 async function clickPoints ({ path, band = 'desktop', days = 30 }, conn) {
   const range = DEVICE_BANDS[band] ?? DEVICE_BANDS.desktop
   return db(conn).all(
-    'SELECT x_offset, y_offset, target, anchor FROM analytics_clicks ' +
+    'SELECT x_offset, y_offset, target, COALESCE(block_id::text, anchor) AS anchor ' +
+    'FROM analytics_clicks ' +
     `WHERE path = ? AND viewport BETWEEN ? AND ? AND clicked_at > ${sinceClause(days)} ` +
     'ORDER BY clicked_at DESC LIMIT 5000',
     [path, range.min, range.max]
