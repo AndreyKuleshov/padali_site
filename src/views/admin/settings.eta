@@ -4,17 +4,17 @@
     return (it.pageTexts[locale] && it.pageTexts[locale][key]) || ''
   }
 %>
-<%~ include('/admin/partials/head', it) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('settings.title') })) %>
 
-<div class="page-head"><h1>Настройки сайта</h1></div>
+<div class="page-head"><h1><%= it.t('settings.title') %></h1></div>
 
 <form method="post" action="/admin/settings" class="block-form">
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 
   <section class="card">
-    <h2>Мета-теги главной</h2>
+    <h2><%= it.t('settings.meta') %></h2>
     <div class="field">
-      <label>Заголовок страницы (title)</label>
+      <label><%= it.t('settings.pageTitle') %></label>
       <div class="locale-grid">
         <% it.locales.forEach(function (locale) { %>
         <div>
@@ -25,7 +25,7 @@
       </div>
     </div>
     <div class="field">
-      <label>Описание (description)</label>
+      <label><%= it.t('settings.pageDescription') %></label>
       <div class="locale-grid locale-grid--stacked">
         <% it.locales.forEach(function (locale) { %>
         <div>
@@ -36,9 +36,9 @@
       </div>
     </div>
     <div class="field">
-      <label for="og_image_id">Картинка для соцсетей (og:image)</label>
+      <label for="og_image_id"><%= it.t('settings.ogImage') %></label>
       <select id="og_image_id" name="og_image_id">
-        <option value="">— не выбрана —</option>
+        <option value=""><%= it.t('settings.ogNone') %></option>
         <% it.library.forEach(function (media) { %>
         <option value="<%= media.id %>"<%= Number(it.settings.og_image_id) === media.id ? ' selected' : '' %>><%= media.name %></option>
         <% }) %>
@@ -47,13 +47,13 @@
   </section>
 
   <section class="card">
-    <h2>Иконки в шапке</h2>
+    <h2><%= it.t('settings.social') %></h2>
     <div class="field repeater" data-repeater="social">
       <div class="repeater-rows">
         <% social.forEach(function (row, index) { %>
         <div class="repeater-row" data-index="<%= index %>">
           <div class="repeater-cell">
-            <span class="cell-label">Иконка</span>
+            <span class="cell-label"><%= it.t('settings.icon') %></span>
             <select name="social[<%= index %>][icon]">
               <% it.iconNames.forEach(function (name) { %>
               <option value="<%= name %>"<%= row.icon === name ? ' selected' : '' %>><%= name %></option>
@@ -61,11 +61,11 @@
             </select>
           </div>
           <div class="repeater-cell">
-            <span class="cell-label">Подпись</span>
+            <span class="cell-label"><%= it.t('settings.label') %></span>
             <input type="text" name="social[<%= index %>][label]" value="<%= row.label || '' %>">
           </div>
           <div class="repeater-cell">
-            <span class="cell-label">Ссылка</span>
+            <span class="cell-label"><%= it.t('settings.url') %></span>
             <input type="url" name="social[<%= index %>][url]" value="<%= row.url || '' %>">
           </div>
           <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
@@ -76,7 +76,7 @@
       <template data-repeater-template>
         <div class="repeater-row" data-index="__INDEX__">
           <div class="repeater-cell">
-            <span class="cell-label">Иконка</span>
+            <span class="cell-label"><%= it.t('settings.icon') %></span>
             <select name="social[__INDEX__][icon]">
               <% it.iconNames.forEach(function (name) { %>
               <option value="<%= name %>"><%= name %></option>
@@ -84,31 +84,31 @@
             </select>
           </div>
           <div class="repeater-cell">
-            <span class="cell-label">Подпись</span>
+            <span class="cell-label"><%= it.t('settings.label') %></span>
             <input type="text" name="social[__INDEX__][label]" value="">
           </div>
           <div class="repeater-cell">
-            <span class="cell-label">Ссылка</span>
+            <span class="cell-label"><%= it.t('settings.url') %></span>
             <input type="url" name="social[__INDEX__][url]" value="">
           </div>
           <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
         </div>
       </template>
 
-      <button type="button" class="btn btn--small repeater-add">Добавить иконку</button>
+      <button type="button" class="btn btn--small repeater-add"><%= it.t('settings.addIcon') %></button>
     </div>
   </section>
 
   <section class="card">
-    <h2>Подвал</h2>
+    <h2><%= it.t('settings.footer') %></h2>
     <div class="field">
-      <label for="footer_note">Текст справа в подвале</label>
+      <label for="footer_note"><%= it.t('settings.footerNote') %></label>
       <input type="text" id="footer_note" name="footer_note" value="<%= it.settings.footer_note || '' %>">
     </div>
   </section>
 
   <div class="form-actions">
-    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
   </div>
 </form>
 

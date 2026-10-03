@@ -170,6 +170,91 @@
     }, { passive: true })
   }
 
+  /* ── Прокрутка галереи без открытия фотографии ────────────
+     Сама прокрутка нативная: контейнер со scroll-snap листается
+     свайпом на телефоне и колесом на трекпаде. Скрипт добавляет
+     только стрелки для мыши и подпись «экран N из M». */
+  function initGalleryScrollers () {
+    document.querySelectorAll('.gallery-frame--scrollable').forEach(function (frame) {
+      var scroller = frame.querySelector('[data-gallery-scroll]')
+      var prev = frame.querySelector('.gallery-arrow--prev')
+      var next = frame.querySelector('.gallery-arrow--next')
+      if (!scroller) return
+
+      var status = frame.parentNode.querySelector('[data-gallery-status]')
+      var pages = Array.prototype.slice.call(scroller.querySelectorAll('.gallery-page'))
+
+      function maxScroll () {
+        return scroller.scrollWidth - scroller.clientWidth
+      }
+
+      /**
+       * Позиции экранов относительно начала ленты. Считаем по самим
+       * элементам, а не по ширине контейнера: между экранами есть
+       * промежуток, и прокрутка «на ширину» промахивалась бы на него.
+       */
+      function offsets () {
+        if (pages.length === 0) return []
+        var base = pages[0].offsetLeft
+        return pages.map(function (page) { return page.offsetLeft - base })
+      }
+
+      function currentIndex () {
+        var positions = offsets()
+        if (positions.length === 0) return 0
+        var nearest = 0
+        var shortest = Infinity
+        positions.forEach(function (position, index) {
+          var distance = Math.abs(position - scroller.scrollLeft)
+          if (distance < shortest) { shortest = distance; nearest = index }
+        })
+        return nearest
+      }
+
+      function update () {
+        // Прокручивать нечего — стрелки только мешали бы.
+        var scrollable = maxScroll() > 2
+        if (prev) prev.hidden = !scrollable
+        if (next) next.hidden = !scrollable
+        if (!scrollable) {
+          if (status) status.textContent = ''
+          return
+        }
+
+        if (prev) prev.disabled = scroller.scrollLeft <= 2
+        if (next) next.disabled = scroller.scrollLeft >= maxScroll() - 2
+
+        if (status && pages.length > 1) {
+          status.textContent = scroller.getAttribute('data-label-page') + ' ' +
+            (currentIndex() + 1) + ' / ' + pages.length
+        }
+      }
+
+      function step (direction) {
+        if (pages.length === 0) {
+          // Лента: экранов нет, двигаем на видимую ширину.
+          scroller.scrollBy({ left: direction * scroller.clientWidth })
+        } else {
+          var positions = offsets()
+          var target = Math.min(Math.max(currentIndex() + direction, 0), positions.length - 1)
+          scroller.scrollTo({ left: positions[target] })
+        }
+        // После программной прокрутки событие scroll приходит не всегда,
+        // а примагничивание может поправить позицию на следующем кадре.
+        update()
+        requestAnimationFrame(update)
+      }
+
+      if (prev) prev.addEventListener('click', function () { step(-1) })
+      if (next) next.addEventListener('click', function () { step(1) })
+      scroller.addEventListener('scroll', update, { passive: true })
+      window.addEventListener('resize', update)
+
+      update()
+    })
+  }
+
   initCountdowns()
   initLightbox()
+  initGalleryScrollers()
 })()

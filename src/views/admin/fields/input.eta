@@ -3,6 +3,7 @@
   var name = it.name
   var value = it.value
   var id = (name || '').replace(/[\[\]]/g, '_')
+  var localize = it.localize || function (v) { return typeof v === 'string' ? v : (v && (v.en || Object.values(v)[0])) || '' }
 %>
 <% if (field.input === 'textarea' || field.input === 'richtext') { %>
   <textarea id="<%= id %>" name="<%= name %>" rows="<%= field.rows || 4 %>"><%= value || '' %></textarea>
@@ -10,24 +11,24 @@
 <% } else if (field.input === 'checkbox') { %>
   <label class="check">
     <input type="checkbox" id="<%= id %>" name="<%= name %>" value="on"<%= value ? ' checked' : '' %>>
-    <span><%= field.label %></span>
+    <span><%= localize(field.label) %></span>
   </label>
 
 <% } else if (field.input === 'select') { %>
   <select id="<%= id %>" name="<%= name %>">
     <% ;(field.options || []).forEach(function (option) { %>
     <option value="<%= option %>"<%= String(value) === String(option) ? ' selected' : '' %>>
-      <%= (field.optionLabels && field.optionLabels[option]) || option %>
+      <%= (field.optionLabels && field.optionLabels[option]) ? localize(field.optionLabels[option]) : option %>
     </option>
     <% }) %>
   </select>
 
 <% } else if (field.input === 'gallery-picker') { %>
   <select id="<%= id %>" name="<%= name %>">
-    <option value="">— альбом не выбран —</option>
+    <option value="">— —</option>
     <% ;(it.galleries || []).forEach(function (gallery) { %>
     <option value="<%= gallery.id %>"<%= Number(value) === gallery.id ? ' selected' : '' %>>
-      <%= gallery.title || gallery.slug %> (<%= gallery.item_count %> фото)
+      <%= gallery.title || gallery.slug %> (<%= gallery.item_count %>)
     </option>
     <% }) %>
   </select>

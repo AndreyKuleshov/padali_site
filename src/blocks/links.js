@@ -5,11 +5,14 @@ const ICONS = [
 
 export default {
   type: 'links',
-  title: 'Ссылки',
-  description: 'Список площадок и соцсетей крупными строками.',
+  title: { en: 'Links', sr: 'Linkovi' },
+  description: {
+    en: 'Platforms and social networks as large rows.',
+    sr: 'Platforme i društvene mreže u velikim redovima.'
+  },
 
   texts: [
-    { key: 'heading', label: 'Заголовок раздела', input: 'text' }
+    { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text' }
   ],
 
   media: [],
@@ -17,14 +20,14 @@ export default {
   settings: [
     {
       key: 'items',
-      label: 'Ссылки',
+      label: { en: 'Links', sr: 'Linkovi' },
       input: 'repeater',
-      addLabel: 'Добавить ссылку',
+      addLabel: { en: 'Add link', sr: 'Dodaj link' },
       fields: [
-        { key: 'icon',   label: 'Иконка',   input: 'select', options: ICONS },
-        { key: 'label',  label: 'Название', input: 'text' },
-        { key: 'handle', label: 'Подпись справа', input: 'text' },
-        { key: 'url',    label: 'Ссылка',   input: 'url' }
+        { key: 'icon',   label: { en: 'Icon', sr: 'Ikona' },   input: 'select', options: ICONS },
+        { key: 'label',  label: { en: 'Name', sr: 'Naziv' }, input: 'text' },
+        { key: 'handle', label: { en: 'Text on the right', sr: 'Tekst desno' }, input: 'text' },
+        { key: 'url',    label: { en: 'Link', sr: 'Link' },   input: 'url' }
       ],
       default: []
     }

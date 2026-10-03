@@ -238,6 +238,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 }
 
 .chip--on { color: var(--neon); border-color: #4A5A20; }
+.chip[disabled] { opacity: .4; cursor: not-allowed; }
+
+.user-list .block-main { flex: 1 1 220px; }
+.user-list .inline-form input { min-width: 150px; }
 
 /* ─── Формы ──────────────────────────────────────────────── */
 
@@ -339,19 +343,93 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .upload-form { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
 
+.upload-form { align-items: flex-start; }
+
 .upload-drop {
   flex: 1;
   min-width: 240px;
   border: 1px dashed var(--line);
   border-radius: 6px;
-  padding: 18px;
-  text-align: center;
+  padding: 14px;
   color: var(--soft);
+  transition: border-color .15s, background .15s;
+}
+
+.upload-drop:hover { border-color: var(--soft); }
+.upload-drop.is-over { border-color: var(--neon); background: rgba(214, 255, 46, .06); color: var(--ink); }
+
+.upload-cta {
+  display: block;
+  padding: 10px;
+  text-align: center;
   cursor: pointer;
 }
 
-.upload-drop:hover { border-color: var(--neon); color: var(--ink); }
-.upload-drop input { display: none; }
+.upload-cta:hover { color: var(--ink); }
+
+/* Превью выбранных файлов: видно, что уйдёт в форму, и можно убрать лишнее. */
+.upload-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.upload-previews[hidden] { display: none; }
+
+.upload-preview {
+  position: relative;
+  width: 104px;
+}
+
+.upload-preview img {
+  width: 104px;
+  height: 78px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+
+.upload-note {
+  margin: 10px 0 0;
+  font-size: .82rem;
+  color: var(--danger);
+}
+
+.upload-note[hidden] { display: none; }
+
+.upload-preview-name {
+  display: block;
+  margin-top: 4px;
+  font-size: .7rem;
+  color: var(--soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Переключатель языка админки ────────────────────────── */
+
+.admin-lang { display: flex; gap: 2px; }
+
+.admin-lang a {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: .76rem;
+  letter-spacing: .04em;
+  text-decoration: none;
+  color: var(--soft);
+}
+
+.admin-lang a:hover { color: var(--ink); border-color: var(--soft); }
+.admin-lang a.active { color: var(--bg); background: var(--neon); border-color: var(--neon); }
+
+.login-lang { justify-content: center; margin-top: 18px; }
 
 .media-grid {
   display: grid;

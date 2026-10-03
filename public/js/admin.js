@@ -1,7 +1,15 @@
-/* PADALI — админка. Минимум поведения: подтверждения, порядок, повторители,
-   выбор картинок из медиатеки. Ни одного фреймворка. */
+/* PADALI — админка. Минимум поведения: подтверждения, порядок,
+   повторители, выбор и загрузка картинок. Ни одного фреймворка.
+   Все видимые строки приходят из разметки в data-атрибутах —
+   скрипт не знает языка интерфейса. */
 (function () {
   'use strict'
+
+  function fill (template, params) {
+    return String(template || '').replace(/\{(\w+)\}/g, function (match, key) {
+      return Object.prototype.hasOwnProperty.call(params, key) ? params[key] : match
+    })
+  }
 
   /* ── Подтверждение удаления ─────────────────────────────── */
   document.addEventListener('submit', function (event) {
@@ -30,7 +38,7 @@
           },
           body: JSON.stringify({ order: order, _csrf: list.getAttribute('data-csrf') })
         }).then(function (response) {
-          if (!response.ok) window.alert('Не удалось сохранить порядок. Обновите страницу.')
+          if (!response.ok) window.alert(list.getAttribute('data-error'))
         })
       }
     })
@@ -52,9 +60,8 @@
         )
         var next = used.length > 0 ? Math.max.apply(null, used) + 1 : 0
 
-        var html = template.innerHTML.split('__INDEX__').join(String(next))
         var holder = document.createElement('div')
-        holder.innerHTML = html
+        holder.innerHTML = template.innerHTML.split('__INDEX__').join(String(next))
         rows.appendChild(holder.firstElementChild)
       })
 
@@ -106,7 +113,8 @@
 
     function renderLibrary () {
       if (library.length === 0) {
-        grid.innerHTML = '<p class="hint">Медиатека пуста. Сначала загрузите файлы.</p>'
+        grid.innerHTML = '<p class="hint"></p>'
+        grid.firstChild.textContent = dialog.getAttribute('data-empty')
         return
       }
       grid.innerHTML = library.map(function (item) {
@@ -121,24 +129,23 @@
       dialog.showModal()
       if (library) { renderLibrary(); return }
 
-      grid.textContent = 'Загружаю…'
+      grid.textContent = dialog.getAttribute('data-loading')
       fetch('/admin/media.json')
         .then(function (response) { return response.json() })
         .then(function (items) { library = items; renderLibrary() })
-        .catch(function () { grid.textContent = 'Не удалось загрузить медиатеку.' })
+        .catch(function () { grid.textContent = dialog.getAttribute('data-failed') })
     }
 
     function addToBlockField (field, item) {
       var slots = field.querySelector('.media-slots')
-      var multiple = field.getAttribute('data-multiple') === '1'
-      if (!multiple) slots.innerHTML = ''
+      if (field.getAttribute('data-multiple') !== '1') slots.innerHTML = ''
 
       var slot = document.createElement('div')
       slot.className = 'media-slot'
       slot.innerHTML =
         '<img src="' + item.thumb + '" alt="">' +
         '<input type="hidden" name="media[' + field.getAttribute('data-media-field') + '][]" value="' + item.id + '">' +
-        '<button type="button" class="media-remove" aria-label="Убрать">×</button>'
+        '<button type="button" class="media-remove">×</button>'
       slots.appendChild(slot)
     }
 
@@ -152,7 +159,7 @@
       chip.setAttribute('data-id', String(item.id))
       chip.innerHTML =
         '<img src="' + item.thumb + '" alt="" loading="lazy">' +
-        '<button type="button" class="media-remove" aria-label="Убрать">×</button>'
+        '<button type="button" class="media-remove">×</button>'
       container.appendChild(chip)
       syncGalleryValue()
     }
@@ -161,8 +168,7 @@
       var trigger = event.target.closest('.media-pick')
       if (trigger) { event.preventDefault(); open(trigger); return }
 
-      var close = event.target.closest('[data-picker-close]')
-      if (close) { dialog.close(); return }
+      if (event.target.closest('[data-picker-close]')) { dialog.close(); return }
 
       var choice = event.target.closest('.picker-item')
       if (choice && activeTrigger) {
@@ -184,18 +190,125 @@
     })
   }
 
-  /* ── Имя выбранного файла в форме загрузки ──────────────── */
-  function initUploadLabel () {
-    var input = document.querySelector('.upload-drop input[type="file"]')
-    if (!input) return
-    var caption = input.nextElementSibling
-    var original = caption ? caption.textContent : ''
+  /* ── Загрузка: перетаскивание и превью выбранных файлов ───
+     Перетаскивание на <label> браузер не обрабатывает — нужны
+     собственные обработчики и перенос списка файлов в input.
+     Выбранные кадры показываем сразу, чтобы было видно, что ушло
+     в форму, и можно было убрать лишнее до отправки. */
+  function initUpload () {
+    var zone = document.getElementById('uploadDrop')
+    var input = document.getElementById('uploadInput')
+    var caption = document.getElementById('uploadCaption')
+    var previews = document.getElementById('uploadPreviews')
+    var note = document.getElementById('uploadNote')
+    if (!zone || !input) return
+
+    var ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
+    var chosen = []
+
+    function render () {
+      previews.innerHTML = ''
+      if (chosen.length === 0) {
+        previews.hidden = true
+        caption.textContent = zone.getAttribute('data-idle')
+        return
+      }
+
+      previews.hidden = false
+      caption.textContent = fill(zone.getAttribute('data-ready'), { count: chosen.length })
+
+      chosen.forEach(function (file, index) {
+        var item = document.createElement('div')
+        item.className = 'upload-preview'
+
+        var image = document.createElement('img')
+        image.alt = ''
+        // Объектный URL освобождаем после загрузки кадра — иначе утечёт.
+        var url = URL.createObjectURL(file)
+        image.src = url
+        image.addEventListener('load', function () { URL.revokeObjectURL(url) })
+
+        var name = document.createElement('span')
+        name.className = 'upload-preview-name'
+        name.textContent = file.name
+
+        var remove = document.createElement('button')
+        remove.type = 'button'
+        remove.className = 'media-remove'
+        remove.setAttribute('aria-label', zone.getAttribute('data-remove'))
+        remove.textContent = '×'
+        remove.addEventListener('click', function () {
+          chosen.splice(index, 1)
+          commit()
+        })
+
+        item.append(image, name, remove)
+        previews.appendChild(item)
+      })
+    }
+
+    /** Список файлов переносим обратно в input — отправляется именно он. */
+    function commit () {
+      var transfer = new DataTransfer()
+      chosen.forEach(function (file) { transfer.items.add(file) })
+      input.files = transfer.files
+      render()
+    }
+
+    function accept (files) {
+      var rejected = []
+      Array.prototype.forEach.call(files, function (file) {
+        if (ALLOWED.indexOf(file.type) === -1) { rejected.push(file.name); return }
+        var duplicate = chosen.some(function (existing) {
+          return existing.name === file.name && existing.size === file.size
+        })
+        if (!duplicate) chosen.push(file)
+      })
+      commit()
+
+      // Сообщение строкой в форме, а не окном: модальное окно
+      // прерывает перетаскивание и раздражает при пакетной загрузке.
+      if (note) {
+        note.hidden = rejected.length === 0
+        note.textContent = rejected.length === 0
+          ? ''
+          : fill(zone.getAttribute('data-rejected'), { names: rejected.join(', ') })
+      }
+    }
 
     input.addEventListener('change', function () {
-      if (!caption) return
-      caption.textContent = input.files.length > 0
-        ? 'Выбрано файлов: ' + input.files.length
-        : original
+      chosen = []
+      accept(input.files)
+    })
+
+    ;['dragenter', 'dragover'].forEach(function (name) {
+      zone.addEventListener(name, function (event) {
+        event.preventDefault()
+        zone.classList.add('is-over')
+        caption.textContent = zone.getAttribute('data-over')
+      })
+    })
+
+    ;['dragleave', 'dragend'].forEach(function (name) {
+      zone.addEventListener(name, function (event) {
+        if (name === 'dragleave' && zone.contains(event.relatedTarget)) return
+        zone.classList.remove('is-over')
+        render()
+      })
+    })
+
+    zone.addEventListener('drop', function (event) {
+      event.preventDefault()
+      zone.classList.remove('is-over')
+      if (event.dataTransfer && event.dataTransfer.files.length > 0) accept(event.dataTransfer.files)
+      else render()
+    })
+
+    // Файл, брошенный мимо зоны, иначе откроется вместо страницы.
+    ;['dragover', 'drop'].forEach(function (name) {
+      window.addEventListener(name, function (event) {
+        if (!event.target.closest('#uploadDrop')) event.preventDefault()
+      })
     })
   }
 
@@ -203,5 +316,5 @@
   initRepeaters()
   initGalleryItems()
   initMediaPicker()
-  initUploadLabel()
+  initUpload()
 })()

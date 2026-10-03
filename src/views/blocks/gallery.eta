@@ -4,8 +4,22 @@
   var items = gallery ? gallery.items : []
   var layout = block.settings.layout || 'grid'
   var columns = Number(block.settings.columns) || 3
+  var rows = Number(block.settings.rows) || 0
   var showCaptions = !!block.settings.show_captions
   var useLightbox = block.settings.lightbox !== false
+  var sr = it.locale === 'sr'
+
+  // Сетка делится на экраны по columns × rows, если фотографий больше.
+  var perPage = columns * rows
+  var paged = layout === 'grid' && perPage > 0 && items.length > perPage
+  var pages = []
+  if (paged) {
+    for (var start = 0; start < items.length; start += perPage) {
+      pages.push(items.slice(start, start + perPage))
+    }
+  }
+
+  var scrollable = paged || layout === 'strip'
 
   // Ширина слота зависит от раскладки — подсказываем браузеру, какой
   // дериватив брать, иначе он скачает самый широкий.
@@ -18,30 +32,60 @@
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
   <% if (block.text.intro) { %><p class="note gallery-intro"><%= block.text.intro %></p><% } %>
 
-  <% /* Группа для листания: полноэкранный просмотр переключает снимки
-        только внутри своего альбома, даже если на странице их несколько. */ %>
-  <div class="gallery gallery--<%= layout %>"
-       style="--gallery-columns: <%= columns %>"
+  <% /* Группа листания охватывает все экраны: полноэкранный просмотр
+        ходит по всему альбому, а не по видимой странице. */ %>
+  <div class="gallery-frame<%= scrollable ? ' gallery-frame--scrollable' : '' %>"
        <% if (useLightbox) { %>data-lightbox-group="block-<%= block.id %>"<% } %>>
-    <% items.forEach(function (item) { %>
-    <figure class="gallery-item">
-      <%~ include('/partials/picture', {
-            media: item,
-            sizes: sizes,
-            lightbox: useLightbox,
-            className: 'gallery-image'
-          }) %>
-      <% if (showCaptions && item.caption) { %>
-      <figcaption><%= item.caption %></figcaption>
-      <% } %>
-    </figure>
-    <% }) %>
+
+    <% if (paged) { %>
+    <div class="gallery-track" data-gallery-scroll
+         data-label-page="<%= sr ? 'Ekran' : 'Screen' %>">
+      <% pages.forEach(function (page) { %>
+      <div class="gallery-page gallery gallery--grid" style="--gallery-columns: <%= columns %>">
+        <% page.forEach(function (item) { %>
+        <figure class="gallery-item">
+          <%~ include('/partials/picture', { media: item, sizes: sizes, lightbox: useLightbox, className: 'gallery-image' }) %>
+          <% if (showCaptions && item.caption) { %><figcaption><%= item.caption %></figcaption><% } %>
+        </figure>
+        <% }) %>
+      </div>
+      <% }) %>
+    </div>
+
+    <% } else { %>
+    <div class="gallery gallery--<%= layout %>" style="--gallery-columns: <%= columns %>"
+         <% if (layout === 'strip') { %>data-gallery-scroll<% } %>>
+      <% items.forEach(function (item) { %>
+      <figure class="gallery-item">
+        <%~ include('/partials/picture', { media: item, sizes: sizes, lightbox: useLightbox, className: 'gallery-image' }) %>
+        <% if (showCaptions && item.caption) { %><figcaption><%= item.caption %></figcaption><% } %>
+      </figure>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <% if (scrollable) { %>
+    <button class="gallery-arrow gallery-arrow--prev" type="button" hidden
+            aria-label="<%= sr ? 'Nazad' : 'Previous' %>">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="gallery-arrow gallery-arrow--next" type="button" hidden
+            aria-label="<%= sr ? 'Napred' : 'Next' %>">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <% } %>
   </div>
+
+  <% if (paged) { %>
+  <p class="gallery-progress note" data-gallery-status aria-live="polite"></p>
+  <% } %>
 
   <% if (gallery.totalCount > items.length) { %>
   <p class="gallery-more note">
-    <%= it.locale === 'sr' ? 'Prikazano' : 'Showing' %> <%= items.length %>
-    <%= it.locale === 'sr' ? 'od' : 'of' %> <%= gallery.totalCount %>
+    <%= sr ? 'Prikazano' : 'Showing' %> <%= items.length %>
+    <%= sr ? 'od' : 'of' %> <%= gallery.totalCount %>
   </p>
   <% } %>
 </section>

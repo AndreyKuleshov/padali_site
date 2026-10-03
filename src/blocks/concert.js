@@ -1,23 +1,26 @@
 export default {
   type: 'concert',
-  title: 'Концерт',
-  description: 'Афиша, дата, площадка и ссылка на билеты.',
+  title: { en: 'Concert', sr: 'Koncert' },
+  description: {
+    en: 'Poster, date, venue and a ticket link.',
+    sr: 'Plakat, datum, mesto i link za karte.'
+  },
 
   texts: [
-    { key: 'heading', label: 'Заголовок раздела', input: 'text' },
-    { key: 'venue',   label: 'Площадка',          input: 'text' },
-    { key: 'note',    label: 'Примечание',        input: 'textarea', rows: 2 },
-    { key: 'tag',     label: 'Тег',               input: 'text' },
-    { key: 'ticket_label', label: 'Подпись кнопки билетов', input: 'text' }
+    { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text' },
+    { key: 'venue',   label: { en: 'Venue', sr: 'Mesto' },          input: 'text' },
+    { key: 'note',    label: { en: 'Note', sr: 'Napomena' },        input: 'textarea', rows: 2 },
+    { key: 'tag',     label: { en: 'Tag', sr: 'Oznaka' },               input: 'text' },
+    { key: 'ticket_label', label: { en: 'Ticket button label', sr: 'Tekst dugmeta za karte' }, input: 'text' }
   ],
 
   media: [
-    { key: 'poster', label: 'Афиша' }
+    { key: 'poster', label: { en: 'Poster', sr: 'Plakat' } }
   ],
 
   settings: [
-    { key: 'date',       label: 'Дата концерта',   input: 'date' },
-    { key: 'ticket_url', label: 'Ссылка на билеты', input: 'url' }
+    { key: 'date',       label: { en: 'Concert date', sr: 'Datum koncerta' },   input: 'date' },
+    { key: 'ticket_url', label: { en: 'Ticket link', sr: 'Link za karte' }, input: 'url' }
   ],
 
   template: 'blocks/concert'

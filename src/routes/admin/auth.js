@@ -1,14 +1,27 @@
 import { login, logout, ensureCsrfToken, verifyCsrf, setFlash } from '../../services/auth.js'
 import { render } from '../../services/renderer.js'
+import { languageUrl } from './helpers.js'
 import config from '../../config.js'
+
+/** Страница входа рисуется вне общего каркаса — у неё нет меню. */
+function renderLogin (request, reply, error) {
+  return render('admin/login', {
+    csrf: ensureCsrfToken(request, reply),
+    error,
+    t: request.t,
+    adminLocale: request.adminLocale,
+    languages: (request.adminLocales ?? []).map((code) => ({
+      code,
+      href: languageUrl(request.url, code),
+      active: code === request.adminLocale
+    }))
+  })
+}
 
 async function authRoutes (app) {
   app.get('/login', async (request, reply) => {
     reply.type('text/html; charset=utf-8')
-    return reply.send(render('admin/login', {
-      csrf: ensureCsrfToken(request, reply),
-      error: null
-    }))
+    return reply.send(renderLogin(request, reply, null))
   })
 
   app.post('/login', {
@@ -16,10 +29,7 @@ async function authRoutes (app) {
   }, async (request, reply) => {
     if (!verifyCsrf(request)) {
       reply.code(403).type('text/html; charset=utf-8')
-      return reply.send(render('admin/login', {
-        csrf: ensureCsrfToken(request, reply),
-        error: 'Сессия устарела. Попробуйте ещё раз.'
-      }))
+      return reply.send(renderLogin(request, reply, request.t('login.expired')))
     }
 
     const email = String(request.body?.email ?? '')
@@ -29,13 +39,10 @@ async function authRoutes (app) {
     if (!user) {
       request.log.warn({ email }, 'Неудачная попытка входа в админку')
       reply.code(401).type('text/html; charset=utf-8')
-      return reply.send(render('admin/login', {
-        csrf: ensureCsrfToken(request, reply),
-        error: 'Неверный адрес или пароль.'
-      }))
+      return reply.send(renderLogin(request, reply, request.t('login.failed')))
     }
 
-    setFlash(reply, 'success', `Здравствуйте, ${user.email}.`)
+    setFlash(reply, 'success', request.t('login.welcome', { email: user.email }))
     return reply.redirect('/admin', 302)
   })
 

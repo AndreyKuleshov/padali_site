@@ -54,6 +54,27 @@ function readEnv (env = process.env) {
       ? { email: env.ADMIN_EMAIL.trim().toLowerCase(), password: env.ADMIN_PASSWORD }
       : null,
 
+    /**
+     * Дополнительные учётки: `почта:пароль`, через запятую.
+     * Создаются, если такой почты ещё нет, и не трогаются дальше —
+     * пароль, изменённый в админке, переменная не перезапишет.
+     * Нужны, чтобы завести доступ там, где в админку ещё не войти.
+     */
+    bootstrapUsers: String(env.ADMIN_USERS ?? '')
+      .split(',')
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const separator = pair.indexOf(':')
+        return separator === -1
+          ? null
+          : {
+              email: pair.slice(0, separator).trim().toLowerCase(),
+              password: pair.slice(separator + 1).trim()
+            }
+      })
+      .filter((user) => user && user.email && user.password.length >= 10),
+
     uploadDir: resolve(env.UPLOAD_DIR ?? './data/uploads'),
     /** Предел на один загружаемый файл. */
     uploadMaxBytes: 20 * 1024 * 1024,

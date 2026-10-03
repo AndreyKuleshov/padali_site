@@ -181,6 +181,77 @@ test('страница ссылается на статику с отпечат�
   assert.match(response.body, /src="\/js\/site\.js\?v=[a-f0-9]{10}"/)
 })
 
+/**
+ * Альбом крупнее экрана делится на страницы columns × rows: листать
+ * их можно стрелками и свайпом, не открывая фотографию.
+ */
+test('альбом крупнее экрана делится на страницы со стрелками', async () => {
+  const { pageId } = await buildPage()
+
+  const ids = []
+  for (let seed = 30; seed < 37; seed += 1) {
+    const { media } = await processUpload({
+      buffer: await makeImage({ width: 400, height: 300, seed }),
+      originalName: `p${seed}.png`,
+      mime: 'image/png'
+    })
+    ids.push(media.id)
+  }
+
+  const album = await createGallery('many')
+  await setGalleryItems(album, ids)
+  await createBlock({
+    pageId, type: 'gallery', anchor: 'many',
+    settings: { ...defaultSettings('gallery'), gallery_id: album, columns: 3, rows: 2 }
+  })
+  invalidateCache()
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  const section = /<section class="section wrap" id="many">[\s\S]*?<\/section>/.exec(response.body)[0]
+
+  // Семь фотографий по шесть на экран — два экрана.
+  assert.equal((section.match(/class="gallery-page/g) || []).length, 2)
+  assert.match(section, /gallery-frame--scrollable/)
+  assert.match(section, /gallery-arrow--prev/)
+  assert.match(section, /gallery-arrow--next/)
+  assert.equal((section.match(/data-lightbox-group/g) || []).length, 1,
+    'группа листания одна на весь альбом, а не на экран')
+  assert.equal((section.match(/data-lightbox=/g) || []).length, 7)
+})
+
+test('альбом, помещающийся на экран, страниц не получает', async () => {
+  const { pageId, mediaId } = await buildPage()
+  const album = await createGallery('few')
+  await setGalleryItems(album, [mediaId])
+  await createBlock({
+    pageId, type: 'gallery', anchor: 'few',
+    settings: { ...defaultSettings('gallery'), gallery_id: album, columns: 3, rows: 2 }
+  })
+  invalidateCache()
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  const section = /<section class="section wrap" id="few">[\s\S]*?<\/section>/.exec(response.body)[0]
+  assert.doesNotMatch(section, /gallery-page/)
+  assert.doesNotMatch(section, /gallery-arrow/)
+})
+
+test('лента получает стрелки независимо от числа строк', async () => {
+  const { pageId, mediaId } = await buildPage()
+  const album = await createGallery('strip')
+  await setGalleryItems(album, [mediaId])
+  await createBlock({
+    pageId, type: 'gallery', anchor: 'strip',
+    settings: { ...defaultSettings('gallery'), gallery_id: album, layout: 'strip' }
+  })
+  invalidateCache()
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  const section = /<section class="section wrap" id="strip">[\s\S]*?<\/section>/.exec(response.body)[0]
+  assert.match(section, /gallery--strip/)
+  assert.match(section, /data-gallery-scroll/)
+  assert.match(section, /gallery-arrow--next/)
+})
+
 test('две галереи получают разные группы листания', async () => {
   const { pageId, mediaId } = await buildPage()
 

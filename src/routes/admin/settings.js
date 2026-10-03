@@ -61,7 +61,7 @@ async function settingsRoutes (app) {
     }
 
     afterWrite()
-    setFlash(reply, 'success', 'Настройки сохранены.')
+    setFlash(reply, 'success', request.t('settings.saved'))
     return reply.redirect('/admin/settings', 302)
   })
 }

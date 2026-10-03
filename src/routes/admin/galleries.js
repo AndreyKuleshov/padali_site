@@ -37,11 +37,11 @@ async function galleryRoutes (app) {
   app.post('/galleries', async (request, reply) => {
     const slug = slugify(request.body?.slug)
     if (!slug) {
-      setFlash(reply, 'error', 'Укажите короткое имя альбома латиницей.')
+      setFlash(reply, 'error', request.t('galleries.slugRequired'))
       return reply.redirect('/admin/galleries', 302)
     }
     if (await getGalleryBySlug(slug)) {
-      setFlash(reply, 'error', `Альбом «${slug}» уже есть.`)
+      setFlash(reply, 'error', request.t('galleries.slugTaken', { slug }))
       return reply.redirect('/admin/galleries', 302)
     }
 
@@ -105,7 +105,7 @@ async function galleryRoutes (app) {
     const slug = slugify(request.body?.slug) || gallery.slug
     const clash = await getGalleryBySlug(slug)
     if (clash && clash.id !== id) {
-      setFlash(reply, 'error', `Короткое имя «${slug}» занято.`)
+      setFlash(reply, 'error', request.t('galleries.slugClash', { slug }))
       return reply.redirect(`/admin/galleries/${id}`, 302)
     }
 
@@ -116,7 +116,7 @@ async function galleryRoutes (app) {
     })
 
     afterWrite()
-    setFlash(reply, 'success', `Альбом сохранён: ${mediaIds.length} фото.`)
+    setFlash(reply, 'success', request.t('galleries.saved', { count: mediaIds.length }))
     return reply.redirect(`/admin/galleries/${id}`, 302)
   })
 
@@ -128,13 +128,13 @@ async function galleryRoutes (app) {
       [String(id)]
     )
     if (usedIn.length > 0) {
-      setFlash(reply, 'error', `Альбом вставлен в блоков: ${usedIn.length}. Сначала уберите вставки.`)
+      setFlash(reply, 'error', request.t('galleries.inUse', { count: usedIn.length }))
       return reply.redirect(`/admin/galleries/${id}`, 302)
     }
 
     await deleteGallery(id)
     afterWrite()
-    setFlash(reply, 'success', 'Альбом удалён. Фотографии остались в медиатеке.')
+    setFlash(reply, 'success', request.t('galleries.deleted'))
     return reply.redirect('/admin/galleries', 302)
   })
 }

@@ -3,16 +3,16 @@
     return (it.texts[locale] && it.texts[locale][key]) || ''
   }
 %>
-<%~ include('/admin/partials/head', it) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.gallery.slug })) %>
 
 <div class="page-head">
   <div>
-    <p class="breadcrumb"><a href="/admin/galleries">← Альбомы</a></p>
-    <h1>Альбом «<%= it.gallery.slug %>»</h1>
+    <p class="breadcrumb"><a href="/admin/galleries">← <%= it.t('galleries.title') %></a></p>
+    <h1><%= it.gallery.slug %></h1>
     <% if (it.usedIn.length > 0) { %>
-    <p class="hint">Вставлен в блоков: <%= it.usedIn.length %>. Правки увидят все вставки сразу.</p>
+    <p class="hint"><%= it.t('galleries.usedIn', { count: it.usedIn.length }) %></p>
     <% } else { %>
-    <p class="hint">Пока никуда не вставлен. Добавьте блок «Фотогалерея» на главной и выберите этот альбом.</p>
+    <p class="hint"><%= it.t('galleries.notUsed') %></p>
     <% } %>
   </div>
 </div>
@@ -21,14 +21,14 @@
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 
   <section class="card">
-    <h2>Общее</h2>
+    <h2><%= it.t('blockForm.general') %></h2>
     <div class="field">
-      <label for="slug">Короткое имя</label>
+      <label for="slug"><%= it.t('galleries.shortName') %></label>
       <input type="text" id="slug" name="slug" value="<%= it.gallery.slug %>" pattern="[a-z0-9-]+" required>
     </div>
 
     <div class="field">
-      <label>Название</label>
+      <label><%= it.t('galleries.name') %></label>
       <div class="locale-grid">
         <% it.locales.forEach(function (locale) { %>
         <div>
@@ -40,7 +40,7 @@
     </div>
 
     <div class="field">
-      <label>Описание</label>
+      <label><%= it.t('common.description') %></label>
       <div class="locale-grid locale-grid--stacked">
         <% it.locales.forEach(function (locale) { %>
         <div>
@@ -53,31 +53,31 @@
   </section>
 
   <section class="card">
-    <h2>Фотографии</h2>
-    <p class="hint">Порядок меняется перетаскиванием. Подписи задаются в медиатеке — они общие для всех альбомов.</p>
+    <h2><%= it.t('galleries.photosHeading') %></h2>
+    <p class="hint"><%= it.t('galleries.photosHint') %></p>
 
     <div class="gallery-items" id="galleryItems">
       <% it.items.forEach(function (item) { %>
       <div class="gallery-chip" data-id="<%= item.id %>">
         <img src="<%= item.thumb %>" alt="" loading="lazy">
-        <button type="button" class="media-remove" aria-label="Убрать">×</button>
+        <button type="button" class="media-remove" aria-label="<%= it.t('blockForm.remove') %>">×</button>
       </div>
       <% }) %>
     </div>
 
     <input type="hidden" name="items" id="galleryItemsValue" value="<%= it.items.map(function (i) { return i.id }).join(',') %>">
-    <button type="button" class="btn btn--small media-pick" data-target="galleryItems" data-multiple="1">Добавить из медиатеки</button>
+    <button type="button" class="btn btn--small media-pick" data-target="galleryItems" data-multiple="1"><%= it.t('galleries.addFromMedia') %></button>
   </section>
 
   <div class="form-actions">
-    <button type="submit" class="btn btn--primary">Сохранить</button>
-    <a class="btn" href="/admin/galleries">Отмена</a>
+    <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
+    <a class="btn" href="/admin/galleries"><%= it.t('common.cancel') %></a>
   </div>
 </form>
 
-<form method="post" action="/admin/galleries/<%= it.gallery.id %>/delete" data-confirm="Удалить альбом? Фотографии останутся в медиатеке." class="danger-zone">
+<form method="post" action="/admin/galleries/<%= it.gallery.id %>/delete" data-confirm="<%= it.t('galleries.confirmDelete') %>" class="danger-zone">
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-  <button type="submit" class="btn btn--danger">Удалить альбом</button>
+  <button type="submit" class="btn btn--danger"><%= it.t('galleries.deleteButton') %></button>
 </form>
 
 <%~ include('/admin/partials/media-picker', it) %>

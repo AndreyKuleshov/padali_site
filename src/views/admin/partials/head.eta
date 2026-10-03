@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ru">
+<html lang="<%= it.adminLocale %>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><%= it.title || 'Админка' %> — PADALI</title>
+<title><%= it.t('app.title', { page: it.pageTitle || it.t('nav.blocks') }) %></title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="<%= it.h.asset('/brand/favicon.png') %>">
 <link rel="stylesheet" href="<%= it.h.asset('/css/admin.css') %>">
@@ -12,17 +12,24 @@
 <% if (it.nav) { %>
 <header class="admin-top">
   <div class="admin-top-inner">
-    <a class="admin-brand" href="/admin">PADALI<span>админка</span></a>
+    <a class="admin-brand" href="/admin">PADALI<span><%= it.t('app.admin') %></span></a>
     <nav class="admin-nav">
       <% it.nav.forEach(function (item) { %>
       <a href="<%= item.href %>"<%= item.active ? ' class="active"' : '' %>><%= item.label %></a>
       <% }) %>
     </nav>
     <div class="admin-top-right">
-      <a class="admin-view-site" href="/" target="_blank" rel="noopener">Открыть сайт ↗</a>
+      <% if ((it.languages || []).length > 1) { %>
+      <nav class="admin-lang" aria-label="<%= it.t('settings.language') %>">
+        <% it.languages.forEach(function (lang) { %>
+        <a href="<%= lang.href %>"<%= lang.active ? ' class="active"' : '' %>><%= lang.code.toUpperCase() %></a>
+        <% }) %>
+      </nav>
+      <% } %>
+      <a class="admin-view-site" href="/" target="_blank" rel="noopener"><%= it.t('nav.viewSite') %></a>
       <form method="post" action="/admin/logout">
         <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-        <button type="submit" class="link-button">Выйти</button>
+        <button type="submit" class="link-button"><%= it.t('nav.logout') %></button>
       </form>
     </div>
   </div>

@@ -1,18 +1,25 @@
-<%~ include('/admin/partials/head', Object.assign({}, it, { title: 'Вход' })) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('login.title') })) %>
 <div class="login-box">
-  <h1>Вход в админку</h1>
+  <h1><%= it.t('login.heading') %></h1>
   <% if (it.error) { %><p class="flash flash--error"><%= it.error %></p><% } %>
   <form method="post" action="/admin/login" class="stack">
     <input type="hidden" name="_csrf" value="<%= it.csrf %>">
     <label>
-      <span>Почта</span>
+      <span><%= it.t('login.email') %></span>
       <input type="email" name="email" autocomplete="username" required autofocus>
     </label>
     <label>
-      <span>Пароль</span>
+      <span><%= it.t('login.password') %></span>
       <input type="password" name="password" autocomplete="current-password" required>
     </label>
-    <button type="submit" class="btn btn--primary">Войти</button>
+    <button type="submit" class="btn btn--primary"><%= it.t('login.submit') %></button>
   </form>
+  <% if ((it.languages || []).length > 1) { %>
+  <nav class="admin-lang login-lang">
+    <% it.languages.forEach(function (lang) { %>
+    <a href="<%= lang.href %>"<%= lang.active ? ' class="active"' : '' %>><%= lang.code.toUpperCase() %></a>
+    <% }) %>
+  </nav>
+  <% } %>
 </div>
 <%~ include('/admin/partials/foot', it) %>

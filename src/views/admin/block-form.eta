@@ -6,13 +6,13 @@
     return (it.texts[locale] && it.texts[locale][key]) || ''
   }
 %>
-<%~ include('/admin/partials/head', it) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.localize(descriptor.title) })) %>
 
 <div class="page-head">
   <div>
-    <p class="breadcrumb"><a href="/admin">← Блоки</a></p>
-    <h1><%= descriptor.title %></h1>
-    <% if (descriptor.description) { %><p class="hint"><%= descriptor.description %></p><% } %>
+    <p class="breadcrumb"><a href="/admin">← <%= it.t('nav.blocks') %></a></p>
+    <h1><%= it.localize(descriptor.title) %></h1>
+    <% if (descriptor.description) { %><p class="hint"><%= it.localize(descriptor.description) %></p><% } %>
   </div>
 </div>
 
@@ -20,22 +20,22 @@
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 
   <section class="card">
-    <h2>Общее</h2>
+    <h2><%= it.t('blockForm.general') %></h2>
 
     <label class="check">
       <input type="checkbox" name="is_visible" value="on"<%= block.isVisible ? ' checked' : '' %>>
-      <span>Показывать блок на сайте</span>
+      <span><%= it.t('blockForm.showOnSite') %></span>
     </label>
 
     <div class="field">
-      <label for="anchor">Якорь</label>
+      <label for="anchor"><%= it.t('blockForm.anchor') %></label>
       <input type="text" id="anchor" name="anchor" value="<%= block.anchor || '' %>"
-             pattern="[a-z0-9-]*" placeholder="например, photos">
-      <p class="hint">Латиница, цифры и дефис. Нужен, чтобы блок попал в меню и получил ссылку вида <code>/#photos</code>.</p>
+             pattern="[a-z0-9-]*" placeholder="photos">
+      <p class="hint"><%~ it.t('blockForm.anchorHint', { example: '<code>/#photos</code>' }) %></p>
     </div>
 
     <div class="field">
-      <label>Подпись в меню</label>
+      <label><%= it.t('blockForm.navLabel') %></label>
       <div class="locale-grid">
         <% locales.forEach(function (locale) { %>
         <div>
@@ -44,29 +44,29 @@
         </div>
         <% }) %>
       </div>
-      <p class="hint">Пусто — блок в меню не показывается.</p>
+      <p class="hint"><%= it.t('blockForm.navLabelHint') %></p>
     </div>
   </section>
 
   <% if ((descriptor.texts || []).length > 0) { %>
   <section class="card">
-    <h2>Тексты</h2>
+    <h2><%= it.t('blockForm.texts') %></h2>
     <% descriptor.texts.forEach(function (field) { %>
     <div class="field">
-      <label><%= field.label %></label>
+      <label><%= it.localize(field.label) %></label>
       <div class="locale-grid<%= field.input === 'richtext' || field.input === 'textarea' ? ' locale-grid--stacked' : '' %>">
         <% locales.forEach(function (locale) { %>
         <div>
           <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-          <%~ include('/admin/fields/input', {
+          <%~ include('/admin/fields/input', Object.assign({}, it, {
                 field: field,
                 name: 'text[' + locale.code + '][' + field.key + ']',
                 value: textValue(locale.code, field.key)
-              }) %>
+              })) %>
         </div>
         <% }) %>
       </div>
-      <% if (field.hint) { %><p class="hint"><%= field.hint %></p><% } %>
+      <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
     </div>
     <% }) %>
   </section>
@@ -74,23 +74,21 @@
 
   <% if ((descriptor.media || []).length > 0) { %>
   <section class="card">
-    <h2>Изображения</h2>
+    <h2><%= it.t('blockForm.images') %></h2>
     <% descriptor.media.forEach(function (field) { %>
-    <%
-      var chosen = (it.previews[field.key] || [])
-    %>
+    <% var chosen = (it.previews[field.key] || []) %>
     <div class="field media-field" data-media-field="<%= field.key %>" data-multiple="<%= field.multiple ? '1' : '' %>">
-      <label><%= field.label %><%= field.required ? ' *' : '' %></label>
+      <label><%= it.localize(field.label) %><%= field.required ? ' *' : '' %></label>
       <div class="media-slots">
         <% chosen.forEach(function (item) { %>
         <div class="media-slot">
           <img src="<%= item.thumb %>" alt="">
           <input type="hidden" name="media[<%= field.key %>][]" value="<%= item.id %>">
-          <button type="button" class="media-remove" aria-label="Убрать">×</button>
+          <button type="button" class="media-remove" aria-label="<%= it.t('blockForm.remove') %>">×</button>
         </div>
         <% }) %>
       </div>
-      <button type="button" class="btn btn--small media-pick">Выбрать из медиатеки</button>
+      <button type="button" class="btn btn--small media-pick"><%= it.t('blockForm.pickFromMedia') %></button>
     </div>
     <% }) %>
   </section>
@@ -98,26 +96,24 @@
 
   <% if ((descriptor.settings || []).length > 0) { %>
   <section class="card">
-    <h2>Настройки</h2>
+    <h2><%= it.t('blockForm.settings') %></h2>
     <% descriptor.settings.forEach(function (field) { %>
 
     <% if (field.input === 'repeater') { %>
-    <%
-      var rows = Array.isArray(block.settings[field.key]) ? block.settings[field.key] : []
-    %>
+    <% var rows = Array.isArray(block.settings[field.key]) ? block.settings[field.key] : [] %>
     <div class="field repeater" data-repeater="<%= field.key %>">
-      <label><%= field.label %></label>
+      <label><%= it.localize(field.label) %></label>
       <div class="repeater-rows">
         <% rows.forEach(function (row, index) { %>
         <div class="repeater-row" data-index="<%= index %>">
           <% field.fields.forEach(function (sub) { %>
           <div class="repeater-cell">
-            <span class="cell-label"><%= sub.label %></span>
-            <%~ include('/admin/fields/input', {
+            <span class="cell-label"><%= it.localize(sub.label) %></span>
+            <%~ include('/admin/fields/input', Object.assign({}, it, {
                   field: sub,
                   name: 'settings[' + field.key + '][' + index + '][' + sub.key + ']',
                   value: row[sub.key]
-                }) %>
+                })) %>
           </div>
           <% }) %>
           <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
@@ -129,44 +125,44 @@
         <div class="repeater-row" data-index="__INDEX__">
           <% field.fields.forEach(function (sub) { %>
           <div class="repeater-cell">
-            <span class="cell-label"><%= sub.label %></span>
-            <%~ include('/admin/fields/input', {
+            <span class="cell-label"><%= it.localize(sub.label) %></span>
+            <%~ include('/admin/fields/input', Object.assign({}, it, {
                   field: sub,
                   name: 'settings[' + field.key + '][__INDEX__][' + sub.key + ']',
                   value: sub.default
-                }) %>
+                })) %>
           </div>
           <% }) %>
           <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
         </div>
       </template>
 
-      <button type="button" class="btn btn--small repeater-add"><%= field.addLabel || 'Добавить строку' %></button>
+      <button type="button" class="btn btn--small repeater-add"><%= field.addLabel ? it.localize(field.addLabel) : it.t('blockForm.addRow') %></button>
     </div>
 
     <% } else if (field.input === 'checkbox') { %>
     <div class="field">
-      <%~ include('/admin/fields/input', {
+      <%~ include('/admin/fields/input', Object.assign({}, it, {
             field: field,
             name: 'settings[' + field.key + ']',
             value: block.settings[field.key]
-          }) %>
-      <% if (field.hint) { %><p class="hint"><%= field.hint %></p><% } %>
+          })) %>
+      <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
     </div>
 
     <% } else { %>
     <div class="field">
-      <label for="settings_<%= field.key %>_"><%= field.label %><%= field.required ? ' *' : '' %></label>
-      <%~ include('/admin/fields/input', {
+      <label for="settings_<%= field.key %>_"><%= it.localize(field.label) %><%= field.required ? ' *' : '' %></label>
+      <%~ include('/admin/fields/input', Object.assign({}, it, {
             field: field,
             name: 'settings[' + field.key + ']',
             value: block.settings[field.key],
             galleries: it.galleries
-          }) %>
-      <% if (field.hint) { %><p class="hint"><%= field.hint %></p><% } %>
+          })) %>
+      <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
       <% if (field.input === 'gallery-picker') { %>
-      <p class="hint">Один альбом можно вставить в несколько блоков — например, лентой вверху и сеткой ниже.
-        <a href="/admin/galleries">Управление альбомами</a></p>
+      <p class="hint"><%= it.t('blockForm.galleryHint') %>
+        <a href="/admin/galleries"><%= it.t('blockForm.manageAlbums') %></a></p>
       <% } %>
     </div>
     <% } %>
@@ -176,8 +172,8 @@
   <% } %>
 
   <div class="form-actions">
-    <button type="submit" class="btn btn--primary">Сохранить</button>
-    <a class="btn" href="/admin">Отмена</a>
+    <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
+    <a class="btn" href="/admin"><%= it.t('common.cancel') %></a>
   </div>
 </form>
 

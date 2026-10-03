@@ -1,9 +1,11 @@
 import { currentUser, verifyCsrf } from '../../services/auth.js'
+import { resolveAdminLocale } from './helpers.js'
 import authRoutes from './auth.js'
 import blockRoutes from './blocks.js'
 import mediaRoutes from './media.js'
 import galleryRoutes from './galleries.js'
 import settingsRoutes from './settings.js'
+import userRoutes from './users.js'
 
 /**
  * Охрана админки: сессия обязательна, POST обязан нести CSRF-токен.
@@ -23,11 +25,14 @@ async function guard (request, reply) {
   if (!verifyCsrf(request)) {
     request.log.warn({ url: request.url }, 'Запрос без действительного CSRF-токена')
     return reply.code(403).type('text/plain; charset=utf-8')
-      .send('Сессия устарела. Обновите страницу и повторите действие.')
+      .send(request.t('common.csrfExpired'))
   }
 }
 
 async function adminRoutes (app) {
+  // Язык нужен и странице входа, поэтому хук стоит выше охраны.
+  app.addHook('onRequest', resolveAdminLocale)
+
   await app.register(authRoutes)
 
   await app.register(async (scope) => {
@@ -36,6 +41,7 @@ async function adminRoutes (app) {
     await scope.register(mediaRoutes)
     await scope.register(galleryRoutes)
     await scope.register(settingsRoutes)
+    await scope.register(userRoutes)
   })
 }
 

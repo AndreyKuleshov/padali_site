@@ -1,24 +1,36 @@
-<%~ include('/admin/partials/head', it) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('media.title') })) %>
 
 <div class="page-head">
   <div>
-    <h1>Медиатека</h1>
-    <p class="hint">Всего файлов: <%= it.total %>. Повторная загрузка того же файла не создаёт дубль.</p>
+    <h1><%= it.t('media.title') %></h1>
+    <p class="hint"><%= it.t('media.subtitle', { total: it.total }) %></p>
   </div>
 </div>
 
 <form class="card upload-form" method="post" action="/admin/media/upload" enctype="multipart/form-data">
-  <!-- Токен должен идти ДО файла: загрузка читает поток по частям. -->
+  <% /* Токен должен идти ДО файла: загрузка читает поток по частям. */ %>
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-  <label class="upload-drop">
-    <input type="file" name="files" accept="image/jpeg,image/png,image/webp,image/avif" multiple>
-    <span>Выберите файлы или перетащите их сюда</span>
-  </label>
-  <button type="submit" class="btn btn--primary">Загрузить</button>
+
+  <div class="upload-drop" id="uploadDrop"
+       data-idle="<%= it.t('media.dropHere') %>"
+       data-over="<%= it.t('media.dropNow') %>"
+       data-ready="<%= it.t('media.readyToUpload', { count: '{count}' }) %>"
+       data-remove="<%= it.t('media.removeSelected') %>"
+       data-rejected="<%= it.t('media.rejectedType', { names: '{names}' }) %>">
+    <input type="file" id="uploadInput" name="files"
+           accept="image/jpeg,image/png,image/webp,image/avif" multiple hidden>
+    <label class="upload-cta" for="uploadInput">
+      <span id="uploadCaption"><%= it.t('media.dropHere') %></span>
+    </label>
+    <div class="upload-previews" id="uploadPreviews" hidden></div>
+    <p class="upload-note" id="uploadNote" role="status" hidden></p>
+  </div>
+
+  <button type="submit" class="btn btn--primary"><%= it.t('media.upload') %></button>
 </form>
 
 <% if (it.items.length === 0) { %>
-<p class="empty">Пока ничего не загружено.</p>
+<p class="empty"><%= it.t('media.empty') %></p>
 <% } else { %>
 <div class="media-grid">
   <% it.items.forEach(function (item) { %>
@@ -28,14 +40,14 @@
     </a>
     <div class="media-meta">
       <strong title="<%= item.originalName %>"><%= item.originalName %></strong>
-      <span><%= item.width %>×<%= item.height %>, <%= Math.round(item.bytes / 1024) %> КБ</span>
+      <span><%= item.width %>×<%= item.height %>, <%= Math.round(item.bytes / 1024) %> KB</span>
       <span class="<%= item.uses > 0 ? 'uses uses--on' : 'uses' %>">
-        <%= item.uses > 0 ? 'используется: ' + item.uses : 'не используется' %>
+        <%= item.uses > 0 ? it.t('media.used', { count: item.uses }) : it.t('media.unused') %>
       </span>
     </div>
 
     <details>
-      <summary>Описание</summary>
+      <summary><%= it.t('common.description') %></summary>
       <form method="post" action="/admin/media/<%= item.id %>" class="stack">
         <input type="hidden" name="_csrf" value="<%= it.csrf %>">
         <% it.locales.forEach(function (locale) { %>
@@ -45,18 +57,18 @@
                  value="<%= (item.texts[locale.code] && item.texts[locale.code].alt) || '' %>">
         </label>
         <label>
-          <span>подпись <%= locale.code.toUpperCase() %></span>
+          <span>caption <%= locale.code.toUpperCase() %></span>
           <input type="text" name="text[<%= locale.code %>][caption]"
                  value="<%= (item.texts[locale.code] && item.texts[locale.code].caption) || '' %>">
         </label>
         <% }) %>
-        <button type="submit" class="btn btn--small btn--primary">Сохранить</button>
+        <button type="submit" class="btn btn--small btn--primary"><%= it.t('common.save') %></button>
       </form>
     </details>
 
-    <form method="post" action="/admin/media/<%= item.id %>/delete" data-confirm="Удалить файл с диска безвозвратно?">
+    <form method="post" action="/admin/media/<%= item.id %>/delete" data-confirm="<%= it.t('media.confirmDelete') %>">
       <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-      <button type="submit" class="btn btn--danger btn--small"<%= item.uses > 0 ? ' disabled title="Файл используется"' : '' %>>Удалить</button>
+      <button type="submit" class="btn btn--danger btn--small"<%= item.uses > 0 ? ' disabled title="' + it.t('media.inUseTitle') + '"' : '' %>><%= it.t('common.delete') %></button>
     </form>
   </article>
   <% }) %>

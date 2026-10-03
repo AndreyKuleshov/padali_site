@@ -1,10 +1,15 @@
-<dialog class="media-picker" id="mediaPicker">
+<dialog class="media-picker" id="mediaPicker"
+        data-loading="<%= it.t('media.loading') %>"
+        data-empty="<%= it.t('media.pickerEmpty') %>"
+        data-failed="<%= it.t('media.pickerFailed') %>">
   <header>
-    <strong>Медиатека</strong>
-    <button type="button" class="btn btn--small" data-picker-close>Закрыть</button>
+    <strong><%= it.t('media.title') %></strong>
+    <button type="button" class="btn btn--small" data-picker-close><%= it.t('common.close') %></button>
   </header>
-  <div class="media-picker-grid" id="mediaPickerGrid">Загружаю…</div>
+  <div class="media-picker-grid" id="mediaPickerGrid"><%= it.t('media.loading') %></div>
   <footer>
-    <p class="hint">Нет нужного файла? <a href="/admin/media" target="_blank" rel="noopener">Загрузить в медиатеку ↗</a></p>
+    <p class="hint"><%~ it.t('media.pickerMissing', {
+      link: '<a href="/admin/media" target="_blank" rel="noopener">' + it.t('media.pickerUpload') + '</a>'
+    }) %></p>
   </footer>
 </dialog>

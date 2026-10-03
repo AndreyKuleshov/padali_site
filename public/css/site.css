@@ -409,6 +409,57 @@ ul { list-style: none; margin: 0; padding: 0; }
 .gallery--grid .gallery-item { aspect-ratio: 1 / 1; display: flex; flex-direction: column; }
 .gallery--grid .gallery-image { flex: 1 1 auto; min-height: 0; }
 
+/* Рамка со стрелками: общая для ленты и для сетки, разбитой на экраны. */
+.gallery-frame { position: relative; }
+
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(10, 10, 10, .78);
+  backdrop-filter: blur(4px);
+  color: var(--ink);
+  cursor: pointer;
+  z-index: 2;
+  transition: color .15s, border-color .15s, opacity .15s;
+}
+
+.gallery-arrow[hidden] { display: none; }
+.gallery-arrow:hover { color: var(--neon); border-color: var(--soft); }
+.gallery-arrow[disabled] { opacity: .3; cursor: default; }
+.gallery-arrow svg { width: 20px; height: 20px; }
+.gallery-arrow--prev { left: -8px; }
+.gallery-arrow--next { right: -8px; }
+
+/* Экраны сетки лежат в ряд и примагничиваются при прокрутке,
+   поэтому на телефоне листание работает обычным свайпом. */
+/* Прокрутку по стрелкам делаем мгновенной: программная плавная
+   прокрутка в контейнере со scroll-snap отменяется частью браузеров
+   на полпути. Свайп на тач-экранах остаётся нативным и плавным. */
+.gallery-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  gap: 0;
+}
+
+.gallery-track::-webkit-scrollbar { display: none; }
+
+.gallery-page {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+.gallery-progress { margin: 12px 0 0; font-size: .86rem; text-align: center; }
+
 /* Лента: горизонтальная прокрутка с примагничиванием. */
 .gallery--strip {
   display: flex;
@@ -586,6 +637,9 @@ img[data-lightbox] { cursor: zoom-in; }
   /* На телефоне больше двух колонок нечитаемо. */
   .gallery--grid { grid-template-columns: repeat(2, 1fr); }
   .gallery--masonry { column-count: 2; }
+
+  .gallery-arrow--prev { left: 2px; }
+  .gallery-arrow--next { right: 2px; }
 
   /* Стрелки опускаем под кадр: по бокам они перекрывали бы фотографию.
      Листать при этом можно и свайпом. */

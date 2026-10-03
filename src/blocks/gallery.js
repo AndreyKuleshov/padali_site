@@ -10,30 +10,49 @@
  */
 export default {
   type: 'gallery',
-  title: 'Фотогалерея',
-  description: 'Альбом из медиатеки, вставленный в любое место страницы.',
+  title: { en: 'Photo gallery', sr: 'Foto-galerija' },
+  description: {
+    en: 'An album from the media library, placed anywhere on the page.',
+    sr: 'Album iz galerije fajlova, postavljen bilo gde na strani.'
+  },
 
   texts: [
-    { key: 'heading', label: 'Заголовок', input: 'text' },
-    { key: 'intro',   label: 'Подводка',  input: 'textarea', rows: 2 }
+    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
+    { key: 'intro',   label: { en: 'Intro', sr: 'Uvod' },  input: 'textarea', rows: 2 }
   ],
 
   media: [],
 
   settings: [
-    { key: 'gallery_id', label: 'Альбом', input: 'gallery-picker', required: true },
+    { key: 'gallery_id', label: { en: 'Album', sr: 'Album' }, input: 'gallery-picker', required: true },
     {
       key: 'layout',
-      label: 'Раскладка',
+      label: { en: 'Layout', sr: 'Raspored' },
       input: 'select',
       options: ['grid', 'strip', 'masonry'],
-      optionLabels: { grid: 'Сетка', strip: 'Лента (горизонтальная прокрутка)', masonry: 'Кладка' },
+      optionLabels: {
+        grid: { en: 'Grid', sr: 'Mreža' },
+        strip: { en: 'Strip (horizontal scroll)', sr: 'Traka (horizontalno)' },
+        masonry: { en: 'Masonry', sr: 'Zidani raspored' }
+      },
       default: 'grid'
     },
-    { key: 'columns',  label: 'Колонок (для сетки и кладки)', input: 'number', default: 3, min: 2, max: 5 },
-    { key: 'lightbox', label: 'Открывать по клику на весь экран', input: 'checkbox', default: true },
-    { key: 'limit',    label: 'Показать первые N фото (0 — все)', input: 'number', default: 0, min: 0 },
-    { key: 'show_captions', label: 'Показывать подписи', input: 'checkbox', default: false }
+    { key: 'columns',  label: { en: 'Columns (grid and masonry)', sr: 'Kolona (mreža i zidani raspored)' }, input: 'number', default: 3, min: 2, max: 5 },
+    {
+      key: 'rows',
+      label: { en: 'Rows per screen (grid only)', sr: 'Redova po ekranu (samo mreža)' },
+      input: 'number',
+      default: 0,
+      min: 0,
+      max: 6,
+      hint: {
+        en: '0 — show everything in one grid. Otherwise the album is split into screens of columns × rows, with arrows and swipe to move between them.',
+        sr: '0 — sve u jednoj mreži. Inače se album deli na ekrane veličine kolone × redovi, sa strelicama i prevlačenjem za kretanje.'
+      }
+    },
+    { key: 'lightbox', label: { en: 'Open full screen on click', sr: 'Otvori preko celog ekrana na klik' }, input: 'checkbox', default: true },
+    { key: 'limit',    label: { en: 'Show first N photos (0 — all)', sr: 'Prikaži prvih N fotografija (0 — sve)' }, input: 'number', default: 0, min: 0 },
+    { key: 'show_captions', label: { en: 'Show captions', sr: 'Prikaži potpise' }, input: 'checkbox', default: false }
   ],
 
   template: 'blocks/gallery'

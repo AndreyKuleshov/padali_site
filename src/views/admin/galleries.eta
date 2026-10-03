@@ -1,19 +1,19 @@
-<%~ include('/admin/partials/head', it) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('galleries.title') })) %>
 
 <div class="page-head">
   <div>
-    <h1>Альбомы</h1>
-    <p class="hint">Альбом — набор фотографий. Чтобы он появился на сайте, вставьте блок «Фотогалерея» и выберите в нём альбом. Один альбом можно вставить в несколько мест.</p>
+    <h1><%= it.t('galleries.title') %></h1>
+    <p class="hint"><%= it.t('galleries.subtitle') %></p>
   </div>
   <form method="post" action="/admin/galleries" class="inline-form">
     <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-    <input type="text" name="slug" placeholder="короткое имя, латиницей" required>
-    <button type="submit" class="btn btn--primary">Создать альбом</button>
+    <input type="text" name="slug" placeholder="<%= it.t('galleries.slug') %>" required>
+    <button type="submit" class="btn btn--primary"><%= it.t('galleries.create') %></button>
   </form>
 </div>
 
 <% if (it.galleries.length === 0) { %>
-<p class="empty">Альбомов пока нет.</p>
+<p class="empty"><%= it.t('galleries.empty') %></p>
 <% } else { %>
 <ul class="block-list">
   <% it.galleries.forEach(function (gallery) { %>
@@ -21,7 +21,7 @@
     <a class="block-main" href="/admin/galleries/<%= gallery.id %>">
       <span class="block-type"><%= gallery.title || gallery.slug %></span>
       <span class="block-anchor"><%= gallery.slug %></span>
-      <span class="block-label"><%= gallery.item_count %> фото</span>
+      <span class="block-label"><%= it.t('galleries.photos', { count: gallery.item_count }) %></span>
     </a>
   </li>
   <% }) %>

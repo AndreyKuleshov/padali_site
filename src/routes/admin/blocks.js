@@ -13,6 +13,7 @@ import { parseBlockForm } from '../../services/block-form.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
 import { renderAdmin, afterWrite } from './helpers.js'
+import { localize } from '../../i18n/admin.js'
 
 const HOME = 'home'
 
@@ -48,7 +49,7 @@ async function blockRoutes (app) {
   app.post('/blocks', async (request, reply) => {
     const type = String(request.body?.type ?? '')
     if (!hasBlockType(type)) {
-      setFlash(reply, 'error', `Неизвестный тип блока «${type}».`)
+      setFlash(reply, 'error', request.t('blocks.unknownTypeError', { type }))
       return reply.redirect('/admin', 302)
     }
 
@@ -61,7 +62,7 @@ async function blockRoutes (app) {
     })
 
     afterWrite()
-    setFlash(reply, 'success', 'Блок создан. Заполните содержимое и включите показ.')
+    setFlash(reply, 'success', request.t('blocks.created'))
     return reply.redirect(`/admin/blocks/${id}`, 302)
   })
 
@@ -104,9 +105,9 @@ async function blockRoutes (app) {
     // Обязательные поля проверяем до записи, чтобы не оставить блок наполовину сохранённым.
     const missing = (descriptor.settings ?? [])
       .filter((field) => field.required && !parsed.settings[field.key])
-      .map((field) => field.label)
+      .map((field) => localize(field.label, request.adminLocale))
     if (missing.length > 0 && parsed.isVisible) {
-      setFlash(reply, 'error', `Нельзя включить блок: не заполнено — ${missing.join(', ')}.`)
+      setFlash(reply, 'error', request.t('blocks.cannotShow', { fields: missing.join(', ') }))
       return reply.redirect(`/admin/blocks/${id}`, 302)
     }
 
@@ -117,7 +118,7 @@ async function blockRoutes (app) {
     })
 
     afterWrite()
-    setFlash(reply, 'success', 'Блок сохранён.')
+    setFlash(reply, 'success', request.t('blocks.saved'))
     return reply.redirect(`/admin/blocks/${id}`, 302)
   })
 
@@ -136,7 +137,7 @@ async function blockRoutes (app) {
     const id = Number(request.params.id)
     await deleteBlock(id)
     afterWrite()
-    setFlash(reply, 'success', 'Блок удалён.')
+    setFlash(reply, 'success', request.t('blocks.deleted'))
     return reply.redirect('/admin', 302)
   })
 

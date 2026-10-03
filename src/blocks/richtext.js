@@ -1,13 +1,16 @@
 export default {
   type: 'richtext',
-  title: 'Текст',
-  description: 'Заголовок и форматированный текст: новости, биография, объявления.',
+  title: { en: 'Text', sr: 'Tekst' },
+  description: {
+    en: 'A heading and formatted text: news, bio, announcements.',
+    sr: 'Naslov i formatiran tekst: vesti, biografija, najave.'
+  },
 
   texts: [
-    { key: 'heading', label: 'Заголовок', input: 'text' },
+    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
     {
       key: 'body',
-      label: 'Текст',
+      label: { en: 'Text', sr: 'Tekst' },
       input: 'richtext',
       rows: 12,
       hint: 'Можно использовать разметку: <p>, <strong>, <em>, <a>, <ul>/<ol>/<li>, ' +
@@ -20,10 +23,13 @@ export default {
   settings: [
     {
       key: 'width',
-      label: 'Ширина колонки',
+      label: { en: 'Column width', sr: 'Širina kolone' },
       input: 'select',
       options: ['narrow', 'full'],
-      optionLabels: { narrow: 'Узкая (удобно читать)', full: 'Во всю ширину' },
+      optionLabels: {
+        narrow: { en: 'Narrow (easier to read)', sr: 'Uska (lakše za čitanje)' },
+        full: { en: 'Full width', sr: 'Puna širina' }
+      },
       default: 'narrow'
     }
   ],

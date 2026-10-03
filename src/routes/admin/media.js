@@ -52,9 +52,9 @@ async function mediaRoutes (app) {
           continue
         }
 
-        if (!csrfField) throw new Error('CSRF-токен не пришёл до файла.')
+        if (!csrfField) throw new Error(request.t('common.csrfExpired'))
         request.body = { _csrf: csrfField }
-        if (!verifyCsrf(request)) throw new Error('Неверный CSRF-токен.')
+        if (!verifyCsrf(request)) throw new Error(request.t('common.csrfExpired'))
 
         const buffer = await part.toBuffer()
         try {
@@ -79,11 +79,11 @@ async function mediaRoutes (app) {
     const duplicates = uploaded.filter((item) => item.deduplicated).length
     const added = uploaded.length - duplicates
     const parts = []
-    if (added > 0) parts.push(`загружено: ${added}`)
-    if (duplicates > 0) parts.push(`уже были в медиатеке: ${duplicates}`)
-    if (errors.length > 0) parts.push(`с ошибкой: ${errors.join('; ')}`)
+    if (added > 0) parts.push(request.t('media.uploaded', { count: added }))
+    if (duplicates > 0) parts.push(request.t('media.duplicates', { count: duplicates }))
+    if (errors.length > 0) parts.push(request.t('media.failed', { details: errors.join('; ') }))
 
-    setFlash(reply, errors.length > 0 ? 'error' : 'success', parts.join(', ') || 'Файлы не выбраны.')
+    setFlash(reply, errors.length > 0 ? 'error' : 'success', parts.join(', ') || request.t('media.noFiles'))
     return reply.redirect('/admin/media', 302)
   })
 
@@ -104,7 +104,7 @@ async function mediaRoutes (app) {
 
     await saveMediaTexts(id, textsByLocale)
     afterWrite()
-    setFlash(reply, 'success', 'Описание сохранено.')
+    setFlash(reply, 'success', request.t('media.textsSaved'))
     return reply.redirect('/admin/media', 302)
   })
 
@@ -117,10 +117,10 @@ async function mediaRoutes (app) {
     const usage = await mediaUsage(id)
     if (usage.isUsed) {
       const where = [
-        usage.blocks.length > 0 ? `блоков: ${usage.blocks.length}` : null,
-        usage.galleries.length > 0 ? `альбомов: ${usage.galleries.length}` : null
+        usage.blocks.length > 0 ? request.t('media.inBlocks', { count: usage.blocks.length }) : null,
+        usage.galleries.length > 0 ? request.t('media.inAlbums', { count: usage.galleries.length }) : null
       ].filter(Boolean).join(', ')
-      setFlash(reply, 'error', `Файл используется (${where}). Сначала уберите его оттуда.`)
+      setFlash(reply, 'error', request.t('media.stillUsed', { where }))
       return reply.redirect('/admin/media', 302)
     }
 
@@ -130,7 +130,7 @@ async function mediaRoutes (app) {
     await deleteFiles(media)
 
     afterWrite()
-    setFlash(reply, 'success', 'Файл удалён.')
+    setFlash(reply, 'success', request.t('media.deleted'))
     return reply.redirect('/admin/media', 302)
   })
 

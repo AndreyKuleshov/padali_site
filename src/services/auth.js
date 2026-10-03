@@ -29,25 +29,47 @@ async function verifyPassword (hash, plain) {
   }
 }
 
-/** Создаёт учётку из ADMIN_EMAIL/ADMIN_PASSWORD, если администраторов ещё нет. */
+/**
+ * Заводит учётки из окружения.
+ *
+ * ADMIN_EMAIL/ADMIN_PASSWORD — первый администратор, только когда
+ * таблица пуста. ADMIN_USERS — список `почта:пароль`, каждая создаётся,
+ * если такой почты ещё нет. Существующие записи не трогаются: пароль,
+ * заданный в админке, переменная окружения не перезапишет.
+ */
 async function bootstrapAdminUser (logger = console) {
-  if (await countUsers() > 0) return false
-  if (!config.bootstrapAdmin) {
-    logger.warn?.('Администраторов нет, а ADMIN_EMAIL/ADMIN_PASSWORD не заданы — в админку не войти.')
-    return false
+  let created = 0
+
+  if (await countUsers() === 0) {
+    if (config.bootstrapAdmin) {
+      await createUser({
+        email: config.bootstrapAdmin.email,
+        passwordHash: await hashPassword(config.bootstrapAdmin.password)
+      })
+      logger.info?.(`Создан администратор ${config.bootstrapAdmin.email}.`)
+      created += 1
+    } else {
+      logger.warn?.('Администраторов нет, а ADMIN_EMAIL/ADMIN_PASSWORD не заданы — в админку не войти.')
+    }
   }
-  await createUser({
-    email: config.bootstrapAdmin.email,
-    passwordHash: await hashPassword(config.bootstrapAdmin.password)
-  })
-  logger.info?.(`Создан администратор ${config.bootstrapAdmin.email}.`)
-  return true
+
+  for (const user of config.bootstrapUsers) {
+    if (await findUserByEmail(user.email)) continue
+    await createUser({ email: user.email, passwordHash: await hashPassword(user.password) })
+    logger.info?.(`Создана учётка ${user.email} из ADMIN_USERS.`)
+    created += 1
+  }
+
+  return created > 0
 }
 
 async function login (reply, { email, password }) {
   const user = await findUserByEmail(email)
   if (!user) return null
-  if (!await verifyPassword(user.password_hash, password)) return null
+  // Проверяем пароль и у заблокированного: иначе по скорости ответа
+  // можно было бы отличить заблокированную учётку от несуществующей.
+  const passwordOk = await verifyPassword(user.password_hash, password)
+  if (!passwordOk || user.is_blocked) return null
 
   const id = randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + config.sessionTtlMs)

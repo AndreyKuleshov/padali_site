@@ -1,46 +1,48 @@
-<%~ include('/admin/partials/head', it) %>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('blocks.title') })) %>
 
 <div class="page-head">
-  <h1>Блоки главной страницы</h1>
+  <h1><%= it.t('blocks.title') %></h1>
   <form method="post" action="/admin/blocks" class="inline-form">
     <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-    <select name="type" aria-label="Тип блока">
+    <select name="type" aria-label="<%= it.t('blocks.type') %>">
       <% it.blockTypes.forEach(function (type) { %>
-      <option value="<%= type.type %>"><%= type.title %></option>
+      <option value="<%= type.type %>"><%= it.localize(type.title) %></option>
       <% }) %>
     </select>
-    <button type="submit" class="btn btn--primary">Добавить блок</button>
+    <button type="submit" class="btn btn--primary"><%= it.t('blocks.add') %></button>
   </form>
 </div>
 
 <% if (it.blocks.length === 0) { %>
-<p class="empty">Блоков пока нет. Добавьте первый — он появится внизу страницы.</p>
+<p class="empty"><%= it.t('blocks.empty') %></p>
 <% } else { %>
 
-<p class="hint">Порядок меняется перетаскиванием за ручку слева. Сохраняется сразу.</p>
+<p class="hint"><%= it.t('blocks.reorderHint') %></p>
 
-<ul class="block-list" id="blockList" data-csrf="<%= it.csrf %>">
+<ul class="block-list" id="blockList"
+    data-csrf="<%= it.csrf %>"
+    data-error="<%= it.t('blocks.reorderFailed') %>">
   <% it.blocks.forEach(function (block) { %>
   <li class="block-row<%= block.isVisible ? '' : ' block-row--hidden' %>" data-id="<%= block.id %>">
-    <span class="drag-handle" title="Перетащить" aria-hidden="true">⠿</span>
+    <span class="drag-handle" title="<%= it.t('blocks.drag') %>" aria-hidden="true">⠿</span>
 
     <a class="block-main" href="/admin/blocks/<%= block.id %>">
-      <span class="block-type"><%= block.descriptor ? block.descriptor.title : block.type %></span>
+      <span class="block-type"><%= block.descriptor ? it.localize(block.descriptor.title) : block.type %></span>
       <% if (block.label) { %><span class="block-label"><%= block.label %></span><% } %>
       <% if (block.anchor) { %><span class="block-anchor">#<%= block.anchor %></span><% } %>
-      <% if (!block.descriptor) { %><span class="block-warn">тип не найден в коде</span><% } %>
+      <% if (!block.descriptor) { %><span class="block-warn"><%= it.t('blocks.unknownType') %></span><% } %>
     </a>
 
     <form method="post" action="/admin/blocks/<%= block.id %>/toggle">
       <input type="hidden" name="_csrf" value="<%= it.csrf %>">
       <button type="submit" class="chip<%= block.isVisible ? ' chip--on' : '' %>">
-        <%= block.isVisible ? 'показан' : 'скрыт' %>
+        <%= block.isVisible ? it.t('blocks.visible') : it.t('blocks.hidden') %>
       </button>
     </form>
 
-    <form method="post" action="/admin/blocks/<%= block.id %>/delete" data-confirm="Удалить блок безвозвратно?">
+    <form method="post" action="/admin/blocks/<%= block.id %>/delete" data-confirm="<%= it.t('blocks.confirmDelete') %>">
       <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-      <button type="submit" class="btn btn--danger btn--small">Удалить</button>
+      <button type="submit" class="btn btn--danger btn--small"><%= it.t('common.delete') %></button>
     </form>
   </li>
   <% }) %>

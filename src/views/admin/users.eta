@@ -1,0 +1,55 @@
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('users.title') })) %>
+
+<div class="page-head">
+  <div>
+    <h1><%= it.t('users.title') %></h1>
+    <p class="hint"><%= it.t('users.subtitle') %></p>
+  </div>
+</div>
+
+<section class="card">
+  <form method="post" action="/admin/users" class="inline-form">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <input type="email" name="email" placeholder="<%= it.t('users.email') %>" required autocomplete="off">
+    <input type="password" name="password" placeholder="<%= it.t('users.password') %>"
+           minlength="<%= it.minPassword %>" required autocomplete="new-password">
+    <button type="submit" class="btn btn--primary"><%= it.t('users.add') %></button>
+  </form>
+</section>
+
+<ul class="block-list user-list">
+  <% it.users.forEach(function (user) { %>
+  <li class="block-row<%= user.is_blocked ? ' block-row--hidden' : '' %>">
+    <span class="block-main">
+      <span class="block-type"><%= user.email %></span>
+      <% if (user.id === it.currentUserId) { %><span class="block-anchor"><%= it.t('users.you') %></span><% } %>
+      <span class="block-label"><%= user.is_blocked ? it.t('users.blocked') : it.t('users.active') %></span>
+    </span>
+
+    <form method="post" action="/admin/users/<%= user.id %>/password" class="inline-form">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <input type="password" name="password" placeholder="<%= it.t('users.changePassword') %>"
+             minlength="<%= it.minPassword %>" required autocomplete="new-password">
+      <button type="submit" class="btn btn--small"><%= it.t('users.setPassword') %></button>
+    </form>
+
+    <form method="post" action="/admin/users/<%= user.id %>/block"
+          <% if (!user.is_blocked) { %>data-confirm="<%= it.t('users.confirmBlock') %>"<% } %>>
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <input type="hidden" name="blocked" value="<%= user.is_blocked ? '0' : '1' %>">
+      <button type="submit" class="chip<%= user.is_blocked ? '' : ' chip--on' %>"
+              <%= user.id === it.currentUserId && !user.is_blocked ? 'disabled' : '' %>>
+        <%= user.is_blocked ? it.t('users.unblock') : it.t('users.block') %>
+      </button>
+    </form>
+
+    <form method="post" action="/admin/users/<%= user.id %>/delete" data-confirm="<%= it.t('users.confirmDelete') %>">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <button type="submit" class="btn btn--danger btn--small"
+              <%= user.id === it.currentUserId ? 'disabled' : '' %>><%= it.t('common.delete') %></button>
+    </form>
+  </li>
+  <% }) %>
+</ul>
+
+<%~ include('/admin/partials/foot', it) %>
