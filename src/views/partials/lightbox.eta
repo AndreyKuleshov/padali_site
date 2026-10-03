@@ -1,7 +1,28 @@
-<div class="lightbox" id="lightbox" hidden>
-  <button class="lightbox-close" id="lightboxClose" type="button" aria-label="<%= it.locale === 'sr' ? 'Zatvori' : 'Close' %>">&times;</button>
+<%
+  var sr = it.locale === 'sr'
+%>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true"
+     aria-label="<%= sr ? 'Pregled fotografija' : 'Photo viewer' %>" hidden>
+
+  <button class="lightbox-close" id="lightboxClose" type="button"
+          aria-label="<%= sr ? 'Zatvori' : 'Close' %>">&times;</button>
+
+  <button class="lightbox-nav lightbox-nav--prev" id="lightboxPrev" type="button"
+          aria-label="<%= sr ? 'Prethodna fotografija' : 'Previous photo' %>" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <button class="lightbox-nav lightbox-nav--next" id="lightboxNext" type="button"
+          aria-label="<%= sr ? 'Sledeća fotografija' : 'Next photo' %>" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
   <figure class="lightbox-figure">
     <img id="lightboxImg" src="" alt="">
     <figcaption id="lightboxCaption"></figcaption>
   </figure>
+
+  <p class="lightbox-counter" id="lightboxCounter" hidden aria-live="polite"></p>
 </div>

@@ -18,7 +18,11 @@
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
   <% if (block.text.intro) { %><p class="note gallery-intro"><%= block.text.intro %></p><% } %>
 
-  <div class="gallery gallery--<%= layout %>" style="--gallery-columns: <%= columns %>">
+  <% /* Группа для листания: полноэкранный просмотр переключает снимки
+        только внутри своего альбома, даже если на странице их несколько. */ %>
+  <div class="gallery gallery--<%= layout %>"
+       style="--gallery-columns: <%= columns %>"
+       <% if (useLightbox) { %>data-lightbox-group="block-<%= block.id %>"<% } %>>
     <% items.forEach(function (item) { %>
     <figure class="gallery-item">
       <%~ include('/partials/picture', {

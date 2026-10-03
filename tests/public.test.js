@@ -172,3 +172,37 @@ test('текст из базы экранируется при выводе', as
   assert.doesNotMatch(response.body, /<script>alert\(2\)/, 'richtext очищен от скриптов')
   assert.match(response.body, /<p>ок<\/p>/, 'разрешённая разметка сохранена')
 })
+
+test('две галереи получают разные группы листания', async () => {
+  const { pageId, mediaId } = await buildPage()
+
+  const second = await createGallery('backstage')
+  await saveGalleryTexts(second, { en: { title: 'Backstage' } })
+  await setGalleryItems(second, [mediaId])
+  await createBlock({
+    pageId, type: 'gallery', anchor: 'backstage',
+    settings: { ...defaultSettings('gallery'), gallery_id: second }
+  })
+  invalidateCache()
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  const groups = [...response.body.matchAll(/data-lightbox-group="([^"]+)"/g)].map((m) => m[1])
+
+  assert.equal(groups.length, 2, 'по группе на галерею')
+  assert.equal(new Set(groups).size, 2, 'группы различаются, иначе альбомы перемешаются при листании')
+})
+
+test('у галереи с выключенным лайтбоксом группы нет', async () => {
+  const { pageId, mediaId } = await buildPage()
+  const album = await createGallery('plain')
+  await setGalleryItems(album, [mediaId])
+  await createBlock({
+    pageId, type: 'gallery',
+    settings: { ...defaultSettings('gallery'), gallery_id: album, lightbox: false }
+  })
+  invalidateCache()
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  const withoutLightbox = response.body.split('data-lightbox-group').length - 1
+  assert.equal(withoutLightbox, 1, 'группа только у галереи, где просмотр включён')
+})
