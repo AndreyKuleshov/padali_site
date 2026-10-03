@@ -9,7 +9,7 @@ export default {
   defaults: { anchor: 'contact', navLabel: { en: 'Contact', sr: 'Kontakt' } },
 
   texts: [
-    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
+    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text', general: true },
     { key: 'intro', label: { en: 'Text above the form', sr: 'Tekst iznad forme' }, input: 'textarea', rows: 2 },
     { key: 'label_message', label: { en: 'Message field label', sr: 'Naziv polja za poruku' }, input: 'text' },
     { key: 'label_contact', label: { en: 'Reply-to field label', sr: 'Naziv polja za odgovor' }, input: 'text' },

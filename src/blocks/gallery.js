@@ -19,7 +19,7 @@ export default {
   defaults: { anchor: 'photos', navLabel: { en: 'Photos', sr: 'Fotografije' } },
 
   texts: [
-    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
+    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text', general: true },
     { key: 'intro',   label: { en: 'Intro', sr: 'Uvod' },  input: 'textarea', rows: 2 }
   ],
 

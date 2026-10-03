@@ -17,7 +17,7 @@ export default {
 
   texts: [
     { key: 'eyebrow', label: { en: 'Badge', sr: 'Oznaka' },      input: 'text' },
-    { key: 'title',   label: { en: 'Title', sr: 'Naziv' },   input: 'text' },
+    { key: 'title',   label: { en: 'Title', sr: 'Naziv' },   input: 'text', general: true },
     { key: 'note',    label: { en: 'Note', sr: 'Napomena' }, input: 'textarea', rows: 2 },
     { key: 'more_label', label: { en: '«More» label', sr: 'Naziv za «još»' }, input: 'text' },
     {

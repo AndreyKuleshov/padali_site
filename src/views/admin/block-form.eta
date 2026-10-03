@@ -19,13 +19,34 @@
 <form method="post" action="/admin/blocks/<%= block.id %>" class="block-form">
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 
+<% ;/* Заголовок блока — первое, что ищет редактор, поэтому он
+       стоит в «Общем» рядом с пунктом меню, а не в середине
+       длинного списка текстов. */ %>
+<% var generalTexts = (descriptor.texts || []).filter(function (f) { return f.general }) %>
+<% var otherTexts = (descriptor.texts || []).filter(function (f) { return !f.general }) %>
+
   <section class="card">
     <h2><%= it.t('blockForm.general') %></h2>
 
-    <label class="check">
-      <input type="checkbox" name="is_visible" value="on"<%= block.isVisible ? ' checked' : '' %>>
-      <span><%= it.t('blockForm.showOnSite') %></span>
-    </label>
+    <% generalTexts.forEach(function (field) { %>
+    <div class="field" data-translate>
+      <label><%= it.localize(field.label) %></label>
+      <%~ include('/admin/partials/translate-row', it) %>
+      <div class="locale-grid">
+        <% locales.forEach(function (locale) { %>
+        <div>
+          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+          <%~ include('/admin/fields/input', Object.assign({}, it, {
+                field: field,
+                name: 'text[' + locale.code + '][' + field.key + ']',
+                value: textValue(locale.code, field.key)
+              })) %>
+        </div>
+        <% }) %>
+      </div>
+      <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
+    </div>
+    <% }) %>
 
     <div class="field" data-translate>
       <label><%= it.t('blockForm.navLabel') %></label>
@@ -42,10 +63,10 @@
     </div>
   </section>
 
-  <% if ((descriptor.texts || []).length > 0) { %>
+  <% if (otherTexts.length > 0) { %>
   <section class="card">
     <h2><%= it.t('blockForm.texts') %></h2>
-    <% descriptor.texts.forEach(function (field) { %>
+    <% otherTexts.forEach(function (field) { %>
     <div class="field" data-translate>
       <label><%= it.localize(field.label) %></label>
       <%~ include('/admin/partials/translate-row', it) %>
@@ -182,6 +203,17 @@
     <% }) %>
   </section>
   <% } %>
+
+  <% ;/* Показ блока — последнее решение, а не первое: сначала
+         заполняют, потом включают. Крупный переключатель здесь
+         заметнее галочки наверху, которую пролистывали. */ %>
+  <section class="card card--switch">
+    <label class="switch">
+      <input type="checkbox" name="is_visible" value="on"<%= block.isVisible ? ' checked' : '' %>>
+      <span class="switch-track" aria-hidden="true"></span>
+      <span class="switch-label"><%= it.t('blockForm.showOnSite') %></span>
+    </label>
+  </section>
 
   <div class="form-actions">
     <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>

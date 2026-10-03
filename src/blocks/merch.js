@@ -9,7 +9,7 @@ export default {
   defaults: { anchor: 'merch', navLabel: { en: 'Merch', sr: 'Merch' } },
 
   texts: [
-    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
+    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text', general: true },
     { key: 'intro', label: { en: 'Text under the heading', sr: 'Tekst ispod naslova' }, input: 'textarea', rows: 2 },
     { key: 'order', label: { en: '«Order» button', sr: 'Dugme «Poruči»' }, input: 'text' },
     { key: 'form_title', label: { en: 'Order window title', sr: 'Naslov prozora porudžbine' }, input: 'text' },

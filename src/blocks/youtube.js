@@ -9,7 +9,7 @@ export default {
   defaults: { anchor: 'video', navLabel: { en: 'Clips', sr: 'Spotovi' } },
 
   texts: [
-    { key: 'title', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
+    { key: 'title', label: { en: 'Heading', sr: 'Naslov' }, input: 'text', general: true },
     { key: 'note', label: { en: 'Text under the video', sr: 'Tekst ispod videa' }, input: 'textarea', rows: 2 }
   ],
 

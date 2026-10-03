@@ -301,9 +301,22 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   padding: 20px 22px;
 }
 
-.field { margin-bottom: 18px; }
+.field { margin-bottom: 22px; }
 .field:last-child { margin-bottom: 0; }
-.field > label { display: block; margin-bottom: 6px; font-size: .9rem; font-weight: 500; }
+
+/* Название поля было мельче значения в нём, и форма читалась как
+   сплошная лента полей. Теперь это заголовок: по нему скользят
+   взглядом, когда ищут нужное. */
+.field > label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Названия подполей в повторителе и в медиатеке — из того же ряда. */
+.cell-label, .stack label > span { font-size: .92rem; font-weight: 500; }
 
 .locale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .locale-grid--stacked { grid-template-columns: 1fr; }
@@ -341,7 +354,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 }
 
 .repeater-cell { display: grid; gap: 3px; min-width: 0; }
-.cell-label { font-size: .72rem; color: var(--soft); }
+.cell-label { color: var(--soft); }
 
 /* ─── Картинки в формах ──────────────────────────────────── */
 
@@ -850,3 +863,54 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .message-body { margin: 0; white-space: pre-wrap; }
 .message-actions { display: flex; gap: 8px; }
+
+
+/* ─── Переключатель показа блока ─────────────────────────── */
+
+.card--switch { display: flex; }
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Саму галочку убираем из вида, но не из разметки: она остаётся
+   тем, что отправляется и ловит клавиатуру. */
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 58px;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  transition: background .15s, border-color .15s;
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--soft);
+  transition: transform .15s, background .15s;
+}
+
+.switch input:checked + .switch-track { background: var(--neon); border-color: var(--neon); }
+.switch input:checked + .switch-track::after { transform: translateX(26px); background: #111; }
+.switch input:focus-visible + .switch-track { outline: 2px solid var(--neon); outline-offset: 2px; }
+
+.switch-label { font-size: 1.02rem; font-weight: 600; }

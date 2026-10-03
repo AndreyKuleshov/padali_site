@@ -8,6 +8,7 @@ import {
   createBlock, saveBlockTexts, saveBlockMedia, listBlocks, getBlockTexts, getBlock
 } from '../src/repositories/blocks.js'
 import { composePage } from '../src/services/page-composer.js'
+import { createGallery } from '../src/repositories/galleries.js'
 import { processUpload } from '../src/services/media-processor.js'
 import {
   defaultSettings, sortBlocks, pinOf, listBlockTypes, nextAnchor, getBlockType
@@ -355,4 +356,78 @@ test('у шапки и подвала якорь так и не появляет
   })
 
   assert.equal((await getBlock(id)).anchor, null)
+})
+
+/* ─── Форма блока: заголовок в «Общем» ───────────────────── */
+
+test('заголовок стоит выше пункта меню, а не среди текстов', async () => {
+  const id = await createBlock({
+    pageId, type: 'gallery', settings: defaultSettings('gallery')
+  })
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: session.cookies
+  })).body
+
+  const heading = body.indexOf('name="text[en][heading]"')
+  const navLabel = body.indexOf('name="text[en][nav_label]"')
+  const textsCard = body.indexOf('>Texts<')
+  const intro = body.indexOf('name="text[en][intro]"')
+
+  assert.ok(heading > 0 && navLabel > 0 && textsCard > 0)
+  assert.ok(heading < navLabel, 'заголовок — первое поле формы')
+  assert.ok(heading < textsCard, 'и он выше раздела «Тексты»')
+  assert.ok(intro > textsCard, 'остальные тексты остались на месте')
+})
+
+/** Включают блок последним действием — переключатель внизу. */
+test('переключатель показа стоит после всех полей', async () => {
+  const id = await createBlock({
+    pageId, type: 'gallery', settings: defaultSettings('gallery')
+  })
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: session.cookies
+  })).body
+
+  const toggle = body.indexOf('name="is_visible"')
+  const lastField = body.lastIndexOf('name="settings[')
+  const save = body.indexOf('form-actions')
+
+  assert.ok(toggle > lastField, 'переключатель ниже настроек')
+  assert.ok(toggle < save, 'но над кнопкой сохранения')
+  assert.match(body, /class="switch"/)
+})
+
+test('у блока без заголовка «Общее» не ломается', async () => {
+  const id = await createBlock({ pageId, type: 'footer', settings: defaultSettings('footer') })
+
+  const response = await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: session.cookies
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.match(response.body, /name="text\[en\]\[nav_label\]"/)
+  assert.match(response.body, /name="text\[en\]\[note\]"/, 'текст подвала остался в «Текстах»')
+})
+
+test('видимость по-прежнему сохраняется переключателем', async () => {
+  // Галерею без альбома включить нельзя — это отдельная проверка,
+  // и здесь она только мешала бы увидеть работу переключателя.
+  const album = await createGallery('switch-test')
+  const id = await createBlock({
+    pageId,
+    type: 'gallery',
+    isVisible: false,
+    settings: { ...defaultSettings('gallery'), gallery_id: album }
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf, is_visible: 'on', 'settings[gallery_id]': String(album) })
+  })
+
+  assert.equal((await getBlock(id)).isVisible, true)
 })

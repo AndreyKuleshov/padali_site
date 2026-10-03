@@ -9,7 +9,7 @@ export default {
   defaults: { anchor: 'text', navLabel: { en: 'Text', sr: 'Tekst' } },
 
   texts: [
-    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
+    { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text', general: true },
     {
       key: 'body',
       label: { en: 'Text', sr: 'Tekst' },

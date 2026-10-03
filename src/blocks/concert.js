@@ -9,7 +9,7 @@ export default {
   defaults: { anchor: 'concert', navLabel: { en: 'Concert', sr: 'Koncert' } },
 
   texts: [
-    { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text' },
+    { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text', general: true },
     { key: 'venue',   label: { en: 'Venue', sr: 'Mesto' },          input: 'text' },
     { key: 'note',    label: { en: 'Note', sr: 'Napomena' },        input: 'textarea', rows: 2 },
     { key: 'tag',     label: { en: 'Tag', sr: 'Oznaka' },               input: 'text' },
