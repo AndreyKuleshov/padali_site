@@ -811,6 +811,77 @@
     })
   }
 
+  /* ── Новый альбом не уходя из формы ──────────────────────
+     Редактор заполняет блок мерча и обнаруживает, что альбома
+     ещё нет. Переход на страницу альбомов терял всё незаписанное,
+     поэтому заводим прямо здесь и сразу выбираем. */
+  function initAlbumDialog () {
+    var dialog = document.getElementById('albumDialog')
+    if (!dialog) return
+
+    var slug = document.getElementById('albumSlug')
+    var error = document.getElementById('albumError')
+    var create = document.getElementById('albumCreate')
+    var select = null
+
+    function fail (message) {
+      error.hidden = false
+      error.setAttribute('data-state', 'error')
+      error.textContent = message
+    }
+
+    document.addEventListener('click', function (event) {
+      if (event.target.closest('[data-new-album]')) {
+        select = event.target.closest('.field').querySelector('select')
+        slug.value = ''
+        error.hidden = true
+        dialog.showModal()
+        slug.focus()
+        return
+      }
+      if (event.target.closest('[data-album-close]')) dialog.close()
+    })
+
+    // Enter в поле — то же, что нажать «Создать».
+    slug.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); create.click() }
+    })
+
+    create.addEventListener('click', function () {
+      var value = slug.value.trim()
+      if (value === '' || !select) return
+
+      var form = select.closest('form')
+      var token = form && form.querySelector('input[name="_csrf"]')
+
+      create.disabled = true
+      create.classList.add('is-busy')
+
+      fetch('/admin/galleries.json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _csrf: token ? token.value : '', slug: value })
+      })
+        .then(function (response) { return response.json() })
+        .then(function (result) {
+          if (!result.ok) { fail(result.message || value); return }
+
+          var option = document.createElement('option')
+          option.value = String(result.id)
+          option.textContent = result.label
+          select.appendChild(option)
+          select.value = String(result.id)
+          select.dispatchEvent(new Event('change', { bubbles: true }))
+          dialog.close()
+        })
+        .catch(function () { fail(slug.getAttribute('placeholder') || '') })
+        .finally(function () {
+          create.disabled = false
+          create.classList.remove('is-busy')
+        })
+    })
+  }
+
   initBlockOrder()
   initRepeaters()
   initGalleryItems()
@@ -820,5 +891,6 @@
   initLogoPreview()
   initYoutubeField()
   initTranslate()
+  initAlbumDialog()
   initHeatmap()
 })()

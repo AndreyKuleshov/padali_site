@@ -194,8 +194,14 @@
           })) %>
       <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
       <% if (field.input === 'gallery-picker') { %>
-      <p class="hint"><%= it.t('blockForm.galleryHint') %>
-        <a href="/admin/galleries"><%= it.t('blockForm.manageAlbums') %></a></p>
+      <% ;/* Создание альбома здесь же: ссылка на страницу альбомов
+             уводила с незаписанной формой, и всё заполненное
+             пропадало. */ %>
+      <div class="media-actions">
+        <button type="button" class="btn btn--small" data-new-album><%= it.t('galleries.create') %></button>
+        <a class="btn btn--small" href="/admin/galleries" target="_blank" rel="noopener"><%= it.t('blockForm.manageAlbums') %></a>
+      </div>
+      <p class="hint"><%= it.t('blockForm.galleryHint') %></p>
       <% } %>
     </div>
     <% } %>
@@ -220,6 +226,24 @@
     <a class="btn" href="/admin"><%= it.t('common.cancel') %></a>
   </div>
 </form>
+
+<dialog class="album-dialog" id="albumDialog">
+  <form method="dialog" class="stack">
+    <strong><%= it.t('galleries.create') %></strong>
+    <label class="field">
+      <span><%= it.t('galleries.shortName') %></span>
+      <% ;/* Без pattern: сервер приводит имя сам и кириллицу
+             принимает, а поле отвергало бы её молча. */ %>
+      <input type="text" id="albumSlug" placeholder="<%= it.t('galleries.slug') %>"
+             maxlength="128" autocomplete="off">
+    </label>
+    <p class="hint" id="albumError" hidden></p>
+    <div class="media-actions">
+      <button type="button" class="btn btn--primary btn--small" id="albumCreate"><%= it.t('galleries.create') %></button>
+      <button type="button" class="btn btn--small" data-album-close><%= it.t('common.cancel') %></button>
+    </div>
+  </form>
+</dialog>
 
 <%~ include('/admin/partials/media-picker', it) %>
 <%~ include('/admin/partials/foot', it) %>

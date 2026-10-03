@@ -285,3 +285,83 @@ test('оба блока есть в конструкторе', async () => {
   assert.match(response.body, /value="contact"/)
   assert.match(response.body, /value="merch"/)
 })
+
+/* ─── Альбом из формы блока ──────────────────────────────── */
+
+/**
+ * Редактор заполнил блок мерча и обнаружил, что альбома нет.
+ * Переход на страницу альбомов терял незаписанную форму, поэтому
+ * альбом заводится отдельным ответом, без ухода со страницы.
+ */
+test('альбом создаётся из формы блока и сразу годится для выбора', async () => {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/admin/galleries.json',
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, slug: 'Новый Merch 2026' }
+  })
+
+  assert.equal(response.statusCode, 200)
+  const body = response.json()
+  assert.equal(body.ok, true)
+  assert.ok(Number.isInteger(body.id))
+  // Кириллицу slugify оставляет намеренно: по короткому имени
+  // альбом ищут в админке, в адреса страниц оно не попадает.
+  assert.equal(body.slug, 'новый-merch-2026', 'пробелы в дефисы, регистр вниз')
+  assert.match(body.label, /\(0\)/, 'подпись готова для пункта списка')
+
+  const id = await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: body.id }
+  })
+  assert.ok(id)
+})
+
+test('повтор короткого имени отклоняется с объяснением', async () => {
+  await createGallery('merch')
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/admin/galleries.json',
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, slug: 'merch' }
+  })
+
+  assert.equal(response.statusCode, 409)
+  assert.equal(response.json().ok, false)
+  assert.match(response.json().message, /merch/)
+})
+
+test('пустое имя отклоняется', async () => {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/admin/galleries.json',
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, slug: '   ' }
+  })
+
+  assert.equal(response.statusCode, 400)
+  assert.equal(response.json().ok, false)
+})
+
+test('создание альбома закрыто для чужих', async () => {
+  const response = await app.inject({
+    method: 'POST', url: '/admin/galleries.json', payload: { slug: 'sneaky' }
+  })
+  assert.notEqual(response.statusCode, 200)
+})
+
+test('в форме блока есть кнопка нового альбома, а переход — в новой вкладке', async () => {
+  const id = await createBlock({
+    pageId, type: 'merch', settings: defaultSettings('merch')
+  })
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: auth.cookies
+  })).body
+
+  assert.match(body, /data-new-album/)
+  assert.match(body, /id="albumDialog"/)
+  assert.match(body, /href="\/admin\/galleries" target="_blank"/,
+    'уход на страницу альбомов не уносит незаписанную форму')
+})

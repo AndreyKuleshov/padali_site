@@ -34,6 +34,28 @@ async function galleryRoutes (app) {
     return renderAdmin(request, reply, 'admin/galleries', { galleries: withTitles, locales })
   })
 
+  /**
+   * Создание альбома, не уходя со страницы.
+   *
+   * Из формы блока «Мерч» или «Фотогалерея» альбома может ещё не
+   * быть. Ссылка на страницу альбомов уводила с незаписанной
+   * формой, и всё заполненное пропадало: так и случилось у
+   * редактора. Поэтому отдельный ответ без переходов.
+   */
+  app.post('/galleries.json', async (request, reply) => {
+    const slug = slugify(request.body?.slug)
+    if (!slug) {
+      return reply.code(400).send({ ok: false, message: request.t('galleries.slugRequired') })
+    }
+    if (await getGalleryBySlug(slug)) {
+      return reply.code(409).send({ ok: false, message: request.t('galleries.slugTaken', { slug }) })
+    }
+
+    const id = await createGallery(slug)
+    afterWrite()
+    return reply.send({ ok: true, id, slug, label: `${slug} (0)` })
+  })
+
   app.post('/galleries', async (request, reply) => {
     const slug = slugify(request.body?.slug)
     if (!slug) {
