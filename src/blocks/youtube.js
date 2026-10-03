@@ -6,6 +6,8 @@ export default {
     sr: 'Ugrađeni klip. Nalepite link — video se proverava i prikazuje odmah ovde.'
   },
 
+  defaults: { anchor: 'video', navLabel: { en: 'Clips', sr: 'Spotovi' } },
+
   texts: [
     { key: 'title', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
     { key: 'note', label: { en: 'Text under the video', sr: 'Tekst ispod videa' }, input: 'textarea', rows: 2 }

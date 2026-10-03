@@ -4,10 +4,14 @@ import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage, closePool
 } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
-import { createBlock, saveBlockTexts, saveBlockMedia, listBlocks } from '../src/repositories/blocks.js'
+import {
+  createBlock, saveBlockTexts, saveBlockMedia, listBlocks, getBlockTexts
+} from '../src/repositories/blocks.js'
 import { composePage } from '../src/services/page-composer.js'
 import { processUpload } from '../src/services/media-processor.js'
-import { defaultSettings, sortBlocks, pinOf, listBlockTypes } from '../src/blocks/index.js'
+import {
+  defaultSettings, sortBlocks, pinOf, listBlockTypes, nextAnchor, getBlockType
+} from '../src/blocks/index.js'
 import { invalidateCache } from '../src/services/cache.js'
 
 let app
@@ -154,4 +158,141 @@ test('ссылки в подвале выводятся иконками', async
   const response = await app.inject({ method: 'GET', url: '/' })
   assert.match(response.body, /site-footer-links/)
   assert.match(response.body, /instagram\.com\/padali\.band/)
+})
+
+/* ─── Закреплённые блоки: один и навсегда ────────────────── */
+
+test('шапка и подвал не предлагаются, когда уже стоят на странице', async () => {
+  await createBlock({ pageId, type: 'hero', settings: defaultSettings('hero') })
+  await createBlock({ pageId, type: 'footer', settings: defaultSettings('footer') })
+
+  const response = await app.inject({ method: 'GET', url: '/admin', cookies: session.cookies })
+  const options = [...response.body.matchAll(/<option value="([a-z_]+)"/g)].map((match) => match[1])
+
+  assert.ok(!options.includes('hero'), 'второй шапки быть не может')
+  assert.ok(!options.includes('footer'), 'второго подвала быть не может')
+  assert.ok(options.includes('gallery'), 'обычные типы остаются')
+  assert.ok(options.includes('youtube'))
+})
+
+/** Старая установка могла остаться без подвала — его надо чем-то завести. */
+test('отсутствующий закреплённый тип остаётся в списке', () => {
+  const offered = listBlockTypes(['hero']).map((item) => item.type)
+
+  assert.ok(!offered.includes('hero'))
+  assert.ok(offered.includes('footer'), 'подвала на странице нет — предлагаем добавить')
+})
+
+test('без аргумента список полный', () => {
+  const offered = listBlockTypes().map((item) => item.type)
+  assert.ok(offered.includes('hero'))
+  assert.ok(offered.includes('footer'))
+})
+
+test('второй закреплённый блок не создаётся и в обход выпадайки', async () => {
+  await createBlock({ pageId, type: 'footer', settings: defaultSettings('footer') })
+
+  await app.inject({
+    method: 'POST',
+    url: '/admin/blocks',
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf, type: 'footer' })
+  })
+
+  const footers = (await listBlocks(pageId)).filter((block) => block.type === 'footer')
+  assert.equal(footers.length, 1)
+})
+
+test('у шапки и подвала нет кнопки удаления', async () => {
+  const hero = await createBlock({ pageId, type: 'hero', settings: defaultSettings('hero') })
+  const footer = await createBlock({ pageId, type: 'footer', settings: defaultSettings('footer') })
+  const gallery = await createBlock({ pageId, type: 'gallery', settings: defaultSettings('gallery') })
+
+  const response = await app.inject({ method: 'GET', url: '/admin', cookies: session.cookies })
+
+  assert.doesNotMatch(response.body, new RegExp(`/admin/blocks/${hero}/delete`))
+  assert.doesNotMatch(response.body, new RegExp(`/admin/blocks/${footer}/delete`))
+  assert.match(response.body, new RegExp(`/admin/blocks/${gallery}/delete`), 'обычный блок удаляется')
+})
+
+test('запрос на удаление закреплённого блока отклоняется', async () => {
+  const footer = await createBlock({ pageId, type: 'footer', settings: defaultSettings('footer') })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${footer}/delete`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf })
+  })
+
+  assert.equal(response.statusCode, 302)
+  const blocks = await listBlocks(pageId)
+  assert.ok(blocks.some((block) => block.id === footer), 'подвал на месте')
+})
+
+test('незакреплённый блок удаляется как прежде', async () => {
+  const gallery = await createBlock({ pageId, type: 'gallery', settings: defaultSettings('gallery') })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${gallery}/delete`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf })
+  })
+
+  const blocks = await listBlocks(pageId)
+  assert.ok(!blocks.some((block) => block.id === gallery))
+})
+
+/* ─── Заполнение нового блока ────────────────────────────── */
+
+test('новый блок приходит с якорем и пунктом меню на всех языках', async () => {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/admin/blocks',
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf, type: 'youtube' })
+  })
+
+  const id = Number(/\/admin\/blocks\/(\d+)/.exec(response.headers.location)[1])
+  const blocks = await listBlocks(pageId)
+  const created = blocks.find((block) => block.id === id)
+
+  assert.equal(created.anchor, 'video')
+
+  const texts = await getBlockTexts(id)
+  assert.equal(texts.en.nav_label, 'Clips')
+  assert.equal(texts.sr.nav_label, 'Spotovi')
+})
+
+/** Два одинаковых якоря сделали бы второй блок недостижимым. */
+test('второй блок того же типа получает свободный якорь', async () => {
+  for (let i = 0; i < 2; i += 1) {
+    await app.inject({
+      method: 'POST',
+      url: '/admin/blocks',
+      cookies: session.cookies,
+      ...form({ _csrf: session.csrf, type: 'gallery' })
+    })
+  }
+
+  const anchors = (await listBlocks(pageId))
+    .filter((block) => block.type === 'gallery')
+    .map((block) => block.anchor)
+
+  assert.deepEqual(anchors.sort(), ['photos', 'photos-2'])
+})
+
+test('свободный якорь ищется по занятым', () => {
+  assert.equal(nextAnchor('video', []), 'video')
+  assert.equal(nextAnchor('video', ['photos']), 'video')
+  assert.equal(nextAnchor('video', ['video']), 'video-2')
+  assert.equal(nextAnchor('video', ['video', 'video-2']), 'video-3')
+  assert.equal(nextAnchor(null, []), null, 'шапке и подвалу якорь не нужен')
+})
+
+test('у закреплённых блоков якоря и пункта меню нет', () => {
+  for (const type of ['hero', 'footer']) {
+    assert.equal(getBlockType(type).defaults, undefined, `${type} в меню не выводится`)
+  }
 })

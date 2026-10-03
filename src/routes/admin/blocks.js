@@ -1,6 +1,6 @@
 import { transaction } from '../../db/pool.js'
 import {
-  getBlockType, listBlockTypes, hasBlockType, defaultSettings, sortBlocks, pinOf
+  getBlockType, listBlockTypes, hasBlockType, defaultSettings, sortBlocks, pinOf, nextAnchor
 } from '../../blocks/index.js'
 import { getPageBySlug } from '../../repositories/pages.js'
 import {
@@ -46,7 +46,7 @@ async function blockRoutes (app) {
     return renderAdmin(request, reply, 'admin/dashboard', {
       page,
       blocks: summaries,
-      blockTypes: listBlockTypes(),
+      blockTypes: listBlockTypes(blocks.map((block) => block.type)),
       locales
     })
   })
@@ -60,12 +60,43 @@ async function blockRoutes (app) {
     }
 
     const page = await getPageBySlug(HOME)
+
+    // Из выпадайки такой тип уже убран, но запрос мог прийти и
+    // мимо неё — со старой открытой вкладки или вручную.
+    if (pinOf(type)) {
+      const existing = await listBlocks(page.id)
+      if (existing.some((block) => block.type === type)) {
+        setFlash(reply, 'error', request.t('blocks.alreadyOnPage', {
+          title: localize(getBlockType(type).title, request.adminLocale)
+        }))
+        return reply.redirect('/admin', 302)
+      }
+    }
+
+    /* Якорь и пункт меню заполняем сразу. В меню попадает только
+       блок, у которого есть и то и другое; пустые поля редактор
+       чаще пропускает, и блок молча оставался бы вне меню. Оба
+       остаются обычными полями — можно переписать или очистить. */
+    const descriptor = getBlockType(type)
+    const blocks = await listBlocks(page.id)
+    const anchor = nextAnchor(descriptor.defaults?.anchor, blocks.map((block) => block.anchor))
+
     const id = await createBlock({
       pageId: page.id,
       type,
       settings: defaultSettings(type),
+      anchor,
       isVisible: false // новый блок не должен внезапно появиться на сайте
     })
+
+    if (descriptor.defaults?.navLabel) {
+      const locales = await listLocales()
+      const textsByLocale = {}
+      for (const { code } of locales) {
+        textsByLocale[code] = { nav_label: localize(descriptor.defaults.navLabel, code) }
+      }
+      await saveBlockTexts(id, textsByLocale)
+    }
 
     afterWrite()
     setFlash(reply, 'success', request.t('blocks.created'))
@@ -165,6 +196,21 @@ async function blockRoutes (app) {
 
   app.post('/blocks/:id/delete', async (request, reply) => {
     const id = Number(request.params.id)
+    const block = await getBlock(id)
+    if (!block) return reply.callNotFound()
+
+    /* Шапку и подвал удалить нельзя: страница без них выглядит
+       обрубленной, а вернуть их редактор не смог бы — заводятся
+       они при установке. Не нужны на время — достаточно выключить
+       показ. Кнопки удаления у них нет, но запрос мог прийти и
+       мимо неё: со старой вкладки или вручную. */
+    if (pinOf(block.type)) {
+      setFlash(reply, 'error', request.t('blocks.cannotDeletePinned', {
+        title: localize(getBlockType(block.type)?.title ?? block.type, request.adminLocale)
+      }))
+      return reply.redirect('/admin', 302)
+    }
+
     await deleteBlock(id)
     afterWrite()
     setFlash(reply, 'success', request.t('blocks.deleted'))

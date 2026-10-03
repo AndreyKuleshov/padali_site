@@ -46,10 +46,15 @@
       </button>
     </form>
 
+    <% ;/* У шапки и подвала удаления нет: страница без них
+           обрублена, а завести их заново редактор не может.
+           Не нужны — выключаются показом. */ %>
+    <% if (!block.pinned) { %>
     <form method="post" action="/admin/blocks/<%= block.id %>/delete" data-confirm="<%= it.t('blocks.confirmDelete') %>">
       <input type="hidden" name="_csrf" value="<%= it.csrf %>">
       <button type="submit" class="btn btn--danger btn--small"><%= it.t('common.delete') %></button>
     </form>
+    <% } %>
   </li>
   <% }) %>
 </ul>

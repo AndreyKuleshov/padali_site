@@ -6,6 +6,8 @@ export default {
     sr: 'Naslov i formatiran tekst: vesti, biografija, najave.'
   },
 
+  defaults: { anchor: 'text', navLabel: { en: 'Text', sr: 'Tekst' } },
+
   texts: [
     { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
     {

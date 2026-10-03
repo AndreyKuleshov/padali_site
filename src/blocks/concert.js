@@ -6,6 +6,8 @@ export default {
     sr: 'Plakat, datum, mesto i link za karte.'
   },
 
+  defaults: { anchor: 'concert', navLabel: { en: 'Concert', sr: 'Koncert' } },
+
   texts: [
     { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text' },
     { key: 'venue',   label: { en: 'Venue', sr: 'Mesto' },          input: 'text' },

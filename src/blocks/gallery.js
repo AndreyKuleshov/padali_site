@@ -16,6 +16,8 @@ export default {
     sr: 'Album iz galerije fajlova, postavljen bilo gde na strani.'
   },
 
+  defaults: { anchor: 'photos', navLabel: { en: 'Photos', sr: 'Fotografije' } },
+
   texts: [
     { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text' },
     { key: 'intro',   label: { en: 'Intro', sr: 'Uvod' },  input: 'textarea', rows: 2 }

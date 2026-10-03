@@ -71,11 +71,24 @@ function getBlockType (type) {
   return registry.get(type) ?? null
 }
 
-/** Список для выпадайки «Добавить блок». */
-function listBlockTypes () {
-  return [...registry.values()].map(({ type, title, description, pinned }) => (
-    { type, title, description, pinned: pinned ?? null }
-  ))
+/**
+ * Список для выпадайки «Добавить блок».
+ *
+ * Закреплённый тип — штучный: второй шапки или второго подвала на
+ * странице быть не может, и предлагать их, когда они уже стоят,
+ * значит обещать невозможное. Но убирать их насовсем нельзя:
+ * удалённый подвал иначе было бы не вернуть, поэтому из списка
+ * пропадает только то, что на странице уже есть.
+ *
+ * @param {string[]} existingTypes типы блоков, уже стоящих на странице
+ */
+function listBlockTypes (existingTypes = []) {
+  const taken = new Set(existingTypes)
+  return [...registry.values()]
+    .filter(({ type, pinned }) => !pinned || !taken.has(type))
+    .map(({ type, title, description, pinned }) => (
+      { type, title, description, pinned: pinned ?? null }
+    ))
 }
 
 /** Шапка всегда сверху, подвал всегда снизу — порядок за них не решают. */
@@ -103,6 +116,24 @@ function sortBlocks (blocks) {
 
 function hasBlockType (type) {
   return registry.has(type)
+}
+
+/**
+ * Свободный якорь на основе предложенного дескриптором.
+ *
+ * Повторяться нельзя: ссылка `/#video` увела бы на первый такой
+ * блок, а второй остался бы недостижимым.
+ */
+function nextAnchor (base, taken = []) {
+  if (!base) return null
+  const used = new Set(taken.filter(Boolean))
+  if (!used.has(base)) return base
+
+  for (let suffix = 2; suffix < 100; suffix += 1) {
+    const candidate = `${base}-${suffix}`
+    if (!used.has(candidate)) return candidate
+  }
+  return null
 }
 
 /** Значения по умолчанию для только что созданного блока. */
@@ -141,5 +172,5 @@ function textKeysFor (descriptor, settings = {}) {
 
 export {
   getBlockType, listBlockTypes, hasBlockType, pinOf, pinRank, sortBlocks,
-  defaultSettings, textKeysFor, validateDescriptor, INPUT_TYPES
+  defaultSettings, textKeysFor, validateDescriptor, nextAnchor, INPUT_TYPES
 }

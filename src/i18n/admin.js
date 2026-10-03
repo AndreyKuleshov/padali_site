@@ -55,6 +55,8 @@ const DICTIONARY = {
     'blocks.unknownTypeError': 'Unknown block type «{type}».',
     'blocks.cannotShow': 'Cannot switch the block on: {fields} not filled in.',
     'blocks.reorderFailed': 'Could not save the order. Reload the page.',
+    'blocks.alreadyOnPage': '«{title}» is already on the page — there can only be one.',
+    'blocks.cannotDeletePinned': '«{title}» cannot be deleted. Switch it off instead if you do not need it.',
 
     'blockForm.general': 'General',
     'blockForm.showOnSite': 'Show this block on the site',
@@ -266,6 +268,8 @@ const DICTIONARY = {
     'blocks.unknownTypeError': 'Nepoznat tip bloka «{type}».',
     'blocks.cannotShow': 'Blok se ne može uključiti: nije popunjeno — {fields}.',
     'blocks.reorderFailed': 'Redosled nije sačuvan. Osvežite stranicu.',
+    'blocks.alreadyOnPage': '«{title}» je već na strani — može postojati samo jedan.',
+    'blocks.cannotDeletePinned': '«{title}» se ne može obrisati. Ako vam ne treba, samo ga isključite.',
 
     'blockForm.general': 'Opšte',
     'blockForm.showOnSite': 'Prikaži blok na sajtu',

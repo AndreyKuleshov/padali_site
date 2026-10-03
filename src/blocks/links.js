@@ -11,6 +11,8 @@ export default {
     sr: 'Platforme i društvene mreže u velikim redovima.'
   },
 
+  defaults: { anchor: 'follow', navLabel: { en: 'Follow', sr: 'Mreže' } },
+
   texts: [
     { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text' }
   ],

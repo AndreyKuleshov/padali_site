@@ -11,6 +11,10 @@ export default {
     sr: 'Omot, datum izlaska, odbrojavanje i linkovi ka platformama.'
   },
 
+  // Пункт меню у нового блока уже заполнен: пустые поля редактор
+  // чаще пропускает, и блок молча не попадает в меню.
+  defaults: { anchor: 'release', navLabel: { en: 'Music', sr: 'Muzika' } },
+
   texts: [
     { key: 'eyebrow', label: { en: 'Badge', sr: 'Oznaka' },      input: 'text' },
     { key: 'title',   label: { en: 'Title', sr: 'Naziv' },   input: 'text' },
