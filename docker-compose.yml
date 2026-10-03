@@ -36,8 +36,10 @@ services:
       # storage: без него фотографии пропадут при следующем деплое.
       - uploads:/app/data/uploads
 
-    ports:
-      - "${PORT:-3000}:3000"
+    # Порт не публикуется на хост: обратный прокси Coolify ходит
+    # в контейнер по внутренней сети Docker.
+    expose:
+      - "3000"
 
 volumes:
   uploads:
