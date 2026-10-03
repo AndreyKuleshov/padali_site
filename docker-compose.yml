@@ -41,5 +41,15 @@ services:
     expose:
       - "3000"
 
+    networks:
+      - default
+      # Общая сеть Coolify: в ней живут прокси и managed-база,
+      # по ней приложение резолвит DB_HOST по имени сервиса.
+      - coolify
+
 volumes:
   uploads:
+
+networks:
+  coolify:
+    external: true
