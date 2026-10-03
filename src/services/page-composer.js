@@ -1,4 +1,4 @@
-import { getBlockType } from '../blocks/index.js'
+import { getBlockType, sortBlocks } from '../blocks/index.js'
 import { getPageBySlug, getPageTexts } from '../repositories/pages.js'
 import { listBlocks, textsForBlocks, mediaForBlocks } from '../repositories/blocks.js'
 import { itemsForGalleries, textsForGalleries } from '../repositories/galleries.js'
@@ -102,7 +102,7 @@ async function composePage ({ slug = 'home', locale }) {
     mediaById.get(mediaId), textsByMedia.get(mediaId), activeLocale, defaultLocale
   )
 
-  const blocks = blockRows.map((block) => {
+  const blocks = sortBlocks(blockRows).map((block) => {
     const descriptor = getBlockType(block.type)
     const blockTexts = textsByBlock.get(block.id)
     const text = resolveTexts(blockTexts, activeLocale, defaultLocale)
@@ -167,7 +167,9 @@ async function composePage ({ slug = 'home', locale }) {
       description: pageTextsResolved.description || ''
     },
     blocks,
-    quicknav
+    quicknav,
+    // Пока подвала-блока нет, показывается прежний статический.
+    hasFooterBlock: blocks.some((block) => block.type === 'footer')
   }
 }
 

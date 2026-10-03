@@ -55,7 +55,7 @@ test('замена файла в репозитории обновляет ка�
   assert.equal(after.id, media.id, 'запись та же — ссылки из блоков не рвутся')
   assert.equal(after.width, 1400)
   assert.notEqual(after.hash, media.hash)
-  assert.deepEqual(after.derivatives, [320, 640, 1280, 1400])
+  assert.deepEqual(after.derivatives, [160, 320, 640, 1280, 1400])
   assert.equal(await countMedia(), 1, 'дубль не создаётся')
 
   const page = await composePage({ slug: 'home', locale: 'en' })
@@ -131,7 +131,7 @@ test('устаревший набор ширин чинится при неиз�
   assert.equal(updated.length, 1, 'запись пересобрана')
 
   const after = await getMedia(media.id)
-  assert.deepEqual(after.derivatives, [320, 640, 900], 'полная ширина вернулась в набор')
+  assert.deepEqual(after.derivatives, [160, 320, 640, 900], 'полная ширина вернулась в набор')
   assert.equal(after.hash, media.hash, 'содержимое то же, перезалива не было')
   assert.ok(await exists(absolutePath(derivativeRelPath(after.path, 900))))
 })

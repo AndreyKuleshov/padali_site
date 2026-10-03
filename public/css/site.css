@@ -433,7 +433,6 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .gallery-arrow[hidden] { display: none; }
 .gallery-arrow:hover { color: var(--neon); border-color: var(--soft); }
-.gallery-arrow[disabled] { opacity: .3; cursor: default; }
 .gallery-arrow svg { width: 20px; height: 20px; }
 .gallery-arrow--prev { left: -8px; }
 .gallery-arrow--next { right: -8px; }
@@ -519,6 +518,15 @@ img[data-lightbox] { cursor: zoom-in; }
 }
 
 .site-footer img { height: 16px; width: auto; filter: invert(1); opacity: .7; }
+.site-footer-logo img { height: 20px; width: auto; filter: none; opacity: 1; }
+
+.site-footer-links { display: flex; gap: 12px; }
+.site-footer-links a { display: flex; color: var(--soft); transition: color .15s; }
+.site-footer-links a:hover { color: var(--neon); }
+.site-footer-links svg { width: 17px; height: 17px; }
+
+.hero-wordmark--own { display: block; margin-bottom: 16px; }
+.hero-wordmark--own img { width: min(78vw, 420px); height: auto; display: block; }
 
 /* ─── Лайтбокс ───────────────────────────────────────────── */
 

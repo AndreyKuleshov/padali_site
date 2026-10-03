@@ -16,6 +16,7 @@ import { bootstrapAdminUser } from './services/auth.js'
 import { ensureSeeded } from './services/seed.js'
 import { syncManagedAssets } from './services/managed-assets.js'
 import { purgeOlderThan } from './repositories/analytics.js'
+import { repairMedia } from './services/media-repair.js'
 import publicRoutes from './routes/public.js'
 import adminRoutes from './routes/admin/index.js'
 
@@ -77,6 +78,8 @@ async function start () {
     // Файлы репозитория доезжают до сайта так же, как код: заменили
     // картинку в seed-assets, выкатили — медиатека обновилась.
     await syncManagedAssets({ logger: app.log })
+    // Снимки, загруженные по старым правилам, приводим к текущим.
+    await repairMedia({ logger: app.log })
     await bootstrapAdminUser(app.log)
 
     // Статистика — не архив: сырые события чистим на старте и раз в сутки.

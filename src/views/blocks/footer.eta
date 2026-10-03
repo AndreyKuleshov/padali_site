@@ -1,0 +1,24 @@
+<%
+  var block = it.block
+  var logo = block.first('logo')
+  var links = block.settings.links || []
+%>
+<footer class="wrap site-footer"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% if (block.settings.show_logo) { %>
+    <% if (logo) { %>
+    <span class="site-footer-logo"><%~ include('/partials/picture', { media: logo, sizes: '160px' }) %></span>
+    <% } else { %>
+    <img class="site-footer-mark" src="<%= it.h.asset('/brand/padali-wordmark.webp') %>" alt="PADALI" width="120" height="16">
+    <% } %>
+  <% } %>
+
+  <% if (links.length > 0) { %>
+  <ul class="site-footer-links">
+    <% links.forEach(function (link) { %>
+    <li><a href="<%= link.url %>" target="_blank" rel="noopener" aria-label="<%= link.label %>"><%~ it.h.icon(link.icon) %></a></li>
+    <% }) %>
+  </ul>
+  <% } %>
+
+  <% if (block.text.note) { %><span><%= block.text.note %></span><% } %>
+</footer>

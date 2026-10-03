@@ -1,5 +1,7 @@
 import { transaction } from '../../db/pool.js'
-import { getBlockType, listBlockTypes, hasBlockType, defaultSettings } from '../../blocks/index.js'
+import {
+  getBlockType, listBlockTypes, hasBlockType, defaultSettings, sortBlocks, pinOf
+} from '../../blocks/index.js'
 import { getPageBySlug } from '../../repositories/pages.js'
 import {
   listBlocks, getBlock, createBlock, updateBlock, setBlockVisibility,
@@ -28,11 +30,13 @@ async function blockRoutes (app) {
     // Тексты всех блоков берём одним запросом, а не по запросу на блок.
     const defaultLocale = locales.find((row) => row.is_default)?.code ?? locales[0]?.code
     const textsByBlock = await textsForBlocks(blocks.map((block) => block.id))
-    const summaries = blocks.map((block) => {
+    // Тот же порядок, что и на сайте: закреплённые по краям.
+    const summaries = sortBlocks(blocks).map((block) => {
       const byLocale = textsByBlock.get(block.id)?.[defaultLocale] ?? {}
       return {
         ...block,
         descriptor: getBlockType(block.type),
+        pinned: pinOf(block.type),
         label: byLocale.heading || byLocale.title || byLocale.tagline || byLocale.nav_label || ''
       }
     })

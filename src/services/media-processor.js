@@ -190,16 +190,32 @@ function pictureSources (media) {
   }
 }
 
-/** Самый маленький дериватив — для превью в админке. */
+/**
+ * Превью для админки: самая мелкая ступень, но не меньше заданной.
+ * У крошечных картинок полной ширины может не быть ступени 160.
+ */
 function thumbnailUrl (media) {
   const widths = (media.derivatives ?? []).slice().sort((a, b) => a - b)
-  return widths.length > 0
-    ? mediaUrl(derivativeRelPath(media.path, widths[0]))
-    : mediaUrl(media.path)
+  if (widths.length === 0) return mediaUrl(media.path)
+  const thumb = widths.find((width) => width >= config.thumbWidth) ?? widths.at(-1)
+  return mediaUrl(derivativeRelPath(media.path, thumb))
+}
+
+/**
+ * Запись устарела, если мастер не webp, шире допустимого или набор
+ * ступеней не тот, что сделали бы сейчас. Проверка одна на всех:
+ * и для файлов репозитория, и для загруженных через админку.
+ */
+function needsRepair (media) {
+  if (media.mime !== 'image/webp' || !media.path.endsWith('.webp')) return true
+  if (media.width > config.masterMaxWidth) return true
+  const expected = expectedWidths(media.width)
+  const actual = [...(media.derivatives ?? [])].sort((a, b) => a - b)
+  return JSON.stringify(expected) !== JSON.stringify(actual)
 }
 
 export {
   processUpload, writeDerivatives, deleteFiles, pictureSources, thumbnailUrl,
   mediaUrl, derivativeRelPath, absolutePath, hashOf,
-  MIME_BY_EXTENSION, expectedWidths, UploadError
+  MIME_BY_EXTENSION, expectedWidths, needsRepair, UploadError
 }

@@ -46,7 +46,7 @@
 <% } %>
 </main>
 
-<%~ include('/partials/footer', it) %>
+<% if (!it.hasFooterBlock) { %><%~ include('/partials/footer', it) %><% } %>
 <%~ include('/partials/lightbox', it) %>
 
 <script src="<%= it.h.asset('/js/site.js') %>" defer></script>

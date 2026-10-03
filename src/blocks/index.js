@@ -4,6 +4,7 @@ import concert from './concert.js'
 import links from './links.js'
 import gallery from './gallery.js'
 import richtext from './richtext.js'
+import footer from './footer.js'
 
 /**
  * Типы полей, которые умеет отрисовать админка.
@@ -14,7 +15,7 @@ const INPUT_TYPES = new Set([
   'select', 'date', 'url', 'repeater'
 ])
 
-const DESCRIPTORS = [hero, release, concert, links, gallery, richtext]
+const DESCRIPTORS = [hero, release, concert, links, gallery, richtext, footer]
 
 /** Падаем на старте, а не на первом открытии формы в админке. */
 function validateDescriptor (descriptor) {
@@ -24,6 +25,9 @@ function validateDescriptor (descriptor) {
     throw new Error(`${where}: поле type обязательно, строчные латинские буквы и подчёркивания.`)
   }
   if (!descriptor.title) throw new Error(`${where}: не задан title.`)
+  if (descriptor.pinned && !['top', 'bottom'].includes(descriptor.pinned)) {
+    throw new Error(`${where}: pinned принимает только 'top' или 'bottom'.`)
+  }
   if (!descriptor.template) throw new Error(`${where}: не задан template.`)
 
   for (const field of descriptor.texts ?? []) {
@@ -68,7 +72,32 @@ function getBlockType (type) {
 
 /** Список для выпадайки «Добавить блок». */
 function listBlockTypes () {
-  return [...registry.values()].map(({ type, title, description }) => ({ type, title, description }))
+  return [...registry.values()].map(({ type, title, description, pinned }) => (
+    { type, title, description, pinned: pinned ?? null }
+  ))
+}
+
+/** Шапка всегда сверху, подвал всегда снизу — порядок за них не решают. */
+function pinOf (type) {
+  return getBlockType(type)?.pinned ?? null
+}
+
+function pinRank (type) {
+  const pin = pinOf(type)
+  return pin === 'top' ? 0 : pin === 'bottom' ? 2 : 1
+}
+
+/**
+ * Порядок показа: закреплённые по краям, остальные — как расставил
+ * редактор. Сортировка живёт здесь, а не в SQL, потому что
+ * закрепление объявлено в дескрипторе, а не в базе.
+ */
+function sortBlocks (blocks) {
+  return [...blocks].sort((left, right) => (
+    pinRank(left.type) - pinRank(right.type) ||
+    left.position - right.position ||
+    left.id - right.id
+  ))
 }
 
 function hasBlockType (type) {
@@ -110,6 +139,6 @@ function textKeysFor (descriptor, settings = {}) {
 }
 
 export {
-  getBlockType, listBlockTypes, hasBlockType,
+  getBlockType, listBlockTypes, hasBlockType, pinOf, pinRank, sortBlocks,
   defaultSettings, textKeysFor, validateDescriptor, INPUT_TYPES
 }

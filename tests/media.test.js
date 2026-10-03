@@ -26,7 +26,7 @@ test('загрузка создаёт деривативы по всем под�
     mime: 'image/png'
   })
 
-  assert.deepEqual(media.derivatives, [320, 640, 1280, 1500],
+  assert.deepEqual(media.derivatives, [160, 320, 640, 1280, 1500],
     'ступени ниже оригинала плюс его полная ширина')
   assert.equal(media.width, 1500)
   assert.ok(await exists(absolutePath(media.path)), 'оригинал сохранён')
@@ -41,7 +41,7 @@ test('узкая картинка не растягивается', async () => 
     originalName: 'tiny.png',
     mime: 'image/png'
   })
-  assert.deepEqual(media.derivatives, [200])
+  assert.deepEqual(media.derivatives, [160, 200])
 })
 
 /**
@@ -56,7 +56,7 @@ test('srcset включает полную ширину оригинала', asy
     mime: 'image/png'
   })
 
-  assert.deepEqual(media.derivatives, [320, 640, 1100])
+  assert.deepEqual(media.derivatives, [160, 320, 640, 1100])
 
   const sources = pictureSources(media)
   assert.match(sources.srcset, /1100w/, 'крупнейший кандидат — полная ширина')
@@ -70,7 +70,7 @@ test('ширина, совпадающая со ступенью, не дубл�
     originalName: 'exact.png',
     mime: 'image/png'
   })
-  assert.deepEqual(media.derivatives, [320, 640])
+  assert.deepEqual(media.derivatives, [160, 320, 640])
 })
 
 test('повторная загрузка того же файла не создаёт дубль', async () => {
@@ -187,7 +187,7 @@ test('слишком широкий кадр ужимается до преде�
     mime: 'image/png'
   })
   assert.equal(media.width, config.masterMaxWidth)
-  assert.deepEqual(media.derivatives, [320, 640, 1280, 1920, 2560])
+  assert.deepEqual(media.derivatives, [160, 320, 640, 1280, 1920, 2560])
 })
 
 test('полноэкранный показ берёт дериватив, а не мастер-копию', async () => {

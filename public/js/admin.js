@@ -23,8 +23,12 @@
     if (!list || typeof window.Sortable === 'undefined') return
 
     window.Sortable.create(list, {
-      handle: '.drag-handle',
+      handle: '.drag-handle:not(.drag-handle--locked)',
       animation: 140,
+      // Шапка и подвал закреплены: мимо них не перетащить.
+      onMove: function (event) {
+        return !event.related.classList.contains('block-row--pinned')
+      },
       onEnd: function () {
         var order = Array.prototype.map.call(
           list.querySelectorAll('.block-row'),

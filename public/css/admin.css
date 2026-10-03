@@ -209,6 +209,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 .block-row form { margin: 0; }
 
 .drag-handle { cursor: grab; color: var(--soft); font-size: 1.1rem; user-select: none; }
+.drag-handle--locked { cursor: default; opacity: .4; }
+
+.block-pin {
+  font-size: .72rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
 
 .block-main {
   flex: 1;
