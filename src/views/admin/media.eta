@@ -1,0 +1,74 @@
+<%~ include('/admin/partials/head', it) %>
+
+<div class="page-head">
+  <div>
+    <h1>Медиатека</h1>
+    <p class="hint">Всего файлов: <%= it.total %>. Повторная загрузка того же файла не создаёт дубль.</p>
+  </div>
+</div>
+
+<form class="card upload-form" method="post" action="/admin/media/upload" enctype="multipart/form-data">
+  <!-- Токен должен идти ДО файла: загрузка читает поток по частям. -->
+  <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+  <label class="upload-drop">
+    <input type="file" name="files" accept="image/jpeg,image/png,image/webp,image/avif" multiple>
+    <span>Выберите файлы или перетащите их сюда</span>
+  </label>
+  <button type="submit" class="btn btn--primary">Загрузить</button>
+</form>
+
+<% if (it.items.length === 0) { %>
+<p class="empty">Пока ничего не загружено.</p>
+<% } else { %>
+<div class="media-grid">
+  <% it.items.forEach(function (item) { %>
+  <article class="media-card">
+    <a href="/uploads/<%= item.path %>" target="_blank" rel="noopener">
+      <img src="<%= item.thumb %>" alt="" loading="lazy">
+    </a>
+    <div class="media-meta">
+      <strong title="<%= item.originalName %>"><%= item.originalName %></strong>
+      <span><%= item.width %>×<%= item.height %>, <%= Math.round(item.bytes / 1024) %> КБ</span>
+      <span class="<%= item.uses > 0 ? 'uses uses--on' : 'uses' %>">
+        <%= item.uses > 0 ? 'используется: ' + item.uses : 'не используется' %>
+      </span>
+    </div>
+
+    <details>
+      <summary>Описание</summary>
+      <form method="post" action="/admin/media/<%= item.id %>" class="stack">
+        <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+        <% it.locales.forEach(function (locale) { %>
+        <label>
+          <span>alt <%= locale.code.toUpperCase() %></span>
+          <input type="text" name="text[<%= locale.code %>][alt]"
+                 value="<%= (item.texts[locale.code] && item.texts[locale.code].alt) || '' %>">
+        </label>
+        <label>
+          <span>подпись <%= locale.code.toUpperCase() %></span>
+          <input type="text" name="text[<%= locale.code %>][caption]"
+                 value="<%= (item.texts[locale.code] && item.texts[locale.code].caption) || '' %>">
+        </label>
+        <% }) %>
+        <button type="submit" class="btn btn--small btn--primary">Сохранить</button>
+      </form>
+    </details>
+
+    <form method="post" action="/admin/media/<%= item.id %>/delete" data-confirm="Удалить файл с диска безвозвратно?">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <button type="submit" class="btn btn--danger btn--small"<%= item.uses > 0 ? ' disabled title="Файл используется"' : '' %>>Удалить</button>
+    </form>
+  </article>
+  <% }) %>
+</div>
+
+<% if (it.pageCount > 1) { %>
+<nav class="pager">
+  <% for (var p = 1; p <= it.pageCount; p++) { %>
+  <a href="/admin/media?page=<%= p %>"<%= p === it.pageNumber ? ' class="active"' : '' %>><%= p %></a>
+  <% } %>
+</nav>
+<% } %>
+<% } %>
+
+<%~ include('/admin/partials/foot', it) %>

@@ -1,0 +1,25 @@
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="logo-mark" href="<%= it.h.localeUrl(it.locale, it.defaultLocale) %>" aria-label="PADALI">
+      <img src="/brand/padali-wordmark.webp" alt="PADALI" width="160" height="22">
+    </a>
+    <div class="topbar-right">
+      <% if ((it.settings.social || []).length > 0) { %>
+      <nav class="social-row" aria-label="<%= it.locale === 'sr' ? 'Društvene mreže' : 'Social links' %>">
+        <% it.settings.social.forEach(function (link) { %>
+        <a href="<%= link.url %>" aria-label="<%= link.label || link.icon %>" target="_blank" rel="noopener">
+          <%~ it.h.icon(link.icon) %>
+        </a>
+        <% }) %>
+      </nav>
+      <% } %>
+      <% if (it.locales.length > 1) { %>
+      <nav class="lang-switch" aria-label="Language">
+        <% it.locales.filter(function (l) { return l.code !== it.locale }).forEach(function (locale) { %>
+        <a class="lang-btn" href="<%= it.h.localeUrl(locale.code, it.defaultLocale) %>" hreflang="<%= locale.code %>"><%= locale.code.toUpperCase() %></a>
+        <% }) %>
+      </nav>
+      <% } %>
+    </div>
+  </div>
+</header>

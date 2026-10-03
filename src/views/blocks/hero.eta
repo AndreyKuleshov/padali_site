@@ -1,0 +1,15 @@
+<%
+  var block = it.block
+  var background = block.first('background')
+%>
+<section class="hero<%= block.settings.full_height ? ' hero--full' : '' %>"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <div class="hero-media">
+    <%~ include('/partials/picture', { media: background, sizes: '100vw', eager: true }) %>
+  </div>
+  <div class="hero-caption wrap">
+    <% if (block.settings.show_wordmark) { %>
+    <img class="hero-wordmark" src="/brand/padali-wordmark.webp" alt="PADALI" width="420" height="56">
+    <% } %>
+    <% if (block.text.tagline) { %><p><%= block.text.tagline %></p><% } %>
+  </div>
+</section>

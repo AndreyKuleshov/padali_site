@@ -1,0 +1,48 @@
+<%
+  var field = it.field
+  var name = it.name
+  var value = it.value
+  var id = (name || '').replace(/[\[\]]/g, '_')
+%>
+<% if (field.input === 'textarea' || field.input === 'richtext') { %>
+  <textarea id="<%= id %>" name="<%= name %>" rows="<%= field.rows || 4 %>"><%= value || '' %></textarea>
+
+<% } else if (field.input === 'checkbox') { %>
+  <label class="check">
+    <input type="checkbox" id="<%= id %>" name="<%= name %>" value="on"<%= value ? ' checked' : '' %>>
+    <span><%= field.label %></span>
+  </label>
+
+<% } else if (field.input === 'select') { %>
+  <select id="<%= id %>" name="<%= name %>">
+    <% ;(field.options || []).forEach(function (option) { %>
+    <option value="<%= option %>"<%= String(value) === String(option) ? ' selected' : '' %>>
+      <%= (field.optionLabels && field.optionLabels[option]) || option %>
+    </option>
+    <% }) %>
+  </select>
+
+<% } else if (field.input === 'gallery-picker') { %>
+  <select id="<%= id %>" name="<%= name %>">
+    <option value="">— альбом не выбран —</option>
+    <% ;(it.galleries || []).forEach(function (gallery) { %>
+    <option value="<%= gallery.id %>"<%= Number(value) === gallery.id ? ' selected' : '' %>>
+      <%= gallery.title || gallery.slug %> (<%= gallery.item_count %> фото)
+    </option>
+    <% }) %>
+  </select>
+
+<% } else if (field.input === 'number') { %>
+  <input type="number" id="<%= id %>" name="<%= name %>" value="<%= value === 0 || value ? value : '' %>"
+    <%= field.min !== undefined ? 'min=' + field.min : '' %>
+    <%= field.max !== undefined ? 'max=' + field.max : '' %>>
+
+<% } else if (field.input === 'date') { %>
+  <input type="date" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>">
+
+<% } else if (field.input === 'url') { %>
+  <input type="url" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>" placeholder="https://">
+
+<% } else { %>
+  <input type="text" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>">
+<% } %>

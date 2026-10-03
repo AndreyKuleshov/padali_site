@@ -1,0 +1,44 @@
+<%
+  var block = it.block
+  var gallery = block.gallery
+  var items = gallery ? gallery.items : []
+  var layout = block.settings.layout || 'grid'
+  var columns = Number(block.settings.columns) || 3
+  var showCaptions = !!block.settings.show_captions
+  var useLightbox = block.settings.lightbox !== false
+
+  // Ширина слота зависит от раскладки — подсказываем браузеру, какой
+  // дериватив брать, иначе он скачает самый широкий.
+  var sizes = layout === 'strip'
+    ? '(max-width: 640px) 72vw, 320px'
+    : '(max-width: 640px) 50vw, ' + Math.round(100 / columns) + 'vw'
+%>
+<% if (items.length > 0) { %>
+<section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
+  <% if (block.text.intro) { %><p class="note gallery-intro"><%= block.text.intro %></p><% } %>
+
+  <div class="gallery gallery--<%= layout %>" style="--gallery-columns: <%= columns %>">
+    <% items.forEach(function (item) { %>
+    <figure class="gallery-item">
+      <%~ include('/partials/picture', {
+            media: item,
+            sizes: sizes,
+            lightbox: useLightbox,
+            className: 'gallery-image'
+          }) %>
+      <% if (showCaptions && item.caption) { %>
+      <figcaption><%= item.caption %></figcaption>
+      <% } %>
+    </figure>
+    <% }) %>
+  </div>
+
+  <% if (gallery.totalCount > items.length) { %>
+  <p class="gallery-more note">
+    <%= it.locale === 'sr' ? 'Prikazano' : 'Showing' %> <%= items.length %>
+    <%= it.locale === 'sr' ? 'od' : 'of' %> <%= gallery.totalCount %>
+  </p>
+  <% } %>
+</section>
+<% } %>

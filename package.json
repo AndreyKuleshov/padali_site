@@ -1,0 +1,36 @@
+{
+  "name": "padali-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --env-file=.env.development --watch src/server.js",
+    "migrate": "node --env-file=.env.development src/db/migrate.js",
+    "seed": "node --env-file=.env.development scripts/seed.js",
+    "test": "node --env-file=.env.test --test --test-concurrency=1 tests/*.test.js",
+    "db:up": "docker run -d --name padali-mysql-dev -e MYSQL_ROOT_PASSWORD=rootdev -e MYSQL_DATABASE=padali -e MYSQL_USER=padali -e MYSQL_PASSWORD=padalidev -p 33061:3306 mysql:8.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci",
+    "db:down": "docker rm -f padali-mysql-dev"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/multipart": "^9.0.3",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/static": "^8.0.4",
+    "argon2": "^0.41.1",
+    "eta": "^3.5.0",
+    "fastify": "^5.2.1",
+    "mysql2": "^3.12.0",
+    "qs": "^6.13.1",
+    "sanitize-html": "^2.14.0",
+    "sharp": "^0.33.5"
+  },
+  "allowScripts": {
+    "argon2@0.41.1": true,
+    "sharp@0.33.5": true
+  }
+}

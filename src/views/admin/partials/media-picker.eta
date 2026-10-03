@@ -1,0 +1,10 @@
+<dialog class="media-picker" id="mediaPicker">
+  <header>
+    <strong>Медиатека</strong>
+    <button type="button" class="btn btn--small" data-picker-close>Закрыть</button>
+  </header>
+  <div class="media-picker-grid" id="mediaPickerGrid">Загружаю…</div>
+  <footer>
+    <p class="hint">Нет нужного файла? <a href="/admin/media" target="_blank" rel="noopener">Загрузить в медиатеку ↗</a></p>
+  </footer>
+</dialog>

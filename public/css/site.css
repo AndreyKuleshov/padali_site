@@ -1,0 +1,551 @@
+/* ══════════════════════════════════════════════════════════════
+   PADALI — публичный сайт
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #0A0A0A;
+  --bg-2: #151515;
+  --ink: #F2F0EA;
+  --soft: #9B9790;
+  --line: #2A2A2A;
+  --neon: #D6FF2E;
+  --display: 'Oswald', 'Arial Narrow', sans-serif;
+  --sans: 'Archivo', Arial, sans-serif;
+  --wrap: 760px;
+  --gutter: 24px;
+  --topbar-h: 59px;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  /* Якорные ссылки не должны уезжать под липкую шапку. */
+  scroll-padding-top: var(--topbar-h);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.12;
+  margin: 0 0 0.5em;
+  color: var(--ink);
+}
+
+p { margin: 0 0 1em; }
+a { color: inherit; }
+/* Высоту всегда считаем из пропорций кадра. Без height:auto выигрывает
+   атрибут height в разметке (он нужен, чтобы страница не прыгала при
+   загрузке), и картинка растягивается до своей исходной высоты. */
+img { max-width: 100%; height: auto; }
+ul { list-style: none; margin: 0; padding: 0; }
+
+:focus-visible {
+  outline: 2px solid var(--neon);
+  outline-offset: 2px;
+}
+
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+.section {
+  padding-block: 56px;
+  border-top: 1px solid var(--line);
+}
+
+.note { color: var(--soft); max-width: 44ch; }
+
+/* ─── Шапка ──────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(10, 10, 10, 0.88);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 14px;
+}
+
+.logo-mark img {
+  height: 22px;
+  width: auto;
+  display: block;
+  filter: invert(1);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 18px; }
+
+.social-row { display: flex; gap: 14px; }
+
+.social-row a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--soft);
+  transition: color .15s;
+}
+
+.social-row a:hover { color: var(--neon); }
+.social-row svg { width: 18px; height: 18px; }
+
+.lang-switch { display: flex; gap: 6px; }
+
+.lang-btn {
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--soft);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 5px 10px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.lang-btn:hover { color: var(--ink); border-color: var(--soft); }
+
+/* ─── Шапка-экран ────────────────────────────────────────── */
+
+.hero { position: relative; }
+
+.hero-media { position: relative; width: 100%; overflow: hidden; }
+.hero-media img { width: 100%; height: auto; display: block; }
+
+.hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0) 35%, rgba(10, 10, 10, 0.92) 92%);
+}
+
+@media (min-width: 641px) {
+  /* На всю высоту экрана за вычетом липкой шапки. */
+  .hero--full .hero-media { height: calc(100svh - var(--topbar-h)); }
+  .hero--full .hero-media img { height: 100%; object-fit: cover; }
+}
+
+.hero-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: 34px;
+}
+
+.hero-wordmark {
+  width: min(78vw, 420px);
+  height: auto;
+  display: block;
+  margin-bottom: 16px;
+  filter: invert(1);
+}
+
+.hero-caption p {
+  font-size: 1.1rem;
+  color: var(--ink);
+  max-width: 36ch;
+  margin: 0;
+}
+
+/* ─── Быстрая навигация ──────────────────────────────────── */
+
+.quicknav { display: flex; flex-wrap: wrap; border-top: 1px solid var(--line); }
+
+.quicknav a {
+  flex: 1 1 auto;
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--soft);
+  padding: 16px 18px;
+  border-right: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.quicknav a:last-child { border-right: none; }
+.quicknav a:hover { color: var(--neon); }
+
+/* ─── Релиз ──────────────────────────────────────────────── */
+
+.release-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.cover-box { position: relative; }
+.cover-box > img { width: 100%; display: block; border: 1px solid var(--line); }
+
+.cover-sticker {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 56px;
+  height: 56px;
+  transform: rotate(-9deg);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .5));
+}
+
+.cover-sticker img { width: 100%; height: 100%; object-fit: contain; border: none; }
+
+.eyebrow {
+  display: inline-block;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--neon);
+  border: 1px solid var(--neon);
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin-bottom: 14px;
+}
+
+.single-title {
+  font-size: 0.98rem;
+  color: var(--soft);
+  margin-bottom: 6px;
+  font-family: var(--sans);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.release-date {
+  font-family: var(--display);
+  font-size: 2.1rem;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.countdown {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  color: var(--neon);
+  margin-bottom: 14px;
+  min-height: 1.4em;
+}
+
+.platform-icons { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.platform-icons a,
+.platform-icons span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--soft);
+  transition: color .15s, border-color .15s;
+}
+
+.platform-icons a:hover { color: var(--neon); border-color: var(--soft); }
+.platform-icons svg { width: 17px; height: 17px; }
+
+.platform-icons .more {
+  display: flex;
+  align-items: center;
+  width: auto;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--soft);
+  font-family: var(--display);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ─── Концерт ────────────────────────────────────────────── */
+
+.concert-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.concert-grid--no-poster { grid-template-columns: 1fr; }
+
+.poster-box img { width: 100%; display: block; border: 1px solid var(--line); }
+
+.concert-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 24px 26px;
+}
+
+.concert-date {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.concert-venue { font-size: 1.02rem; margin-bottom: 10px; }
+
+.concert-tag {
+  display: inline-block;
+  font-family: var(--display);
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+  color: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 3px 11px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--bg);
+  background: var(--neon);
+  border: 1px solid var(--neon);
+  padding: 10px 18px;
+  margin-bottom: 14px;
+  transition: filter .15s;
+}
+
+.button:hover { filter: brightness(1.1); }
+.button svg { width: 16px; height: 16px; }
+
+/* ─── Ссылки ─────────────────────────────────────────────── */
+
+.follow-list { display: grid; gap: 10px; }
+
+.follow-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+  text-decoration: none;
+  transition: border-color .15s, background .15s;
+}
+
+.follow-item:hover { border-color: var(--neon); background: var(--bg-2); }
+
+.follow-item .name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--display);
+  font-size: 1.02rem;
+  letter-spacing: 0.02em;
+}
+
+.follow-item svg { width: 20px; height: 20px; flex: none; }
+.follow-item .handle { color: var(--soft); font-size: 0.92rem; }
+
+/* ─── Галерея ────────────────────────────────────────────── */
+
+.gallery-intro { margin-bottom: 24px; }
+
+.gallery { --gallery-gap: 10px; }
+.gallery figure { margin: 0; }
+
+.gallery-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+
+.gallery figcaption {
+  margin-top: 6px;
+  font-size: 0.84rem;
+  color: var(--soft);
+}
+
+/* Сетка: квадратные кадры, число колонок задаётся блоком. */
+.gallery--grid {
+  display: grid;
+  grid-template-columns: repeat(var(--gallery-columns, 3), 1fr);
+  gap: var(--gallery-gap);
+}
+
+.gallery--grid .gallery-item { aspect-ratio: 1 / 1; display: flex; flex-direction: column; }
+.gallery--grid .gallery-image { flex: 1 1 auto; min-height: 0; }
+
+/* Лента: горизонтальная прокрутка с примагничиванием. */
+.gallery--strip {
+  display: flex;
+  gap: var(--gallery-gap);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.gallery--strip .gallery-item {
+  flex: 0 0 min(72vw, 320px);
+  scroll-snap-align: start;
+}
+
+.gallery--strip .gallery-image { aspect-ratio: 4 / 3; }
+
+/* Кладка: сохраняются исходные пропорции кадров. */
+.gallery--masonry {
+  column-count: var(--gallery-columns, 3);
+  column-gap: var(--gallery-gap);
+}
+
+.gallery--masonry .gallery-item {
+  break-inside: avoid;
+  margin-bottom: var(--gallery-gap);
+}
+
+.gallery--masonry .gallery-image { height: auto; object-fit: initial; }
+
+.gallery-more { margin-top: 16px; font-size: 0.88rem; }
+
+img[data-lightbox] { cursor: zoom-in; }
+
+/* ─── Текстовый блок ─────────────────────────────────────── */
+
+.prose--narrow { max-width: 62ch; }
+.prose a { color: var(--neon); }
+.prose ul, .prose ol { padding-left: 1.2em; list-style: revert; }
+.prose blockquote {
+  margin: 0 0 1em;
+  padding-left: 16px;
+  border-left: 2px solid var(--neon);
+  color: var(--soft);
+}
+
+/* ─── Подвал ─────────────────────────────────────────────── */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding-block: 26px 40px;
+  color: var(--soft);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.site-footer img { height: 16px; width: auto; filter: invert(1); opacity: .7; }
+
+/* ─── Лайтбокс ───────────────────────────────────────────── */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  z-index: 50;
+  cursor: zoom-out;
+}
+
+.lightbox[hidden] { display: none; }
+
+.lightbox-figure {
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 80vh;
+  display: block;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+  cursor: default;
+}
+
+.lightbox figcaption { color: var(--soft); font-size: 0.9rem; text-align: center; }
+.lightbox figcaption:empty { display: none; }
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox-close:hover { color: var(--neon); border-color: var(--soft); }
+
+/* ─── Узкий экран ────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  :root { --gutter: 20px; }
+
+  body { font-size: 16px; }
+  .section { padding-block: 40px; }
+
+  .release-grid { grid-template-columns: 128px 1fr; gap: 18px; }
+  .release-date { font-size: 1.6rem; }
+  .quicknav a { font-size: 0.74rem; padding: 13px 12px; }
+  .concert-grid { grid-template-columns: 1fr; }
+
+  .hero-caption { padding-bottom: 18px; }
+  .hero-wordmark { width: min(46vw, 190px); margin-bottom: 8px; }
+  .hero-caption p { font-size: 0.95rem; }
+
+  /* На телефоне больше двух колонок нечитаемо. */
+  .gallery--grid { grid-template-columns: repeat(2, 1fr); }
+  .gallery--masonry { column-count: 2; }
+}

@@ -1,0 +1,185 @@
+<%
+  var block = it.block
+  var descriptor = it.descriptor
+  var locales = it.locales
+  function textValue (locale, key) {
+    return (it.texts[locale] && it.texts[locale][key]) || ''
+  }
+%>
+<%~ include('/admin/partials/head', it) %>
+
+<div class="page-head">
+  <div>
+    <p class="breadcrumb"><a href="/admin">← Блоки</a></p>
+    <h1><%= descriptor.title %></h1>
+    <% if (descriptor.description) { %><p class="hint"><%= descriptor.description %></p><% } %>
+  </div>
+</div>
+
+<form method="post" action="/admin/blocks/<%= block.id %>" class="block-form">
+  <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+
+  <section class="card">
+    <h2>Общее</h2>
+
+    <label class="check">
+      <input type="checkbox" name="is_visible" value="on"<%= block.isVisible ? ' checked' : '' %>>
+      <span>Показывать блок на сайте</span>
+    </label>
+
+    <div class="field">
+      <label for="anchor">Якорь</label>
+      <input type="text" id="anchor" name="anchor" value="<%= block.anchor || '' %>"
+             pattern="[a-z0-9-]*" placeholder="например, photos">
+      <p class="hint">Латиница, цифры и дефис. Нужен, чтобы блок попал в меню и получил ссылку вида <code>/#photos</code>.</p>
+    </div>
+
+    <div class="field">
+      <label>Подпись в меню</label>
+      <div class="locale-grid">
+        <% locales.forEach(function (locale) { %>
+        <div>
+          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+          <input type="text" name="text[<%= locale.code %>][nav_label]" value="<%= textValue(locale.code, 'nav_label') %>">
+        </div>
+        <% }) %>
+      </div>
+      <p class="hint">Пусто — блок в меню не показывается.</p>
+    </div>
+  </section>
+
+  <% if ((descriptor.texts || []).length > 0) { %>
+  <section class="card">
+    <h2>Тексты</h2>
+    <% descriptor.texts.forEach(function (field) { %>
+    <div class="field">
+      <label><%= field.label %></label>
+      <div class="locale-grid<%= field.input === 'richtext' || field.input === 'textarea' ? ' locale-grid--stacked' : '' %>">
+        <% locales.forEach(function (locale) { %>
+        <div>
+          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+          <%~ include('/admin/fields/input', {
+                field: field,
+                name: 'text[' + locale.code + '][' + field.key + ']',
+                value: textValue(locale.code, field.key)
+              }) %>
+        </div>
+        <% }) %>
+      </div>
+      <% if (field.hint) { %><p class="hint"><%= field.hint %></p><% } %>
+    </div>
+    <% }) %>
+  </section>
+  <% } %>
+
+  <% if ((descriptor.media || []).length > 0) { %>
+  <section class="card">
+    <h2>Изображения</h2>
+    <% descriptor.media.forEach(function (field) { %>
+    <%
+      var chosen = (it.previews[field.key] || [])
+    %>
+    <div class="field media-field" data-media-field="<%= field.key %>" data-multiple="<%= field.multiple ? '1' : '' %>">
+      <label><%= field.label %><%= field.required ? ' *' : '' %></label>
+      <div class="media-slots">
+        <% chosen.forEach(function (item) { %>
+        <div class="media-slot">
+          <img src="<%= item.thumb %>" alt="">
+          <input type="hidden" name="media[<%= field.key %>][]" value="<%= item.id %>">
+          <button type="button" class="media-remove" aria-label="Убрать">×</button>
+        </div>
+        <% }) %>
+      </div>
+      <button type="button" class="btn btn--small media-pick">Выбрать из медиатеки</button>
+    </div>
+    <% }) %>
+  </section>
+  <% } %>
+
+  <% if ((descriptor.settings || []).length > 0) { %>
+  <section class="card">
+    <h2>Настройки</h2>
+    <% descriptor.settings.forEach(function (field) { %>
+
+    <% if (field.input === 'repeater') { %>
+    <%
+      var rows = Array.isArray(block.settings[field.key]) ? block.settings[field.key] : []
+    %>
+    <div class="field repeater" data-repeater="<%= field.key %>">
+      <label><%= field.label %></label>
+      <div class="repeater-rows">
+        <% rows.forEach(function (row, index) { %>
+        <div class="repeater-row" data-index="<%= index %>">
+          <% field.fields.forEach(function (sub) { %>
+          <div class="repeater-cell">
+            <span class="cell-label"><%= sub.label %></span>
+            <%~ include('/admin/fields/input', {
+                  field: sub,
+                  name: 'settings[' + field.key + '][' + index + '][' + sub.key + ']',
+                  value: row[sub.key]
+                }) %>
+          </div>
+          <% }) %>
+          <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
+        </div>
+        <% }) %>
+      </div>
+
+      <template data-repeater-template>
+        <div class="repeater-row" data-index="__INDEX__">
+          <% field.fields.forEach(function (sub) { %>
+          <div class="repeater-cell">
+            <span class="cell-label"><%= sub.label %></span>
+            <%~ include('/admin/fields/input', {
+                  field: sub,
+                  name: 'settings[' + field.key + '][__INDEX__][' + sub.key + ']',
+                  value: sub.default
+                }) %>
+          </div>
+          <% }) %>
+          <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
+        </div>
+      </template>
+
+      <button type="button" class="btn btn--small repeater-add"><%= field.addLabel || 'Добавить строку' %></button>
+    </div>
+
+    <% } else if (field.input === 'checkbox') { %>
+    <div class="field">
+      <%~ include('/admin/fields/input', {
+            field: field,
+            name: 'settings[' + field.key + ']',
+            value: block.settings[field.key]
+          }) %>
+      <% if (field.hint) { %><p class="hint"><%= field.hint %></p><% } %>
+    </div>
+
+    <% } else { %>
+    <div class="field">
+      <label for="settings_<%= field.key %>_"><%= field.label %><%= field.required ? ' *' : '' %></label>
+      <%~ include('/admin/fields/input', {
+            field: field,
+            name: 'settings[' + field.key + ']',
+            value: block.settings[field.key],
+            galleries: it.galleries
+          }) %>
+      <% if (field.hint) { %><p class="hint"><%= field.hint %></p><% } %>
+      <% if (field.input === 'gallery-picker') { %>
+      <p class="hint">Один альбом можно вставить в несколько блоков — например, лентой вверху и сеткой ниже.
+        <a href="/admin/galleries">Управление альбомами</a></p>
+      <% } %>
+    </div>
+    <% } %>
+
+    <% }) %>
+  </section>
+  <% } %>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <a class="btn" href="/admin">Отмена</a>
+  </div>
+</form>
+
+<%~ include('/admin/partials/media-picker', it) %>
+<%~ include('/admin/partials/foot', it) %>

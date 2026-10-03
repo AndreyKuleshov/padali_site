@@ -1,0 +1,17 @@
+<%
+  var block = it.block
+  var items = block.settings.items || []
+%>
+<section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
+  <ul class="follow-list">
+    <% items.forEach(function (item) { %>
+    <li>
+      <a class="follow-item" href="<%= item.url %>" target="_blank" rel="noopener">
+        <span class="name"><%~ it.h.icon(item.icon) %><%= item.label %></span>
+        <% if (item.handle) { %><span class="handle"><%= item.handle %></span><% } %>
+      </a>
+    </li>
+    <% }) %>
+  </ul>
+</section>

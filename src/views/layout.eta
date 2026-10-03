@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="<%= it.locale %>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= it.meta.title %></title>
+<% if (it.meta.description) { %>
+<meta name="description" content="<%= it.meta.description %>">
+<% } %>
+<link rel="icon" href="/brand/favicon.png">
+
+<link rel="canonical" href="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale) %>">
+<% it.locales.forEach(function (locale) { %>
+<link rel="alternate" hreflang="<%= locale.code %>" href="<%= it.h.publicUrl + it.h.localeUrl(locale.code, it.defaultLocale) %>">
+<% }) %>
+<link rel="alternate" hreflang="x-default" href="<%= it.h.publicUrl + it.h.localeUrl(it.defaultLocale, it.defaultLocale) %>">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="<%= it.meta.title %>">
+<meta property="og:description" content="<%= it.meta.description %>">
+<meta property="og:url" content="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale) %>">
+<% if (it.ogImage) { %>
+<meta property="og:image" content="<%= it.h.publicUrl + it.ogImage %>">
+<% } %>
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+
+<%~ include('/partials/topbar', it) %>
+
+<main id="top">
+<% it.blocks.forEach(function (block, index) {
+     if (!block.descriptor) return; %>
+  <%~ include('/' + block.descriptor.template, Object.assign({}, it, { block: block })) %>
+<%   if (index === 0 && block.type === 'hero' && it.quicknav.length > 0) { %>
+  <%~ include('/partials/quicknav', it) %>
+<%   } %>
+<% }) %>
+<% if (it.quicknav.length > 0 && (it.blocks.length === 0 || it.blocks[0].type !== 'hero')) { %>
+  <%~ include('/partials/quicknav', it) %>
+<% } %>
+</main>
+
+<%~ include('/partials/footer', it) %>
+<%~ include('/partials/lightbox', it) %>
+
+<script src="/js/site.js" defer></script>
+</body>
+</html>

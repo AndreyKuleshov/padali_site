@@ -1,0 +1,14 @@
+<%
+  var media = it.media
+  var sizes = it.sizes || '100vw'
+  var className = it.className || ''
+  var loading = it.eager ? 'eager' : 'lazy'
+%><% if (media) { %><img
+  src="<%= media.src %>"
+  <% if (media.srcset) { %>srcset="<%= media.srcset %>" sizes="<%= sizes %>"<% } %>
+  width="<%= media.width %>" height="<%= media.height %>"
+  alt="<%= media.alt %>"
+  loading="<%= loading %>" decoding="async"
+  <% if (className) { %>class="<%= className %>"<% } %>
+  <% if (it.lightbox) { %>data-lightbox="<%= media.original %>"<% } %>
+><% } %>

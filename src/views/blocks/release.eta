@@ -1,0 +1,51 @@
+<%
+  var block = it.block
+  var cover = block.first('cover')
+  var sticker = block.first('sticker')
+  var platforms = block.settings.platforms || []
+%>
+<section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <div class="release-grid">
+    <div class="cover-box">
+      <%~ include('/partials/picture', { media: cover, sizes: '(max-width: 640px) 128px, 200px', lightbox: true }) %>
+      <% if (sticker) { %>
+      <span class="cover-sticker"><%~ include('/partials/picture', { media: sticker, sizes: '56px' }) %></span>
+      <% } %>
+    </div>
+
+    <div class="release-info">
+      <% if (block.text.eyebrow) { %><span class="eyebrow"><%= block.text.eyebrow %></span><% } %>
+      <% if (block.text.title) { %><h2 class="single-title"><%= block.text.title %></h2><% } %>
+      <% if (block.settings.release_date) { %>
+      <p class="release-date"><time datetime="<%= block.settings.release_date %>"><%= it.h.formatDate(block.settings.release_date) %></time></p>
+      <% } %>
+
+      <% if (block.settings.show_countdown && block.settings.release_date && block.text.countdown_label) { %>
+      <p class="countdown"
+         data-countdown="<%= block.settings.release_date %>"
+         data-countdown-template="<%= block.text.countdown_label %>"></p>
+      <% } %>
+
+      <% if (block.text.note) { %><p class="note"><%= block.text.note %></p><% } %>
+
+      <% if (platforms.length > 0) { %>
+      <ul class="platform-icons">
+        <% platforms.forEach(function (platform) { %>
+        <li>
+          <% if (platform.url) { %>
+          <a href="<%= platform.url %>" target="_blank" rel="noopener" title="<%= platform.label %>">
+            <%~ it.h.icon(platform.icon, { title: platform.label }) %>
+          </a>
+          <% } else { %>
+          <span title="<%= platform.label %>"><%~ it.h.icon(platform.icon, { title: platform.label }) %></span>
+          <% } %>
+        </li>
+        <% }) %>
+        <% if (block.text.more_label) { %>
+        <li class="more"><%= block.text.more_label %></li>
+        <% } %>
+      </ul>
+      <% } %>
+    </div>
+  </div>
+</section>

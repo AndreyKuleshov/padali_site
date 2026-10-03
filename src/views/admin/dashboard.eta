@@ -1,0 +1,50 @@
+<%~ include('/admin/partials/head', it) %>
+
+<div class="page-head">
+  <h1>Блоки главной страницы</h1>
+  <form method="post" action="/admin/blocks" class="inline-form">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <select name="type" aria-label="Тип блока">
+      <% it.blockTypes.forEach(function (type) { %>
+      <option value="<%= type.type %>"><%= type.title %></option>
+      <% }) %>
+    </select>
+    <button type="submit" class="btn btn--primary">Добавить блок</button>
+  </form>
+</div>
+
+<% if (it.blocks.length === 0) { %>
+<p class="empty">Блоков пока нет. Добавьте первый — он появится внизу страницы.</p>
+<% } else { %>
+
+<p class="hint">Порядок меняется перетаскиванием за ручку слева. Сохраняется сразу.</p>
+
+<ul class="block-list" id="blockList" data-csrf="<%= it.csrf %>">
+  <% it.blocks.forEach(function (block) { %>
+  <li class="block-row<%= block.isVisible ? '' : ' block-row--hidden' %>" data-id="<%= block.id %>">
+    <span class="drag-handle" title="Перетащить" aria-hidden="true">⠿</span>
+
+    <a class="block-main" href="/admin/blocks/<%= block.id %>">
+      <span class="block-type"><%= block.descriptor ? block.descriptor.title : block.type %></span>
+      <% if (block.label) { %><span class="block-label"><%= block.label %></span><% } %>
+      <% if (block.anchor) { %><span class="block-anchor">#<%= block.anchor %></span><% } %>
+      <% if (!block.descriptor) { %><span class="block-warn">тип не найден в коде</span><% } %>
+    </a>
+
+    <form method="post" action="/admin/blocks/<%= block.id %>/toggle">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <button type="submit" class="chip<%= block.isVisible ? ' chip--on' : '' %>">
+        <%= block.isVisible ? 'показан' : 'скрыт' %>
+      </button>
+    </form>
+
+    <form method="post" action="/admin/blocks/<%= block.id %>/delete" data-confirm="Удалить блок безвозвратно?">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <button type="submit" class="btn btn--danger btn--small">Удалить</button>
+    </form>
+  </li>
+  <% }) %>
+</ul>
+<% } %>
+
+<%~ include('/admin/partials/foot', it) %>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="<%= it.locale %>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 — PADALI</title>
+<link rel="icon" href="/brand/favicon.png">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body>
+<main class="wrap section" style="min-height:60svh">
+  <h1>404</h1>
+  <p class="note">Страница не найдена. / Page not found.</p>
+  <p><a class="button" href="<%= it.homeUrl %>">PADALI</a></p>
+</main>
+</body>
+</html>

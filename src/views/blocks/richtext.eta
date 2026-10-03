@@ -1,0 +1,9 @@
+<%
+  var block = it.block
+%>
+<section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <div class="prose<%= block.settings.width === 'narrow' ? ' prose--narrow' : '' %>">
+    <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
+    <%~ it.h.sanitize(block.text.body) %>
+  </div>
+</section>

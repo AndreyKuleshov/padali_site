@@ -1,0 +1,18 @@
+<%~ include('/admin/partials/head', { title: 'Вход', csrf: it.csrf }) %>
+<div class="login-box">
+  <h1>Вход в админку</h1>
+  <% if (it.error) { %><p class="flash flash--error"><%= it.error %></p><% } %>
+  <form method="post" action="/admin/login" class="stack">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <label>
+      <span>Почта</span>
+      <input type="email" name="email" autocomplete="username" required autofocus>
+    </label>
+    <label>
+      <span>Пароль</span>
+      <input type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="btn btn--primary">Войти</button>
+  </form>
+</div>
+<%~ include('/admin/partials/foot', it) %>

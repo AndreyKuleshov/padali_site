@@ -1,0 +1,84 @@
+<%
+  function textValue (locale, key) {
+    return (it.texts[locale] && it.texts[locale][key]) || ''
+  }
+%>
+<%~ include('/admin/partials/head', it) %>
+
+<div class="page-head">
+  <div>
+    <p class="breadcrumb"><a href="/admin/galleries">← Альбомы</a></p>
+    <h1>Альбом «<%= it.gallery.slug %>»</h1>
+    <% if (it.usedIn.length > 0) { %>
+    <p class="hint">Вставлен в блоков: <%= it.usedIn.length %>. Правки увидят все вставки сразу.</p>
+    <% } else { %>
+    <p class="hint">Пока никуда не вставлен. Добавьте блок «Фотогалерея» на главной и выберите этот альбом.</p>
+    <% } %>
+  </div>
+</div>
+
+<form method="post" action="/admin/galleries/<%= it.gallery.id %>" class="block-form" id="galleryForm">
+  <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+
+  <section class="card">
+    <h2>Общее</h2>
+    <div class="field">
+      <label for="slug">Короткое имя</label>
+      <input type="text" id="slug" name="slug" value="<%= it.gallery.slug %>" pattern="[a-z0-9-]+" required>
+    </div>
+
+    <div class="field">
+      <label>Название</label>
+      <div class="locale-grid">
+        <% it.locales.forEach(function (locale) { %>
+        <div>
+          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+          <input type="text" name="text[<%= locale.code %>][title]" value="<%= textValue(locale.code, 'title') %>">
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Описание</label>
+      <div class="locale-grid locale-grid--stacked">
+        <% it.locales.forEach(function (locale) { %>
+        <div>
+          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+          <textarea name="text[<%= locale.code %>][description]" rows="2"><%= textValue(locale.code, 'description') %></textarea>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Фотографии</h2>
+    <p class="hint">Порядок меняется перетаскиванием. Подписи задаются в медиатеке — они общие для всех альбомов.</p>
+
+    <div class="gallery-items" id="galleryItems">
+      <% it.items.forEach(function (item) { %>
+      <div class="gallery-chip" data-id="<%= item.id %>">
+        <img src="<%= item.thumb %>" alt="" loading="lazy">
+        <button type="button" class="media-remove" aria-label="Убрать">×</button>
+      </div>
+      <% }) %>
+    </div>
+
+    <input type="hidden" name="items" id="galleryItemsValue" value="<%= it.items.map(function (i) { return i.id }).join(',') %>">
+    <button type="button" class="btn btn--small media-pick" data-target="galleryItems" data-multiple="1">Добавить из медиатеки</button>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <a class="btn" href="/admin/galleries">Отмена</a>
+  </div>
+</form>
+
+<form method="post" action="/admin/galleries/<%= it.gallery.id %>/delete" data-confirm="Удалить альбом? Фотографии останутся в медиатеке." class="danger-zone">
+  <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+  <button type="submit" class="btn btn--danger">Удалить альбом</button>
+</form>
+
+<%~ include('/admin/partials/media-picker', it) %>
+<%~ include('/admin/partials/foot', it) %>

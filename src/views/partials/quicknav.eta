@@ -1,0 +1,5 @@
+<nav class="quicknav wrap" aria-label="<%= it.locale === 'sr' ? 'Sadržaj' : 'Sections' %>">
+  <% it.quicknav.forEach(function (item) { %>
+  <a href="#<%= item.anchor %>"><%= item.label %></a>
+  <% }) %>
+</nav>

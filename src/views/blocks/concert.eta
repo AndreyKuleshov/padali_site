@@ -1,0 +1,27 @@
+<%
+  var block = it.block
+  var poster = block.first('poster')
+%>
+<section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
+  <div class="concert-grid<%= poster ? '' : ' concert-grid--no-poster' %>">
+    <% if (poster) { %>
+    <div class="poster-box">
+      <%~ include('/partials/picture', { media: poster, sizes: '(max-width: 640px) 100vw, 200px', lightbox: true }) %>
+    </div>
+    <% } %>
+    <div class="concert-card">
+      <% if (block.settings.date) { %>
+      <p class="concert-date"><time datetime="<%= block.settings.date %>"><%= it.h.formatDate(block.settings.date) %></time></p>
+      <% } %>
+      <% if (block.text.venue) { %><p class="concert-venue"><%= block.text.venue %></p><% } %>
+      <% if (block.text.note) { %><p class="note"><%= block.text.note %></p><% } %>
+      <% if (block.settings.ticket_url) { %>
+      <a class="button" href="<%= block.settings.ticket_url %>" target="_blank" rel="noopener">
+        <%~ it.h.icon('ticket') %><%= block.text.ticket_label || 'Tickets' %>
+      </a>
+      <% } %>
+      <% if (block.text.tag) { %><p><span class="concert-tag"><%= block.text.tag %></span></p><% } %>
+    </div>
+  </div>
+</section>
