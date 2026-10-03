@@ -89,18 +89,69 @@ test('клики пишутся пачкой, мусор отбрасывает�
     type: 'clicks',
     path: '/',
     clicks: [
-      { x: 0.25, y: 900, w: 1440, t: '→ #photos' },
-      { x: 9, y: 100, w: 1440, t: 'вне страницы' },
-      { x: 0.8, y: 1500, w: 390, t: 'фото' }
+      { b: '4', x: -340, y: 214, w: 1440, t: '→ #photos' },
+      { b: '4', x: 99999, y: 100, w: 1440, t: 'вне страницы' },
+      { x: 10, y: 20, w: 1440, t: 'без якоря' },
+      { b: '5', x: 120, y: 60, w: 390, t: 'фото' }
     ]
   })
-  const rows = await query('SELECT x_ratio, viewport FROM analytics_clicks ORDER BY id')
-  assert.equal(rows.length, 2, 'доля шире страницы не сохраняется')
-  assert.deepEqual(rows.map((r) => r.x_ratio), [0.25, 0.8])
+  const rows = await query('SELECT x_offset, anchor FROM analytics_clicks ORDER BY id')
+  assert.equal(rows.length, 2, 'клик вне страницы и клик без якоря отброшены')
+  assert.deepEqual(rows.map((r) => r.x_offset), [-340, 120])
+  assert.deepEqual(rows.map((r) => r.anchor), ['4', '5'])
+})
+
+/**
+ * Координаты от окна браузера съезжали: высота шапки задана в
+ * единицах экрана, колонка содержимого центрирована, и у посетителя
+ * с другим окном та же кнопка оказывалась в другом месте.
+ */
+test('клик запоминает блок и смещение от его центра', async () => {
+  await beacon({
+    type: 'clicks',
+    path: '/',
+    clicks: [
+      { b: '12', x: 372, y: 240, w: 2056, t: 'кнопка: Next' },
+      { b: 'header', x: -600, y: 20, w: 2056, t: 'кнопка: SR' }
+    ]
+  })
+
+  const rows = await query('SELECT anchor, x_offset, y_offset FROM analytics_clicks ORDER BY id')
+  assert.deepEqual(rows.map((r) => r.anchor), ['12', 'header'])
+  assert.equal(rows[0].x_offset, 372, 'горизонталь — пиксели от центра блока')
+  assert.equal(rows[0].y_offset, 240, 'вертикаль — пиксели от верха блока')
+})
+
+test('подложный якорь не сохраняется', async () => {
+  await beacon({
+    type: 'clicks',
+    path: '/',
+    clicks: [{ b: 'main; drop table', x: 10, y: 10, w: 1440, t: 'x' }]
+  })
+  const [{ total }] = await query('SELECT COUNT(*)::int AS total FROM analytics_clicks')
+  assert.equal(total, 0)
+})
+
+/**
+ * Ровно та ошибка, на которую пожаловались: клик по стрелке галереи
+ * ложился ниже и левее. Смещение от центра не зависит от окна.
+ */
+test('одна и та же кнопка при разных окнах даёт одно смещение', async () => {
+  await beacon({
+    type: 'clicks',
+    path: '/',
+    clicks: [
+      { b: '4', x: 372, y: 214, w: 2056, t: 'кнопка: Next' },
+      { b: '4', x: 372, y: 214, w: 1440, t: 'кнопка: Next' }
+    ]
+  })
+  const rows = await query('SELECT x_offset, y_offset, viewport FROM analytics_clicks ORDER BY id')
+  assert.deepEqual(rows.map((r) => [r.x_offset, r.y_offset]), [[372, 214], [372, 214]])
+  assert.deepEqual(rows.map((r) => r.viewport), [2056, 1440], 'ширина окна при этом сохраняется')
 })
 
 test('пачка кликов ограничена сверху', () => {
-  const many = Array.from({ length: 200 }, () => ({ x: 0.5, y: 10, w: 1000, t: 'x' }))
+  const many = Array.from({ length: 200 }, () => ({ b: '1', x: 5, y: 10, w: 1000, t: 'x' }))
   assert.equal(parseClicks(many, '/').length, 80)
 })
 
@@ -129,9 +180,9 @@ test('итоги считают просмотры, посетителей и д
 
 test('карта кликов фильтруется по странице и ширине экрана', async () => {
   await recordClicks([
-    { path: '/', xRatio: 0.5, yOffset: 100, viewport: 1440, target: 'настольный' },
-    { path: '/', xRatio: 0.5, yOffset: 200, viewport: 390, target: 'телефон' },
-    { path: '/sr', xRatio: 0.5, yOffset: 300, viewport: 1440, target: 'другая страница' }
+    { path: '/', anchor: '4', xOffset: 0, yOffset: 100, viewport: 1440, target: 'настольный' },
+    { path: '/', anchor: '4', xOffset: 0, yOffset: 200, viewport: 390, target: 'телефон' },
+    { path: '/sr', anchor: '4', xOffset: 0, yOffset: 300, viewport: 1440, target: 'другая страница' }
   ])
 
   const desktop = await clickPoints({ path: '/', band: 'desktop', days: 30 })
@@ -171,7 +222,7 @@ test('ступени насыщенности монотонны и не вых�
 
 test('страница статистики открывается и показывает числа', async () => {
   await recordView({ path: '/', locale: 'en', visitorHash: 'e'.repeat(32), referrerHost: null, viewport: 1440, isMobile: false })
-  await recordClicks([{ path: '/', xRatio: 0.3, yOffset: 400, viewport: 1440, target: '→ #photos' }])
+  await recordClicks([{ path: '/', anchor: '4', xOffset: -200, yOffset: 400, viewport: 1440, target: '→ #photos' }])
 
   const response = await app.inject({ method: 'GET', url: '/admin/analytics', cookies: session.cookies })
   assert.equal(response.statusCode, 200)

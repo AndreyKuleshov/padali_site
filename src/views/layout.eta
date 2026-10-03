@@ -36,7 +36,9 @@
 <main id="top">
 <% it.blocks.forEach(function (block, index) {
      if (!block.descriptor) return; %>
-  <%~ include('/' + block.descriptor.template, Object.assign({}, it, { block: block })) %>
+  <% ;/* Обёртка нужна карте кликов: по ней клик привязывается
+         к блоку и не зависит от размера окна посетителя. */ %>
+  <div data-block="<%= block.id %>"><%~ include('/' + block.descriptor.template, Object.assign({}, it, { block: block })) %></div>
 <%   if (index === 0 && block.type === 'hero' && it.quicknav.length > 0) { %>
   <%~ include('/partials/quicknav', it) %>
 <%   } %>

@@ -1,4 +1,8 @@
-<footer class="wrap site-footer">
+<footer class="wrap site-footer" data-block="footer">
+  <% if (it.siteLogo) { %>
+  <span class="site-footer-logo"><%~ include('/partials/picture', { media: it.siteLogo, sizes: '120px' }) %></span>
+  <% } else { %>
   <img src="<%= it.h.asset('/brand/padali-wordmark.webp') %>" alt="PADALI" width="120" height="16">
+  <% } %>
   <span><%= it.settings.footer_note || 'padali.band' %></span>
 </footer>

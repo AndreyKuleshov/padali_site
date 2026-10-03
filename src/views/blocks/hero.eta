@@ -1,7 +1,7 @@
 <%
   var block = it.block
   var background = block.first('background')
-  var logo = block.first('logo')
+  var logo = block.first('logo') || it.siteLogo
 %>
 <section class="hero<%= block.settings.full_height ? ' hero--full' : '' %>"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <div class="hero-media">

@@ -14,8 +14,11 @@ async function settingsRoutes (app) {
       getAllSettings(), listLocales(), getPageBySlug('home'), listMedia({ limit: 500 })
     ])
     const pageTexts = page ? await getPageTexts(page.id) : {}
+    const logoId = Number(settings.logo_id)
+    const logo = library.find((media) => media.id === logoId) ?? null
 
     return renderAdmin(request, reply, 'admin/settings', {
+      logo,
       settings,
       pageTexts,
       locales,
@@ -43,10 +46,12 @@ async function settingsRoutes (app) {
       .filter((row) => row.icon && row.url)
 
     const ogImageId = Number.parseInt(asString(request.body?.og_image_id), 10)
+    const logoId = Number.parseInt(asString(request.body?.logo_id), 10)
 
     await setSetting('social', social)
     await setSetting('footer_note', asString(request.body?.footer_note))
     await setSetting('og_image_id', Number.isInteger(ogImageId) && ogImageId > 0 ? ogImageId : null)
+    await setSetting('logo_id', Number.isInteger(logoId) && logoId > 0 ? logoId : null)
 
     const page = await getPageBySlug('home')
     if (page) {

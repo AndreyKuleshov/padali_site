@@ -345,23 +345,45 @@
     canvas.width = width
     canvas.height = height
 
+    /**
+     * Где точка окажется на экране. Клик привязан к блоку: ищем блок
+     * во фрейме и отмеряем от его центра по горизонтали и от верха
+     * по вертикали. Фрейм уже прокручен на offset, поэтому
+     * getBoundingClientRect даёт сразу экранные координаты.
+     */
+    function place (point, boxes) {
+      var box = boxes[point[2]]
+      if (!box) return null
+      return { x: box.left + box.width / 2 + point[0], y: box.top + point[1] }
+    }
+
     function draw () {
       var context = canvas.getContext('2d')
       context.clearRect(0, 0, width, height)
       // Пятна складываются по яркости: скопление светится сильнее.
       context.globalCompositeOperation = 'lighter'
 
+      // Прямоугольники блоков читаем один раз на отрисовку.
+      var boxes = {}
+      var document_ = frame.contentDocument
+      if (document_) {
+        document_.querySelectorAll('[data-block]').forEach(function (element) {
+          boxes[element.getAttribute('data-block')] = element.getBoundingClientRect()
+        })
+      }
+
       points.forEach(function (point) {
-        var y = point[1] - offset
-        if (y < -radius || y > height + radius) return
-        var x = point[0] * width
-        var gradient = context.createRadialGradient(x, y, 0, x, y, radius)
+        var spot = place(point, boxes)
+        if (!spot) return
+        if (spot.y < -radius || spot.y > height + radius) return
+
+        var gradient = context.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, radius)
         gradient.addColorStop(0, 'rgba(214, 255, 46, 0.5)')
         gradient.addColorStop(0.45, 'rgba(214, 255, 46, 0.2)')
         gradient.addColorStop(1, 'rgba(214, 255, 46, 0)')
         context.fillStyle = gradient
         context.beginPath()
-        context.arc(x, y, radius, 0, Math.PI * 2)
+        context.arc(spot.x, spot.y, radius, 0, Math.PI * 2)
         context.fill()
       })
     }
@@ -382,7 +404,13 @@
       )
       // Ползунок ходит по той части документа, что не влезла в окно,
       // но не меньше самого нижнего клика — иначе до него не добраться.
-      var lowestClick = points.reduce(function (max, point) { return Math.max(max, point[1]) }, 0)
+      var lowestClick = points.reduce(function (max, point) {
+        // Вертикаль отмеряется от блока, поэтому самую нижнюю точку
+        // ищем через положение блока в документе.
+        var host = document_.querySelector('[data-block="' + point[2] + '"]')
+        if (!host) return max
+        return Math.max(max, host.getBoundingClientRect().top + frame.contentWindow.scrollY + point[1])
+      }, 0)
       var reach = Math.max(0, Math.max(documentHeight, lowestClick + radius) - height)
 
       if (slider) {
@@ -402,7 +430,31 @@
     }
 
     // Высота документа меняется, пока догружаются шрифты и картинки.
+    /**
+     * Готовим страницу во фрейме: прячем полосу прокрутки и
+     * выключаем плавную прокрутку. У сайта она включена для якорных
+     * ссылок, но здесь из-за неё страница ехала уже после отрисовки
+     * пятен, и карта оказывалась пустой.
+     */
+    function prepareFrame () {
+      var document_ = frame.contentDocument
+      if (!document_ || document_.getElementById('heatmap-style')) return
+      var style = document_.createElement('style')
+      style.id = 'heatmap-style'
+      style.textContent =
+        'html { scrollbar-width: none; scroll-behavior: auto !important; }' +
+        'html::-webkit-scrollbar { width: 0; height: 0; }'
+      document_.head.appendChild(style)
+
+      // Страница может уехать и помимо ползунка — перерисовываем.
+      frame.contentWindow.addEventListener('scroll', function () {
+        offset = frame.contentWindow.scrollY
+        draw()
+      }, { passive: true })
+    }
+
     frame.addEventListener('load', function () {
+      prepareFrame()
       fit()
       var document_ = frame.contentDocument
       if (document_ && typeof ResizeObserver !== 'undefined') {

@@ -93,12 +93,17 @@ ul { list-style: none; margin: 0; padding: 0; }
   padding-block: 14px;
 }
 
+/* Встроенный логотип нарисован чёрным, поэтому осветляется фильтром.
+   Загруженный через админку показывается как есть: редактор должен
+   видеть ровно тот файл, который выбрал. */
 .logo-mark img {
   height: 22px;
   width: auto;
   display: block;
   filter: invert(1);
 }
+
+.logo-mark--own img { filter: none; }
 
 .topbar-right { display: flex; align-items: center; gap: 18px; }
 

@@ -18,12 +18,12 @@ async function recordView (view, conn) {
 /** Клики приходят пачкой в конце визита — пишем одним запросом. */
 async function recordClicks (clicks, conn) {
   if (clicks.length === 0) return 0
-  const values = clicks.map(() => '(?, ?, ?, ?, ?)').join(', ')
+  const values = clicks.map(() => '(?, ?, ?, ?, ?, ?)').join(', ')
   const params = clicks.flatMap((click) => [
-    click.path, click.xRatio, click.yOffset, click.viewport, click.target
+    click.path, click.xOffset, click.yOffset, click.viewport, click.target, click.anchor
   ])
   const result = await db(conn).run(
-    `INSERT INTO analytics_clicks (path, x_ratio, y_offset, viewport, target) VALUES ${values}`,
+    `INSERT INTO analytics_clicks (path, x_offset, y_offset, viewport, target, anchor) VALUES ${values}`,
     params
   )
   return result.rowCount
@@ -89,7 +89,7 @@ async function topReferrers (days, conn) {
 async function clickPoints ({ path, band = 'desktop', days = 30 }, conn) {
   const range = DEVICE_BANDS[band] ?? DEVICE_BANDS.desktop
   return db(conn).all(
-    'SELECT x_ratio, y_offset, target FROM analytics_clicks ' +
+    'SELECT x_offset, y_offset, target, anchor FROM analytics_clicks ' +
     `WHERE path = ? AND viewport BETWEEN ? AND ? AND clicked_at > ${sinceClause(days)} ` +
     'ORDER BY clicked_at DESC LIMIT 5000',
     [path, range.min, range.max]

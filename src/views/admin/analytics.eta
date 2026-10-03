@@ -132,10 +132,12 @@
   <div class="heatmap" id="heatmap"
        data-width="<%= it.heatmap.width %>"
        data-height="<%= it.heatmap.height %>"
-       data-points='<%~ it.h.jsonScript(it.heatmap.points.map(function (p) { return [p.x_ratio, p.y_offset] })) %>'>
+       data-points='<%~ it.h.jsonScript(it.heatmap.points.map(function (p) { return [p.x_offset, p.y_offset, p.anchor] })) %>'>
     <div class="heatmap-stage" id="heatmapStage">
-      <iframe id="heatmapFrame" src="<%= it.heatmap.path %>" title="<%= t('stats.heatmap') %>"
-              scrolling="no"></iframe>
+      <% ;/* scrolling="no" здесь нельзя: он запрещает и программную
+             прокрутку, а карта двигает страницу ползунком. Полосу
+             прокрутки прячем стилем внутри фрейма. */ %>
+      <iframe id="heatmapFrame" src="<%= it.heatmap.path %>" title="<%= t('stats.heatmap') %>"></iframe>
       <canvas id="heatmapCanvas"></canvas>
     </div>
   </div>

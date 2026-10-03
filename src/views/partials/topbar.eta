@@ -1,7 +1,12 @@
-<header class="topbar">
+<header class="topbar" data-block="header">
   <div class="wrap topbar-inner">
-    <a class="logo-mark" href="<%= it.h.localeUrl(it.locale, it.defaultLocale) %>" aria-label="PADALI">
+    <a class="logo-mark<%= it.siteLogo ? ' logo-mark--own' : '' %>"
+       href="<%= it.h.localeUrl(it.locale, it.defaultLocale) %>" aria-label="PADALI">
+      <% if (it.siteLogo) { %>
+      <%~ include('/partials/picture', { media: it.siteLogo, sizes: '160px', eager: true }) %>
+      <% } else { %>
       <img src="<%= it.h.asset('/brand/padali-wordmark.webp') %>" alt="PADALI" width="160" height="22">
+      <% } %>
     </a>
     <div class="topbar-right">
       <% if ((it.settings.social || []).length > 0) { %>

@@ -88,10 +88,12 @@ async function composePage ({ slug = 'home', locale }) {
     textsForGalleries(galleryIds)
   ])
 
-  // Один запрос за всеми картинками: и прикреплённые к блокам, и из альбомов.
+  // Логотип сайта — обычная запись медиатеки, забираем тем же запросом.
+  const siteLogoId = Number(settings.logo_id)
   const mediaIds = [...new Set([
     ...[...mediaByBlock.values()].flatMap((byField) => Object.values(byField).flat()),
-    ...[...itemsByGallery.values()].flat()
+    ...[...itemsByGallery.values()].flat(),
+    ...(Number.isInteger(siteLogoId) && siteLogoId > 0 ? [siteLogoId] : [])
   ])]
   const [mediaById, textsByMedia] = await Promise.all([
     getMediaByIds(mediaIds),
@@ -162,6 +164,8 @@ async function composePage ({ slug = 'home', locale }) {
     defaultLocale,
     locales,
     settings,
+    /** Логотип из настроек; шапка и подвал берут его, когда своего нет. */
+    siteLogo: toView(siteLogoId),
     meta: {
       title: pageTextsResolved.title || 'PADALI',
       description: pageTextsResolved.description || ''

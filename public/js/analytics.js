@@ -63,11 +63,21 @@
     var width = viewport()
     if (width === 0) return
 
+    /* Координаты считаем от блока, в котором случился клик.
+       По горизонтали — пиксели от его центра, а не доля ширины:
+       блок тянется на всё окно, а колонка содержимого центрирована
+       и ограничена, поэтому доля у разных окон указывала бы на
+       разные места. Смещение от центра одинаково при любом окне. */
+    var host = event.target.closest ? event.target.closest('[data-block]') : null
+    if (!host) return
+
+    var box = host.getBoundingClientRect()
+    if (box.width === 0) return
+
     clicks.push({
-      // Доля ширины и пиксели от верха документа: точки сопоставимы
-      // между экранами, а вертикаль не плывёт при прокрутке.
-      x: Math.round((event.clientX / width) * 1000) / 1000,
-      y: Math.round(event.clientY + window.scrollY),
+      b: host.getAttribute('data-block'),
+      x: Math.round(event.clientX - (box.left + box.width / 2)),
+      y: Math.round(event.clientY - box.top),
       w: width,
       t: describe(event.target)
     })

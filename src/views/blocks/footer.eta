@@ -1,6 +1,6 @@
 <%
   var block = it.block
-  var logo = block.first('logo')
+  var logo = block.first('logo') || it.siteLogo
   var links = block.settings.links || []
 %>
 <footer class="wrap site-footer"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>

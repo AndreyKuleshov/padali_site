@@ -47,6 +47,23 @@
   </section>
 
   <section class="card">
+    <h2><%= it.t('settings.logo') %></h2>
+    <div class="field">
+      <label for="logo_id"><%= it.t('settings.logo') %></label>
+      <select id="logo_id" name="logo_id">
+        <option value=""><%= it.t('settings.logoNone') %></option>
+        <% it.library.forEach(function (media) { %>
+        <option value="<%= media.id %>"<%= Number(it.settings.logo_id) === media.id ? ' selected' : '' %>><%= media.name %></option>
+        <% }) %>
+      </select>
+      <p class="hint"><%= it.t('settings.logoHint') %></p>
+      <% if (it.logo) { %>
+      <div class="media-slots"><div class="media-slot media-slot--preview"><img src="<%= it.logo.thumb %>" alt=""></div></div>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="card">
     <h2><%= it.t('settings.social') %></h2>
     <div class="field repeater" data-repeater="social">
       <div class="repeater-rows">

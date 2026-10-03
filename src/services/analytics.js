@@ -43,6 +43,16 @@ function normalizePath (value) {
   return path.length > 255 ? null : (path === '' ? '/' : path)
 }
 
+/**
+ * Число внутри диапазона или NaN. Для координат клика именно так:
+ * подогнать значение к границе значило бы нарисовать на карте точку
+ * там, где никто не нажимал.
+ */
+function inRange (value, min, max) {
+  const number = Number(value)
+  return Number.isFinite(number) && number >= min && number <= max ? number : NaN
+}
+
 function clamp (value, min, max, fallback) {
   const number = Number(value)
   return Number.isFinite(number) ? Math.min(Math.max(number, min), max) : fallback
@@ -53,13 +63,19 @@ function parseClicks (raw, path) {
   if (!Array.isArray(raw)) return []
   return raw.slice(0, 80).map((click) => ({
     path,
-    // Долю шире страницы не подгоняем к единице: это мусор,
-    // который сместил бы карту кликов.
-    xRatio: Number(click?.x) >= 0 && Number(click?.x) <= 1 ? Number(click.x) : null,
-    yOffset: Math.round(clamp(click?.y, 0, 200000, null)),
-    viewport: Math.round(clamp(click?.w, 200, 10000, null)),
+    // Якорь — идентификатор блока или служебное имя вроде header.
+    anchor: /^[a-z0-9-]{1,32}$/.test(String(click?.b ?? '')) ? String(click.b) : null,
+    // Пиксели от центра блока по горизонтали и от его верха по вертикали.
+    xOffset: Math.round(inRange(click?.x, -5000, 5000)),
+    yOffset: Math.round(inRange(click?.y, -5000, 200000)),
+    viewport: Math.round(inRange(click?.w, 200, 10000)),
     target: click?.t ? String(click.t).slice(0, 190) : null
-  })).filter((click) => click.xRatio !== null && Number.isFinite(click.yOffset) && Number.isFinite(click.viewport))
+  })).filter((click) => (
+    click.anchor !== null &&
+    Number.isFinite(click.xOffset) &&
+    Number.isFinite(click.yOffset) &&
+    Number.isFinite(click.viewport)
+  ))
 }
 
-export { visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp }
+export { visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp, inRange }
