@@ -13,7 +13,7 @@ import config from '../config.js'
 /** Как называть язык модели: код вроде «sr» она понимает хуже. */
 const LANGUAGE_NAMES = {
   en: 'English',
-  sr: 'Serbian (latin script, as spoken in Serbia)',
+  sr: 'Serbian in Latin script (gajica) — never Cyrillic',
   ru: 'Russian',
   de: 'German',
   fr: 'French',
@@ -25,6 +25,42 @@ const LANGUAGE_NAMES = {
 
 function languageName (code, title) {
   return LANGUAGE_NAMES[code] ?? title ?? code
+}
+
+/**
+ * Сербская кириллица в латиницу.
+ *
+ * Сайт написан латиницей, и модель, как бы её ни просили, изредка
+ * отвечает кириллицей. Соответствие однозначное, так что чинится
+ * это на месте и без второго запроса.
+ */
+const CYRILLIC_TO_LATIN = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'đ', е: 'e', ж: 'ž', з: 'z',
+  и: 'i', ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm', н: 'n', њ: 'nj', о: 'o',
+  п: 'p', р: 'r', с: 's', т: 't', ћ: 'ć', у: 'u', ф: 'f', х: 'h', ц: 'c',
+  ч: 'č', џ: 'dž', ш: 'š'
+}
+
+const HAS_CYRILLIC = /[\u0400-\u04FF]/
+
+export function toLatin (text) {
+  if (!HAS_CYRILLIC.test(text)) return text
+
+  let out = ''
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    const lower = char.toLowerCase()
+    const latin = CYRILLIC_TO_LATIN[lower]
+    if (latin === undefined) { out += char; continue }
+    if (char === lower) { out += latin; continue }
+
+    /* Прописная љ — это «Lj» в слове и «LJ» в наборе капсом.
+       Различаем по следующей букве: ЉУБАВ → LJUBAV, Љубав → Ljubav. */
+    const next = text[index + 1] ?? ''
+    const shout = next !== '' && next === next.toUpperCase() && next !== next.toLowerCase()
+    out += shout ? latin.toUpperCase() : latin[0].toUpperCase() + latin.slice(1)
+  }
+  return out
 }
 
 export function isConfigured (settings = config.openai) {
@@ -40,6 +76,8 @@ const SYSTEM = [
   '- Keep placeholders such as {days} exactly as they are.',
   '- Keep HTML tags, markdown and line breaks exactly as they are.',
   '- Keep proper names, band names, venue names and track titles unchanged.',
+  '- Serbian is ALWAYS written in Latin script (gajica), never in Cyrillic.',
+  '  Use the letters č ć ž š đ where they belong.',
   '- Return the translation only, with no quotes and no commentary.'
 ].join('\n')
 
@@ -121,7 +159,8 @@ export async function translate ({ text, locales }, {
   for (const locale of targets) {
     const value = parsed?.[locale.code]
     // Пропуск языка — не повод терять остальные: отдаём что есть.
-    if (typeof value === 'string' && value.trim() !== '') translations[locale.code] = value.trim()
+    if (typeof value !== 'string' || value.trim() === '') continue
+    translations[locale.code] = locale.code === 'sr' ? toLatin(value.trim()) : value.trim()
   }
 
   if (Object.keys(translations).length === 0) return { ok: false, reason: 'unreachable' }

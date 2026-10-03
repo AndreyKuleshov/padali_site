@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, closePool
 } from './helpers.js'
-import { translate, isConfigured } from '../src/services/translate.js'
+import { translate, isConfigured, toLatin } from '../src/services/translate.js'
 import { render } from '../src/services/renderer.js'
 import { adminTranslator } from '../src/i18n/admin.js'
 
@@ -198,4 +198,46 @@ test('с ключом появляется поле исходника и кно
 test('строка перевода переведена и сама', () => {
   const sr = render('admin/partials/translate-row', { canTranslate: true, t: adminTranslator('sr') })
   assert.match(sr, /Prevedi/)
+})
+
+/* ─── Сербская латиница ──────────────────────────────────── */
+
+test('кириллица перекладывается в сербскую латиницу', () => {
+  assert.equal(toLatin('Слушајте наш нови сингл'), 'Slušajte naš novi singl')
+  assert.equal(toLatin('Фотографије'), 'Fotografije')
+  assert.equal(toLatin('Љубав и џез, Ђорђе'), 'Ljubav i džez, Đorđe')
+  assert.equal(toLatin('ЉУБАВ'), 'LJUBAV', 'капс остаётся капсом')
+  assert.equal(toLatin('Њива'), 'Njiva')
+})
+
+test('латиница и прочие языки не трогаются', () => {
+  assert.equal(toLatin('Slušajte naš novi singl'), 'Slušajte naš novi singl')
+  assert.equal(toLatin('Listen to our new single'), 'Listen to our new single')
+  assert.equal(toLatin('PADALI — POČETAK, 22.10.2026'), 'PADALI — POČETAK, 22.10.2026')
+})
+
+/** Сайт написан латиницей — кириллица в поле sr недопустима. */
+test('кириллический ответ модели чинится на месте', async () => {
+  const result = await translate(
+    { text: 'Слушайте наш новый сингл', locales: LOCALES },
+    {
+      fetchImpl: reply(200, '{"en":"Listen to our new single","sr":"Слушајте наш нови сингл"}'),
+      settings: SETTINGS
+    }
+  )
+
+  assert.equal(result.translations.sr, 'Slušajte naš novi singl')
+  assert.equal(result.translations.en, 'Listen to our new single', 'английский не трогаем')
+})
+
+test('в запросе прямо сказано про латиницу', async () => {
+  const seen = {}
+  await translate(
+    { text: 'Фото', locales: LOCALES },
+    { fetchImpl: reply(200, '{"en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+  )
+
+  const system = seen.body.messages[0].content
+  assert.match(system, /Latin script/)
+  assert.match(system, /never in Cyrillic/)
 })
