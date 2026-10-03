@@ -168,6 +168,36 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 .btn--small { padding: 5px 10px; font-size: .86rem; }
 .btn[disabled] { opacity: .4; cursor: not-allowed; }
 
+/* Крутилка на отправке. Кнопка уже выключена и приглушена —
+   полупрозрачная крутилка на ней терялась бы, поэтому гасим
+   текст, а не всю кнопку. */
+.btn.is-busy, .chip.is-busy, .link-button.is-busy { position: relative; color: transparent; }
+.btn.is-busy[disabled] { opacity: 1; }
+
+.btn.is-busy::after, .chip.is-busy::after, .link-button.is-busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentcolor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  color: var(--ink);
+  animation: spin .7s linear infinite;
+}
+
+.btn--primary.is-busy::after { color: #111; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Крутящийся элемент — раздражитель для тех, кому от анимаций
+   плохо; им оставляем статичную дугу. */
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-busy::after, .chip.is-busy::after, .link-button.is-busy::after { animation: none; }
+}
+
 .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .check input { width: auto; }
 
@@ -687,3 +717,39 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .heatmap-scroll input { flex: 1; accent-color: var(--neon); }
 .heatmap-scroll input:disabled { opacity: .4; }
+
+/* ─── Ролик с YouTube ────────────────────────────────────── */
+
+.youtube-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+
+.youtube-preview img {
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  flex: none;
+}
+
+.youtube-preview div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.youtube-preview strong { line-height: 1.3; }
+.youtube-preview span { color: var(--soft); font-size: .88rem; }
+.youtube-preview p { margin: 0; }
+
+/* Ошибку отделяем цветом рамки: подпись читают не всегда, а
+   красный край виден боковым зрением. */
+.youtube-preview[data-state="error"] { border-color: var(--danger); color: var(--danger); }
+.youtube-preview[data-state="pending"] { color: var(--soft); }
+
+@media (max-width: 520px) {
+  .youtube-preview img { width: 84px; height: 48px; }
+}

@@ -76,6 +76,13 @@ const DICTIONARY = {
     'blockForm.manageAlbums': 'Manage albums',
     'blockForm.addRow': 'Add row',
 
+    'youtube.checking': 'Looking the video up…',
+    'youtube.invalid': 'This does not look like a YouTube link. Paste a link from the address bar or from «Share».',
+    'youtube.not_found': 'Video not found. It may have been deleted, or the link has a typo.',
+    'youtube.blocked': 'The video exists but cannot be embedded: it is private, or the author switched embedding off.',
+    'youtube.unreachable': 'Could not reach YouTube. Try again in a moment — the link itself may be fine.',
+    'youtube.checkFailed': 'Could not check the video.',
+
     'media.title': 'Media',
     'media.subtitle': 'Files: {total}. Uploading the same file twice does not create a duplicate.',
     'media.dropHere': 'Choose files or drop them here',
@@ -279,6 +286,13 @@ const DICTIONARY = {
     'blockForm.galleryHint': 'Jedan album može stajati u više blokova — na primer tračno gore i kao mreža niže.',
     'blockForm.manageAlbums': 'Upravljanje albumima',
     'blockForm.addRow': 'Dodaj red',
+
+    'youtube.checking': 'Tražim video…',
+    'youtube.invalid': 'Ovo ne liči na YouTube link. Nalepite link iz adresne trake ili iz «Podeli».',
+    'youtube.not_found': 'Video nije pronađen. Možda je obrisan ili je u linku greška.',
+    'youtube.blocked': 'Video postoji, ali se ne može ugraditi: privatan je ili je autor isključio ugrađivanje.',
+    'youtube.unreachable': 'YouTube nije dostupan. Pokušajte ponovo — sam link je možda ispravan.',
+    'youtube.checkFailed': 'Provera videa nije uspela.',
 
     'media.title': 'Galerija fajlova',
     'media.subtitle': 'Ukupno fajlova: {total}. Ponovno otpremanje istog fajla ne pravi duplikat.',

@@ -4,6 +4,7 @@ import concert from './concert.js'
 import links from './links.js'
 import gallery from './gallery.js'
 import richtext from './richtext.js'
+import youtube from './youtube.js'
 import footer from './footer.js'
 
 /**
@@ -12,10 +13,10 @@ import footer from './footer.js'
  */
 const INPUT_TYPES = new Set([
   'text', 'textarea', 'richtext', 'number', 'checkbox',
-  'select', 'date', 'url', 'repeater'
+  'select', 'date', 'url', 'repeater', 'youtube'
 ])
 
-const DESCRIPTORS = [hero, release, concert, links, gallery, richtext, footer]
+const DESCRIPTORS = [hero, release, concert, links, gallery, youtube, richtext, footer]
 
 /** Падаем на старте, а не на первом открытии формы в админке. */
 function validateDescriptor (descriptor) {

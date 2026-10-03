@@ -17,6 +17,7 @@ import { setFlash } from '../../services/auth.js'
 import { renderAdmin, afterWrite } from './helpers.js'
 import { localize } from '../../i18n/admin.js'
 import { currentSiteLogo } from '../../services/site-logo.js'
+import { lookupVideo } from '../../services/youtube.js'
 
 const HOME = 'home'
 
@@ -130,6 +131,25 @@ async function blockRoutes (app) {
     afterWrite()
     setFlash(reply, 'success', request.t('blocks.saved'))
     return reply.redirect(`/admin/blocks/${id}`, 302)
+  })
+
+  /**
+   * Проверка ролика для поля в форме.
+   *
+   * Ходить к YouTube из браузера редактора нельзя: oEmbed не
+   * обещает заголовков CORS, и запрос бы молча падал. Поэтому
+   * спрашиваем с сервера и возвращаем уже готовый ответ с
+   * переведённым сообщением.
+   */
+  app.get('/youtube.json', async (request, reply) => {
+    const result = await lookupVideo(request.query?.url ?? '')
+    if (result.ok) return reply.send(result)
+
+    return reply.send({
+      ok: false,
+      reason: result.reason,
+      message: request.t(`youtube.${result.reason}`)
+    })
   })
 
   /* ─── Видимость, удаление, порядок ──────────────────────── */

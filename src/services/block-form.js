@@ -10,6 +10,7 @@
  * Непереводимые значения повторителя попадают в settings,
  * переводимые — в block_texts под ключом `<повторитель>.<i>.<подполе>`.
  */
+import { parseVideoId, watchUrl } from './youtube.js'
 
 function asString (value) {
   if (Array.isArray(value)) value = value[0]
@@ -61,6 +62,15 @@ function coerceScalar (field, raw) {
     case 'gallery-picker': {
       const id = Number.parseInt(asString(raw), 10)
       return Number.isInteger(id) && id > 0 ? id : null
+    }
+    /* Ссылку приводим к одному виду: её приносят из плеера, из
+       «поделиться» и из Shorts, а шаблону нужен один разбор.
+       Нераспознанное становится пустотой — тогда обязательное
+       поле честно скажет, что не заполнено, вместо того чтобы
+       сохранить мусор и показать пустой блок. */
+    case 'youtube': {
+      const id = parseVideoId(asString(raw))
+      return id ? watchUrl(id) : ''
     }
     default: return asString(raw)
   }

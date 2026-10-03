@@ -17,6 +17,41 @@
     if (message && !window.confirm(message)) event.preventDefault()
   })
 
+  /* ── Ожидание на отправке формы ──────────────────────────
+     Сохранение перезагружает страницу, и до ответа сервера
+     ничего не меняется: редактор не понимает, нажалось ли, и
+     жмёт второй раз. Крутилка отвечает за «идёт», а запрет
+     повторного нажатия — за то, чтобы запрос ушёл один. */
+  document.addEventListener('submit', function (event) {
+    var form = event.target
+    if (event.defaultPrevented) return
+    if (form.hasAttribute('data-no-spinner')) return
+
+    var button = event.submitter
+    if (!button || button.disabled) return
+    if (button.type !== 'submit') return
+
+    button.classList.add('is-busy')
+    button.setAttribute('aria-busy', 'true')
+
+    /* Отключаем в следующем такте: браузер собирает данные формы
+       синхронно, и выключенная прямо сейчас кнопка не попала бы
+       в запрос вместе со своими name и value. */
+    window.setTimeout(function () { button.disabled = true }, 0)
+  })
+
+  /* Возврат по «назад» отдаёт страницу из кэша вместе с
+     выключенной кнопкой — форма выглядела бы мёртвой. */
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return
+    var busy = document.querySelectorAll('.is-busy')
+    for (var i = 0; i < busy.length; i += 1) {
+      busy[i].classList.remove('is-busy')
+      busy[i].removeAttribute('aria-busy')
+      busy[i].disabled = false
+    }
+  })
+
   /* ── Порядок блоков ─────────────────────────────────────── */
   function initBlockOrder () {
     var list = document.getElementById('blockList')
@@ -572,6 +607,88 @@
     window.addEventListener('resize', fit)
   }
 
+  /* ── Проверка ролика YouTube ─────────────────────────────
+     Редактор вставляет ссылку и должен сразу увидеть, тот ли это
+     ролик, а не узнать об опечатке с опубликованного сайта. */
+  function initYoutubeField () {
+    var fields = document.querySelectorAll('[data-youtube-field]')
+    if (fields.length === 0) return
+
+    for (var i = 0; i < fields.length; i += 1) setup(fields[i])
+
+    function setup (field) {
+      var input = field.querySelector('input')
+      var preview = field.querySelector('[data-youtube-preview]')
+      var timer = null
+      var request = 0
+
+      function show (html, state) {
+        preview.hidden = false
+        preview.setAttribute('data-state', state)
+        preview.innerHTML = html
+      }
+
+      function message (text, state) {
+        preview.hidden = false
+        preview.setAttribute('data-state', state)
+        preview.textContent = ''
+        var line = document.createElement('p')
+        line.textContent = text
+        preview.appendChild(line)
+      }
+
+      function check () {
+        var value = input.value.trim()
+        if (value === '') { preview.hidden = true; return }
+
+        // Нумеруем запросы: медленный ответ по старой ссылке не
+        // должен перебить результат по той, что набрана сейчас.
+        request += 1
+        var mine = request
+        message(field.getAttribute('data-checking'), 'pending')
+
+        fetch('/admin/youtube.json?url=' + encodeURIComponent(value))
+          .then(function (response) { return response.json() })
+          .then(function (result) {
+            if (mine !== request) return
+            if (!result.ok) { message(result.message || field.getAttribute('data-failed'), 'error'); return }
+            show('', 'ok')
+            var image = document.createElement('img')
+            image.src = result.thumbnail
+            image.alt = ''
+            /* Без ленивой загрузки: поле бывает ниже экрана, и
+               обложка так и не грузилась бы, пока редактор не
+               прокрутит — а он смотрит именно на неё. */
+            image.loading = 'eager'
+            // Обложку может резать блокировщик — пустой квадрат
+            // рядом с названием выглядит как сломанное превью.
+            image.addEventListener('error', function () { image.remove() })
+            var text = document.createElement('div')
+            var title = document.createElement('strong')
+            title.textContent = result.title
+            var author = document.createElement('span')
+            author.textContent = result.author
+            text.appendChild(title)
+            text.appendChild(author)
+            preview.appendChild(image)
+            preview.appendChild(text)
+          })
+          .catch(function () {
+            if (mine !== request) return
+            message(field.getAttribute('data-failed'), 'error')
+          })
+      }
+
+      input.addEventListener('input', function () {
+        clearTimeout(timer)
+        timer = setTimeout(check, 500)
+      })
+      input.addEventListener('change', function () { clearTimeout(timer); check() })
+
+      if (input.value.trim() !== '') check()
+    }
+  }
+
   initBlockOrder()
   initRepeaters()
   initGalleryItems()
@@ -579,5 +696,6 @@
   initUpload()
   initFieldUpload()
   initLogoPreview()
+  initYoutubeField()
   initHeatmap()
 })()

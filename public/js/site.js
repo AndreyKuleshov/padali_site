@@ -9,14 +9,25 @@
     var nodes = document.querySelectorAll('[data-countdown]')
     if (nodes.length === 0) return
 
-    function update () {
-      var now = Date.now()
-      Array.prototype.forEach.call(nodes, function (node) {
-        var target = Date.parse(node.getAttribute('data-countdown') + 'T00:00:00Z')
-        if (isNaN(target)) { node.textContent = ''; return }
+    /* Считаем календарные дни в поясе зрителя, а не часы до
+       полуночи UTC: у читателя восточнее Гринвича дата уже
+       сменилась, и округление вверх показывало лишний день.
+       Округление к ближайшему — из-за перехода на летнее время:
+       сутки в пересчёте бывают 23 и 25 часов. */
+    function daysUntil (value) {
+      var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '')
+      if (!parts) return null
 
-        var days = Math.ceil((target - now) / 86400000)
-        if (days <= 0) { node.textContent = ''; return }
+      var target = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))
+      var today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return Math.round((target - today) / 86400000)
+    }
+
+    function update () {
+      Array.prototype.forEach.call(nodes, function (node) {
+        var days = daysUntil(node.getAttribute('data-countdown'))
+        if (days === null || days <= 0) { node.textContent = ''; return }
 
         var template = node.getAttribute('data-countdown-template') || '{days}'
         node.textContent = template.replace('{days}', String(days))
@@ -276,7 +287,33 @@
     })
   }
 
+  /* ── Плеер YouTube по клику ──────────────────────────────
+     До клика на странице только обложка: iframe плеера тянет
+     около мегабайта чужих скриптов, и платить за них при каждом
+     открытии страницы незачем. */
+  function initVideoFacades () {
+    document.addEventListener('click', function (event) {
+      var button = event.target.closest('.video-play')
+      if (!button) return
+
+      var frame = button.closest('.video-frame')
+      var source = frame && frame.getAttribute('data-src')
+      if (!source) return
+
+      var player = document.createElement('iframe')
+      player.src = source
+      player.title = button.getAttribute('aria-label') || 'YouTube'
+      player.allow = 'accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen'
+      player.allowFullscreen = true
+      player.loading = 'lazy'
+      player.referrerPolicy = 'strict-origin-when-cross-origin'
+
+      frame.replaceChildren(player)
+    })
+  }
+
   initCountdowns()
   initLightbox()
   initGalleryScrollers()
+  initVideoFacades()
 })()

@@ -661,3 +661,63 @@ img[data-lightbox] { cursor: zoom-in; }
   .lightbox img { max-height: 70vh; }
   .lightbox-counter { bottom: 28px; }
 }
+
+/* ─── Ролик с YouTube ────────────────────────────────────── */
+
+.video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-section--wide .video-frame { max-width: none; }
+
+.video-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+.video-play {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: block;
+}
+
+/* Обложка приходит в 4:3 с чёрными полями сверху и снизу —
+   обрезаем до кадра, иначе внутри рамки видно их. */
+.video-play img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.video-play-mark {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 68px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .68);
+  transition: background .15s ease;
+}
+
+.video-play-mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 10px 0 10px 17px;
+  border-color: transparent transparent transparent #fff;
+}
+
+.video-play:hover .video-play-mark,
+.video-play:focus-visible .video-play-mark { background: var(--neon); }
+.video-play:hover .video-play-mark::after,
+.video-play:focus-visible .video-play-mark::after { border-left-color: #111; }
+
+.video-note { color: var(--soft); margin-top: 12px; }

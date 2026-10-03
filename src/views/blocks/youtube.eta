@@ -1,0 +1,26 @@
+<%
+  var block = it.block
+  var id = it.h.youtube.id(block.settings.url)
+  var sr = it.locale === 'sr'
+  var play = sr ? 'Pusti video' : 'Play the video'
+%>
+<section class="section wrap video-section<%= block.settings.full_width ? ' video-section--wide' : '' %>"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% if (block.text.title) { %><h2><%= block.text.title %></h2><% } %>
+
+  <% if (id) { %>
+  <% ;/* Сначала обложка, плеер — только по клику: iframe YouTube
+         тянет около мегабайта скриптов, и на странице, которую
+         листают ради фотографий, это заметно. */ %>
+  <div class="video-frame" data-video="<%= id %>" data-src="<%= it.h.youtube.embed(id, { autoplay: true }) %>">
+    <button type="button" class="video-play" aria-label="<%= play %>">
+      <img src="<%= it.h.youtube.thumbnail(id) %>" alt="" width="480" height="360" loading="lazy">
+      <span class="video-play-mark" aria-hidden="true"></span>
+    </button>
+  </div>
+  <noscript>
+    <p><a href="<%= it.h.youtube.watch(id) %>" target="_blank" rel="noopener"><%= sr ? 'Pogledaj na YouTube-u' : 'Watch on YouTube' %></a></p>
+  </noscript>
+  <% } %>
+
+  <% if (block.text.note) { %><p class="video-note"><%= block.text.note %></p><% } %>
+</section>

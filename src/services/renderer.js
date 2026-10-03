@@ -5,6 +5,7 @@ import sanitizeHtml from 'sanitize-html'
 import config from '../config.js'
 import { icon, ICON_NAMES } from './icons.js'
 import { assetUrl } from './assets.js'
+import { parseVideoId, thumbnailFor, embedUrl, watchUrl } from './youtube.js'
 
 const VIEWS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'views')
 
@@ -46,6 +47,9 @@ function localeUrl (code, defaultLocale, path = '') {
 const helpers = {
   icon,
   asset: assetUrl,
+  // Разбор ссылки один на админку и на сайт: иначе шаблон знал бы
+  // про форматы адресов YouTube отдельно от того, кто их проверяет.
+  youtube: { id: parseVideoId, thumbnail: thumbnailFor, embed: embedUrl, watch: watchUrl },
   iconNames: ICON_NAMES,
   sanitize,
   formatDate,
