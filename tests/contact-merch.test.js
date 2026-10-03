@@ -365,3 +365,99 @@ test('в форме блока есть кнопка нового альбома
   assert.match(body, /href="\/admin\/galleries" target="_blank"/,
     'уход на страницу альбомов не уносит незаписанную форму')
 })
+
+/* ─── Наполнение альбома из формы блока ──────────────────── */
+
+test('состав альбома отдаётся формой блока', async () => {
+  const album = await createGallery('merch')
+  const first = await photo(41)
+  await setGalleryItems(album, [{ mediaId: first, price: '2500 RSD' }])
+
+  const response = await app.inject({
+    method: 'GET', url: `/admin/galleries/${album}/items.json`, cookies: auth.cookies
+  })
+
+  assert.equal(response.statusCode, 200)
+  const body = response.json()
+  assert.equal(body.count, 1)
+  assert.equal(body.items[0].id, first)
+  assert.match(body.items[0].thumb, /^\/uploads\//)
+})
+
+/** Форма блока про состав альбома не знает — стереть его нельзя. */
+test('дозагрузка дописывает в конец и не трогает цены', async () => {
+  const album = await createGallery('merch')
+  const first = await photo(42)
+  const second = await photo(43)
+  await setGalleryItems(album, [{ mediaId: first, price: '2500 RSD' }])
+
+  const response = await app.inject({
+    method: 'POST',
+    url: `/admin/galleries/${album}/items.json`,
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, media: [second] }
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().added, 1)
+  assert.deepEqual(await getGalleryItems(album), [first, second], 'новое в конце')
+
+  const prices = (await pricesForGalleries([album])).get(album)
+  assert.equal(prices.get(first), '2500 RSD', 'цена уцелела')
+})
+
+test('повторная фотография не задваивается', async () => {
+  const album = await createGallery('merch')
+  const id = await photo(44)
+  await setGalleryItems(album, [id])
+
+  const response = await app.inject({
+    method: 'POST',
+    url: `/admin/galleries/${album}/items.json`,
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, media: [id] }
+  })
+
+  assert.equal(response.json().added, 0)
+  assert.deepEqual(await getGalleryItems(album), [id])
+})
+
+test('пустой список и чужой альбом отклоняются', async () => {
+  const album = await createGallery('merch')
+
+  const empty = await app.inject({
+    method: 'POST',
+    url: `/admin/galleries/${album}/items.json`,
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, media: [] }
+  })
+  assert.equal(empty.statusCode, 400)
+
+  const missing = await app.inject({
+    method: 'POST',
+    url: '/admin/galleries/99999/items.json',
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, media: [1] }
+  })
+  assert.equal(missing.statusCode, 404)
+})
+
+test('состав альбома закрыт для чужих', async () => {
+  const album = await createGallery('merch')
+  const response = await app.inject({ method: 'GET', url: `/admin/galleries/${album}/items.json` })
+  assert.notEqual(response.statusCode, 200)
+})
+
+test('в форме блока есть загрузка и показ состава', async () => {
+  const id = await createBlock({
+    pageId, type: 'merch', settings: defaultSettings('merch')
+  })
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: auth.cookies
+  })).body
+
+  assert.match(body, /data-album-upload/)
+  assert.match(body, /data-album-strip/)
+  assert.match(body, /id="albumStrings"/)
+})

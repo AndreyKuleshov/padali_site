@@ -882,6 +882,118 @@
     })
   }
 
+  /* ── Состав альбома и загрузка прямо в форме блока ───────
+     Наполнять альбом на отдельной странице значило уходить с
+     незаписанной формы. Здесь видно, что в альбоме лежит, и
+     можно дослать снимки, ничего не теряя. */
+  function initAlbumContents () {
+    var fields = document.querySelectorAll('[data-album-contents]')
+    if (fields.length === 0) return
+
+    var strings = document.getElementById('albumStrings')
+
+    for (var i = 0; i < fields.length; i += 1) setup(fields[i].closest('.field'))
+
+    function setup (field) {
+      var select = field.querySelector('select')
+      var box = field.querySelector('[data-album-contents]')
+      var strip = field.querySelector('[data-album-strip]')
+      var count = field.querySelector('[data-album-count]')
+      var note = field.querySelector('[data-album-note]')
+      var upload = field.querySelector('[data-album-upload]')
+      var input = upload && upload.querySelector('input[type="file"]')
+      if (!select) return
+
+      function say (text, state) {
+        if (!note) return
+        note.hidden = text === ''
+        note.textContent = text
+        if (state) note.setAttribute('data-state', state)
+        else note.removeAttribute('data-state')
+      }
+
+      function fill (text, params) {
+        return String(text || '').replace(/\{(\w+)\}/g, function (m, key) {
+          return Object.prototype.hasOwnProperty.call(params, key) ? params[key] : m
+        })
+      }
+
+      function render (result) {
+        var items = result.items
+        /* Подпись пункта в списке — «имя (сколько фото)». После
+           дозагрузки она устаревала, и редактор видел старое
+           число прямо над свежими снимками. */
+        var option = select.selectedOptions[0]
+        if (option && result.slug) option.textContent = result.slug + ' (' + items.length + ')'
+
+        strip.innerHTML = ''
+        items.slice(0, 24).forEach(function (item) {
+          var shot = document.createElement('img')
+          shot.src = item.thumb
+          shot.alt = ''
+          shot.title = item.name
+          strip.appendChild(shot)
+        })
+        count.textContent = items.length === 0
+          ? strings.getAttribute('data-empty')
+          : fill(strings.getAttribute('data-count'), { count: items.length })
+        box.hidden = false
+      }
+
+      function refresh () {
+        var id = select.value
+        if (!id) { box.hidden = true; if (upload) upload.hidden = true; return }
+        if (upload) upload.hidden = false
+
+        fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json')
+          .then(function (response) { return response.json() })
+          .then(function (result) { if (result.ok) render(result) })
+          .catch(function () { box.hidden = true })
+      }
+
+      select.addEventListener('change', refresh)
+      refresh()
+
+      if (!input) return
+      input.addEventListener('change', function () {
+        var id = select.value
+        if (input.files.length === 0 || !id) return
+
+        var form = select.closest('form')
+        var token = form && form.querySelector('input[name="_csrf"]')
+        var data = new FormData()
+        data.append('_csrf', token ? token.value : '')
+        for (var k = 0; k < input.files.length; k += 1) data.append('files', input.files[k])
+        input.value = ''
+
+        say(strings.getAttribute('data-uploading'))
+        upload.classList.add('is-busy')
+
+        fetch('/admin/media/upload.json', { method: 'POST', body: data })
+          .then(function (response) { return response.json() })
+          .then(function (result) {
+            var ids = (result.items || []).map(function (item) { return item.id })
+            if (ids.length === 0) throw new Error('empty')
+
+            // Картинки загружены — теперь привязываем их к альбому.
+            return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ _csrf: token ? token.value : '', media: ids })
+            })
+          })
+          .then(function (response) { return response.json() })
+          .then(function (result) {
+            if (!result.ok) throw new Error('reject')
+            say('')
+            refresh()
+          })
+          .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
+          .finally(function () { upload.classList.remove('is-busy') })
+      })
+    }
+  }
+
   initBlockOrder()
   initRepeaters()
   initGalleryItems()
@@ -892,5 +1004,6 @@
   initYoutubeField()
   initTranslate()
   initAlbumDialog()
+  initAlbumContents()
   initHeatmap()
 })()

@@ -197,11 +197,25 @@
       <% ;/* Создание альбома здесь же: ссылка на страницу альбомов
              уводила с незаписанной формой, и всё заполненное
              пропадало. */ %>
+      <% ;/* Состав альбома и загрузка — здесь же: иначе наполнять
+             его приходилось бы на отдельной странице, уходя с
+             незаписанной формы. */ %>
+      <div class="album-contents" data-album-contents hidden>
+        <div class="album-strip" data-album-strip></div>
+        <p class="hint" data-album-count></p>
+      </div>
+
       <div class="media-actions">
         <button type="button" class="btn btn--small" data-new-album><%= it.t('galleries.create') %></button>
+        <label class="btn btn--small media-upload" data-album-upload>
+          <%= it.t('galleries.addPhotos') %>
+          <input type="file" accept="image/*" multiple hidden>
+        </label>
         <a class="btn btn--small" href="/admin/galleries" target="_blank" rel="noopener"><%= it.t('blockForm.manageAlbums') %></a>
+        <span class="media-upload-note hint" data-album-note hidden></span>
       </div>
       <p class="hint"><%= it.t('blockForm.galleryHint') %></p>
+      <p class="hint"><%= it.t('galleries.pricesElsewhere') %></p>
       <% } %>
     </div>
     <% } %>

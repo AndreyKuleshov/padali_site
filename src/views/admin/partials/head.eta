@@ -42,6 +42,11 @@
       data-working="<%= it.t('translate.working') %>"
       data-failed="<%= it.t('translate.failed') %>"></span>
 <% } %>
+<span id="albumStrings" hidden
+      data-count="<%= it.t('galleries.inAlbum', { count: '{count}' }) %>"
+      data-empty="<%= it.t('galleries.albumEmpty') %>"
+      data-uploading="<%= it.t('blockForm.uploading') %>"
+      data-failed="<%= it.t('blockForm.uploadFailed') %>"></span>
 <span id="uploadStrings" hidden
       data-uploading="<%= it.t('blockForm.uploading') %>"
       data-failed="<%= it.t('blockForm.uploadFailed') %>"></span>

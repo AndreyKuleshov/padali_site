@@ -121,8 +121,48 @@ async function setGalleryItems (galleryId, items, conn) {
   await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
 }
 
+/**
+ * Дописать фотографии в конец альбома.
+ *
+ * Не setGalleryItems: тот переписывает состав целиком и снёс бы
+ * проставленные цены. Повторы пропускаем — ключ таблицы их всё
+ * равно не примет.
+ *
+ * @returns {Promise<number>} сколько добавилось
+ */
+async function appendGalleryItems (galleryId, mediaIds, conn) {
+  const runner = db(conn)
+  const existing = new Set(
+    (await runner.all('SELECT media_id FROM gallery_items WHERE gallery_id = ?', [galleryId]))
+      .map((row) => row.media_id)
+  )
+
+  const fresh = []
+  for (const value of mediaIds) {
+    const mediaId = Number(value)
+    if (!mediaId || existing.has(mediaId)) continue
+    existing.add(mediaId)
+    fresh.push(mediaId)
+  }
+  if (fresh.length === 0) return 0
+
+  const last = await runner.one(
+    'SELECT COALESCE(MAX(position), -1) AS maxposition FROM gallery_items WHERE gallery_id = ?',
+    [galleryId]
+  )
+  const start = Number(last.maxposition) + 1
+
+  await runner.run(
+    'INSERT INTO gallery_items (gallery_id, media_id, position) VALUES ' +
+      fresh.map(() => '(?, ?, ?)').join(', '),
+    fresh.flatMap((mediaId, index) => [galleryId, mediaId, start + index])
+  )
+  await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
+  return fresh.length
+}
+
 export {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery, deleteGallery,
   textsForGalleries, getGalleryTexts, saveGalleryTexts,
-  itemsForGalleries, pricesForGalleries, getGalleryItems, setGalleryItems
+  itemsForGalleries, pricesForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems
 }

@@ -2,7 +2,7 @@ import { query, transaction } from '../../db/pool.js'
 import {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery,
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
-  getGalleryItems, setGalleryItems, pricesForGalleries
+  getGalleryItems, setGalleryItems, pricesForGalleries, appendGalleryItems
 } from '../../repositories/galleries.js'
 import { getMediaByIds, listMedia } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
@@ -54,6 +54,48 @@ async function galleryRoutes (app) {
     const id = await createGallery(slug)
     afterWrite()
     return reply.send({ ok: true, id, slug, label: `${slug} (0)` })
+  })
+
+  /** Состав альбома для формы блока: что уже лежит и сколько. */
+  app.get('/galleries/:id/items.json', async (request, reply) => {
+    const id = Number(request.params.id)
+    const gallery = await getGallery(id)
+    if (!gallery) return reply.callNotFound()
+
+    const itemIds = await getGalleryItems(id)
+    const mediaById = await getMediaByIds(itemIds)
+    const items = itemIds
+      .map((mediaId) => mediaById.get(mediaId))
+      .filter(Boolean)
+      .map((media) => ({ id: media.id, thumb: thumbnailUrl(media), name: media.originalName }))
+
+    return reply.send({ ok: true, id, slug: gallery.slug, count: items.length, items })
+  })
+
+  /**
+   * Дописать фотографии в альбом из формы блока.
+   *
+   * Отдельный ответ, а не сохранение альбома целиком: форма блока
+   * про состав альбома ничего не знает и, отправив его, стёрла бы
+   * и порядок, и цены.
+   */
+  app.post('/galleries/:id/items.json', async (request, reply) => {
+    const id = Number(request.params.id)
+    const gallery = await getGallery(id)
+    if (!gallery) return reply.callNotFound()
+
+    const raw = request.body?.media
+    const mediaIds = (Array.isArray(raw) ? raw : [raw])
+      .map((value) => Number.parseInt(value, 10))
+      .filter((value) => Number.isInteger(value) && value > 0)
+
+    if (mediaIds.length === 0) {
+      return reply.code(400).send({ ok: false, message: request.t('media.noFiles') })
+    }
+
+    const added = await appendGalleryItems(id, mediaIds);
+    afterWrite()
+    return reply.send({ ok: true, added })
   })
 
   app.post('/galleries', async (request, reply) => {
