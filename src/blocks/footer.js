@@ -19,7 +19,7 @@ export default {
   ],
 
   media: [
-    { key: 'logo', label: { en: 'Logo', sr: 'Logotip' } }
+    { key: 'logo', label: { en: 'Logo', sr: 'Logotip' }, fallback: 'siteLogo' }
   ],
 
   settings: [

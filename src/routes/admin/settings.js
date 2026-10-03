@@ -7,6 +7,7 @@ import { thumbnailUrl } from '../../services/media-processor.js'
 import { asUrl, asString } from '../../services/block-form.js'
 import { setFlash } from '../../services/auth.js'
 import { renderAdmin, afterWrite } from './helpers.js'
+import { logoFromSettings, builtInLogo } from '../../services/site-logo.js'
 
 async function settingsRoutes (app) {
   app.get('/settings', async (request, reply) => {
@@ -14,11 +15,14 @@ async function settingsRoutes (app) {
       getAllSettings(), listLocales(), getPageBySlug('home'), listMedia({ limit: 500 })
     ])
     const pageTexts = page ? await getPageTexts(page.id) : {}
-    const logoId = Number(settings.logo_id)
-    const logo = library.find((media) => media.id === logoId) ?? null
+    // Логотип разрешаем той же цепочкой, что и сайт: свой из
+    // медиатеки либо встроенный файл. Иначе поле выглядит пустым,
+    // хотя в шапке логотип стоит.
+    const logo = await logoFromSettings(settings)
 
     return renderAdmin(request, reply, 'admin/settings', {
       logo,
+      builtInLogo: builtInLogo(),
       settings,
       pageTexts,
       locales,

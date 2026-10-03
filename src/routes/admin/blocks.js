@@ -16,6 +16,7 @@ import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
 import { renderAdmin, afterWrite } from './helpers.js'
 import { localize } from '../../i18n/admin.js'
+import { currentSiteLogo } from '../../services/site-logo.js'
 
 const HOME = 'home'
 
@@ -91,8 +92,13 @@ async function blockRoutes (app) {
         .map((media) => ({ id: media.id, thumb: thumbnailUrl(media), name: media.originalName }))
     }
 
+    // Поле логотипа показывает действующую картинку, даже когда
+    // своей у блока нет, — считаем её только если такое поле есть.
+    const inherits = (descriptor.media || []).some((field) => field.fallback === 'siteLogo')
+    const siteLogo = inherits ? await currentSiteLogo() : null
+
     return renderAdmin(request, reply, 'admin/block-form', {
-      block, descriptor, texts, previews, galleries, locales
+      block, descriptor, texts, previews, galleries, locales, siteLogo
     })
   })
 

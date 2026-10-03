@@ -106,6 +106,25 @@
     })
   }
 
+  /** Картинка попадает в слот поля — и из выбора, и из загрузки. */
+  function addToBlockField (field, item) {
+    var slots = field.querySelector('.media-slots')
+    if (field.getAttribute('data-multiple') !== '1') slots.innerHTML = ''
+
+    var slot = document.createElement('div')
+    slot.className = 'media-slot'
+    slot.innerHTML =
+      '<img src="' + item.thumb + '" alt="">' +
+      '<input type="hidden" name="media[' + field.getAttribute('data-media-field') + '][]" value="' + item.id + '">' +
+      '<button type="button" class="media-remove">×</button>'
+    slots.appendChild(slot)
+
+    // Подпись «сейчас на сайте стоит такой-то» больше не к месту:
+    // у поля появилась своя картинка.
+    var inherited = field.querySelector('.media-inherited')
+    if (inherited) inherited.remove()
+  }
+
   /* ── Выбор картинок из медиатеки ────────────────────────── */
   function initMediaPicker () {
     var dialog = document.getElementById('mediaPicker')
@@ -138,19 +157,6 @@
         .then(function (response) { return response.json() })
         .then(function (items) { library = items; renderLibrary() })
         .catch(function () { grid.textContent = dialog.getAttribute('data-failed') })
-    }
-
-    function addToBlockField (field, item) {
-      var slots = field.querySelector('.media-slots')
-      if (field.getAttribute('data-multiple') !== '1') slots.innerHTML = ''
-
-      var slot = document.createElement('div')
-      slot.className = 'media-slot'
-      slot.innerHTML =
-        '<img src="' + item.thumb + '" alt="">' +
-        '<input type="hidden" name="media[' + field.getAttribute('data-media-field') + '][]" value="' + item.id + '">' +
-        '<button type="button" class="media-remove">×</button>'
-      slots.appendChild(slot)
     }
 
     function addToGallery (item) {
@@ -191,6 +197,108 @@
         var slot = remove.closest('.media-slot')
         if (slot) slot.remove()
       }
+    })
+
+  }
+
+  /* ── Загрузка картинки прямо из поля формы ────────────────
+     Без неё замена логотипа — это уход на страницу медиатеки
+     и возврат за файлом в выбор, с потерей незаписанных правок. */
+  function initFieldUpload () {
+    var strings = document.getElementById('uploadStrings')
+    if (!strings) return
+
+    function csrfOf (element) {
+      var form = element.closest('form')
+      var field = form && form.querySelector('input[name="_csrf"]')
+      return field ? field.value : ''
+    }
+
+    function upload (files, element, onDone) {
+      var note = element.querySelector('.media-upload-note')
+      var data = new FormData()
+      // Токен кладём первым: сервер читает части потоком и
+      // проверяет его, как только дойдёт до файла.
+      data.append('_csrf', csrfOf(element))
+      for (var i = 0; i < files.length; i += 1) data.append('files', files[i])
+
+      if (note) { note.hidden = false; note.textContent = strings.getAttribute('data-uploading') }
+
+      fetch('/admin/media/upload.json', { method: 'POST', body: data })
+        .then(function (response) { return response.json() })
+        .then(function (result) {
+          var items = result.items || []
+          items.forEach(onDone)
+          if (note) {
+            var failed = (result.errors || []).join('; ')
+            if (failed) { note.textContent = failed } else { note.hidden = true; note.textContent = '' }
+          }
+        })
+        .catch(function () {
+          if (note) { note.hidden = false; note.textContent = strings.getAttribute('data-failed') }
+        })
+    }
+
+    document.addEventListener('change', function (event) {
+      var input = event.target
+      if (!input.matches || !input.matches('.media-upload input[type="file"]')) return
+      if (input.files.length === 0) return
+
+      var label = input.closest('.media-upload')
+      var field = input.closest('.media-field')
+
+      if (field) {
+        upload(input.files, field, function (item) { addToBlockField(field, item) })
+      } else if (label && label.hasAttribute('data-logo-upload')) {
+        upload(input.files, label.closest('[data-logo-field]'), applyLogoChoice)
+      }
+
+      // Сбрасываем, иначе повторный выбор того же файла не событие.
+      input.value = ''
+    })
+  }
+
+  /** Новый логотип: добавляем в список настроек и выбираем его. */
+  function applyLogoChoice (item) {
+    var select = document.getElementById('logo_id')
+    var preview = document.getElementById('logoPreview')
+    var note = document.getElementById('logoPreviewNote')
+    if (!select) return
+
+    var option = select.querySelector('option[value="' + item.id + '"]')
+    if (!option) {
+      option = document.createElement('option')
+      option.value = String(item.id)
+      option.textContent = item.name
+      option.setAttribute('data-thumb', item.thumb)
+      select.appendChild(option)
+    }
+    select.value = String(item.id)
+    if (preview) preview.src = item.thumb
+    if (note) note.textContent = item.name
+
+    var box = document.getElementById('logoPreviewBox')
+    if (box) box.classList.remove('media-slot--invert')
+  }
+
+  /** Превью в настройках следует за выбором в списке. */
+  function initLogoPreview () {
+    var select = document.getElementById('logo_id')
+    var preview = document.getElementById('logoPreview')
+    var note = document.getElementById('logoPreviewNote')
+    if (!select || !preview) return
+
+    var box = document.getElementById('logoPreviewBox')
+    var builtInSrc = box ? box.getAttribute('data-builtin-thumb') : preview.getAttribute('src')
+    var builtInNote = box ? box.getAttribute('data-builtin-note') : ''
+
+    select.addEventListener('change', function () {
+      var option = select.selectedOptions[0]
+      var thumb = option && option.getAttribute('data-thumb')
+      preview.src = thumb || builtInSrc
+      if (note) note.textContent = thumb ? option.textContent : builtInNote
+      // Осветляющий фильтр нужен только встроенному логотипу.
+      if (box) box.classList.toggle('media-slot--invert', !thumb)
     })
   }
 
@@ -469,5 +577,7 @@
   initGalleryItems()
   initMediaPicker()
   initUpload()
+  initFieldUpload()
+  initLogoPreview()
   initHeatmap()
 })()

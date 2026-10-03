@@ -37,38 +37,53 @@ async function mediaRoutes (app) {
   })
 
   /**
-   * Загрузка. Тело — multipart, поэтому CSRF проверяется здесь:
-   * в скрытом поле, которое в разметке формы стоит перед файлом.
+   * Приём multipart-загрузки.
+   *
+   * CSRF проверяется здесь, а не в общем хуке: тело — поток частей,
+   * и токен становится известен только когда до него дочитали.
+   * В разметке скрытое поле стоит перед файлом, поэтому к первой
+   * же части с файлом токен уже разобран.
+   *
+   * @returns {Promise<{uploaded: Array, errors: string[]}>}
    */
-  app.post('/media/upload', async (request, reply) => {
+  async function consumeUpload (request) {
     let csrfField = null
     const uploaded = []
     const errors = []
 
-    try {
-      for await (const part of request.parts()) {
-        if (part.type === 'field') {
-          if (part.fieldname === '_csrf') csrfField = String(part.value)
-          continue
-        }
-
-        if (!csrfField) throw new Error(request.t('common.csrfExpired'))
-        request.body = { _csrf: csrfField }
-        if (!verifyCsrf(request)) throw new Error(request.t('common.csrfExpired'))
-
-        const buffer = await part.toBuffer()
-        try {
-          const { media, deduplicated } = await processUpload({
-            buffer,
-            originalName: part.filename ?? 'upload',
-            mime: part.mimetype
-          })
-          uploaded.push({ name: media.originalName, deduplicated })
-        } catch (error) {
-          if (error instanceof UploadError) errors.push(`${part.filename}: ${error.message}`)
-          else throw error
-        }
+    for await (const part of request.parts()) {
+      if (part.type === 'field') {
+        if (part.fieldname === '_csrf') csrfField = String(part.value)
+        continue
       }
+
+      if (!csrfField) throw new Error(request.t('common.csrfExpired'))
+      request.body = { _csrf: csrfField }
+      if (!verifyCsrf(request)) throw new Error(request.t('common.csrfExpired'))
+
+      const buffer = await part.toBuffer()
+      try {
+        const { media, deduplicated } = await processUpload({
+          buffer,
+          originalName: part.filename ?? 'upload',
+          mime: part.mimetype
+        })
+        uploaded.push({ media, name: media.originalName, deduplicated })
+      } catch (error) {
+        if (error instanceof UploadError) errors.push(`${part.filename}: ${error.message}`)
+        else throw error
+      }
+    }
+
+    return { uploaded, errors }
+  }
+
+  app.post('/media/upload', async (request, reply) => {
+    let uploaded = []
+    let errors = []
+
+    try {
+      ({ uploaded, errors } = await consumeUpload(request))
     } catch (error) {
       request.log.error(error, 'Ошибка загрузки файла')
       setFlash(reply, 'error', error.message)
@@ -85,6 +100,34 @@ async function mediaRoutes (app) {
 
     setFlash(reply, errors.length > 0 ? 'error' : 'success', parts.join(', ') || request.t('media.noFiles'))
     return reply.redirect('/admin/media', 302)
+  })
+
+  /**
+   * Та же загрузка, но ответом — JSON с готовыми картинками.
+   *
+   * Нужна формам блоков и настройкам: иначе, чтобы поменять
+   * логотип, пришлось бы уходить на страницу медиатеки, грузить
+   * файл там и возвращаться за ним в выбор — и терять по дороге
+   * незаписанные правки формы.
+   */
+  app.post('/media/upload.json', async (request, reply) => {
+    let uploaded = []
+    let errors = []
+
+    try {
+      ({ uploaded, errors } = await consumeUpload(request))
+    } catch (error) {
+      request.log.error(error, 'Ошибка загрузки файла')
+      return reply.code(400).send({ items: [], errors: [error.message] })
+    }
+
+    afterWrite()
+    return reply.send({
+      items: uploaded.map(({ media }) => ({
+        id: media.id, name: media.originalName, thumb: thumbnailUrl(media)
+      })),
+      errors
+    })
   })
 
   /** Сохранение alt и подписи на всех языках. */

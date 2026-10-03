@@ -48,18 +48,37 @@
 
   <section class="card">
     <h2><%= it.t('settings.logo') %></h2>
-    <div class="field">
+    <div class="field" data-logo-field>
+      <label><%= it.t('settings.logoCurrent') %></label>
+      <div class="media-inherited">
+        <% ;/* Адрес встроенного логотипа держим здесь: иначе при
+               возврате к нему из списка пришлось бы угадывать его
+               по текущему превью, где может стоять загруженный. */ %>
+        <div class="media-slot media-slot--preview<%= it.logo.builtIn ? ' media-slot--invert' : '' %>"
+             id="logoPreviewBox"
+             data-builtin-thumb="<%= it.builtInLogo.thumb %>"
+             data-builtin-note="<%= it.t('settings.logoBuiltIn') %>">
+          <img src="<%= it.logo.thumb %>" alt="" id="logoPreview">
+        </div>
+        <p class="hint" id="logoPreviewNote"><%= it.logo.builtIn ? it.t('settings.logoBuiltIn') : it.logo.name %></p>
+      </div>
+
       <label for="logo_id"><%= it.t('settings.logo') %></label>
       <select id="logo_id" name="logo_id">
         <option value=""><%= it.t('settings.logoNone') %></option>
         <% it.library.forEach(function (media) { %>
-        <option value="<%= media.id %>"<%= Number(it.settings.logo_id) === media.id ? ' selected' : '' %>><%= media.name %></option>
+        <option value="<%= media.id %>"<%= Number(it.settings.logo_id) === media.id ? ' selected' : '' %>
+                data-thumb="<%= media.thumb %>"><%= media.name %></option>
         <% }) %>
       </select>
+      <div class="media-actions">
+        <label class="btn btn--small media-upload" data-logo-upload>
+          <%= it.t('blockForm.uploadNew') %>
+          <input type="file" accept="image/*" hidden>
+        </label>
+        <span class="media-upload-note hint" hidden></span>
+      </div>
       <p class="hint"><%= it.t('settings.logoHint') %></p>
-      <% if (it.logo) { %>
-      <div class="media-slots"><div class="media-slot media-slot--preview"><img src="<%= it.logo.thumb %>" alt=""></div></div>
-      <% } %>
     </div>
   </section>
 

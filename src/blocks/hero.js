@@ -15,7 +15,7 @@ export default {
 
   media: [
     { key: 'background', label: { en: 'Background photo', sr: 'Pozadinska fotografija' }, required: true },
-    { key: 'logo', label: { en: 'Logo over the photo', sr: 'Logotip preko fotografije' } }
+    { key: 'logo', label: { en: 'Logo over the photo', sr: 'Logotip preko fotografije' }, fallback: 'siteLogo' }
   ],
 
   settings: [

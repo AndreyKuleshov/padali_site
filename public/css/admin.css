@@ -323,6 +323,36 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .media-slot img, .gallery-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Логотип — не фотография: обрезать его по квадрату нельзя,
+   вписываем целиком, иначе в превью видно только середину слова. */
+.media-slot--preview { width: 140px; }
+.media-slot--preview img { object-fit: contain; padding: 8px; }
+
+/* Встроенный логотип нарисован чёрным и на сайте осветляется
+   фильтром — в превью нужен тот же, иначе чёрное на чёрном.
+   Загруженный файл показываем как есть. */
+.media-slot--invert img { filter: invert(1); }
+
+/* Логотип вытянут в строку: в квадратном слоте с обрезкой от него
+   остаётся пара букв, поэтому вписываем целиком. */
+.media-field--logo .media-slot { width: 140px; }
+.media-field--logo .media-slot img { object-fit: contain; padding: 8px; }
+
+/* Картинка, которая стоит на сайте, пока у поля нет своей. */
+.media-inherited {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.media-inherited .hint { margin: 0; max-width: 46ch; }
+
+.media-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.media-upload { cursor: pointer; }
+.media-upload-note { margin: 0; }
+
 .gallery-chip { cursor: grab; }
 
 .media-remove {
