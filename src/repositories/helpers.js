@@ -1,4 +1,4 @@
-import { getPool } from '../db/pool.js'
+import { getPool, toNumberedPlaceholders } from '../db/pool.js'
 
 /**
  * Единая обёртка над пулом и над соединением внутри транзакции.
@@ -7,23 +7,28 @@ import { getPool } from '../db/pool.js'
  */
 function db (conn) {
   const target = conn ?? getPool()
+  const run = async (sql, params = []) => target.query(toNumberedPlaceholders(sql), params)
+
   return {
     async all (sql, params = []) {
-      const [rows] = await target.execute(sql, params)
-      return rows
+      return (await run(sql, params)).rows
     },
     async one (sql, params = []) {
-      const [rows] = await target.execute(sql, params)
-      return rows[0] ?? null
+      return (await run(sql, params)).rows[0] ?? null
     },
     async run (sql, params = []) {
-      const [result] = await target.execute(sql, params)
-      return result
+      const result = await run(sql, params)
+      return { rowCount: result.rowCount, rows: result.rows }
+    },
+    /** Идентификатор вставленной строки: INSERT ... RETURNING id. */
+    async insert (sql, params = []) {
+      const result = await run(sql, params)
+      return result.rows[0]?.id ?? null
     }
   }
 }
 
-/** `?, ?, ?` для IN-списка: execute не разворачивает массивы сам. */
+/** `?, ?, ?` для IN-списка: нумерацию плейсхолдеров делает пул. */
 function placeholders (count) {
   return Array.from({ length: count }, () => '?').join(', ')
 }
@@ -70,15 +75,13 @@ async function replaceTexts (conn, { table, idColumn, id, textsByLocale }) {
   )
 }
 
-/** MySQL возвращает JSON-колонки объектами, но на всякий случай страхуемся. */
-function parseJson (value, fallback) {
-  if (value == null) return fallback
-  if (typeof value === 'object') return value
-  try {
-    return JSON.parse(value)
-  } catch {
-    return fallback
-  }
+/**
+ * Значение колонки jsonb. Драйвер разбирает её сам: объекты, массивы,
+ * числа, строки и булевы приходят готовыми. Разбирать повторно нельзя —
+ * строка вроде «padali.band» корректным JSON не является и потерялась бы.
+ */
+function jsonValue (value, fallback) {
+  return value ?? fallback
 }
 
-export { db, placeholders, groupTexts, replaceTexts, parseJson }
+export { db, placeholders, groupTexts, replaceTexts, jsonValue }

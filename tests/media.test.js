@@ -90,7 +90,7 @@ test('база не даёт удалить файл, на который ест
   })
   await setGalleryItems(gallery, [media.id])
 
-  await assert.rejects(deleteMedia(media.id), /foreign key|ER_ROW_IS_REFERENCED/i)
+  await assert.rejects(deleteMedia(media.id), /foreign key|violates/i)
 })
 
 test('удаление свободного файла убирает и запись, и файлы с диска', async () => {

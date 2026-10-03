@@ -17,8 +17,7 @@ async function getGalleryBySlug (slug, conn) {
 }
 
 async function createGallery (slug, conn) {
-  const result = await db(conn).run('INSERT INTO galleries (slug) VALUES (?)', [slug])
-  return result.insertId
+  return db(conn).insert('INSERT INTO galleries (slug) VALUES (?) RETURNING id', [slug])
 }
 
 async function renameGallery (id, slug, conn) {
@@ -85,7 +84,7 @@ async function setGalleryItems (galleryId, mediaIds, conn) {
     `INSERT INTO gallery_items (gallery_id, media_id, position) VALUES ${values}`,
     params
   )
-  await runner.run('UPDATE galleries SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [galleryId])
+  await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
 }
 
 export {

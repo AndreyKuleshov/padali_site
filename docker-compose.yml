@@ -1,48 +1,43 @@
-services:
-  db:
-    image: mysql:8.4
-    restart: unless-stopped
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?нужен DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME:-padali}
-      MYSQL_USER: ${DB_USER:-padali}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?нужен DB_PASSWORD}
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 30s
+# Деплой в Coolify. База данных внешняя: PostgreSQL, заведённый
+# в Coolify, приложение живёт в нём отдельной схемой. Поэтому здесь
+# только приложение; параметры подключения приходят окружением.
+#
+# Для локальной разработки база поднимается отдельно: npm run db:up
 
+services:
   app:
     build: .
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-padali}
-      DB_USER: ${DB_USER:-padali}
+      PUBLIC_URL: ${PUBLIC_URL:?нужен PUBLIC_URL}
+
+      # Внутренний адрес PostgreSQL в сети Coolify
+      DB_HOST: ${DB_HOST:?нужен DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:?нужен DB_NAME}
+      DB_USER: ${DB_USER:?нужен DB_USER}
       DB_PASSWORD: ${DB_PASSWORD:?нужен DB_PASSWORD}
+      # Своя схема: база делится с другим проектом
+      DB_SCHEMA: ${DB_SCHEMA:-padali}
+
       SESSION_SECRET: ${SESSION_SECRET:?нужен SESSION_SECRET}
+
+      # Первый администратор: создаётся, пока таблица admin_users пуста
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+
       UPLOAD_DIR: /app/data/uploads
+      LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-10}
+
     volumes:
+      # Загруженные изображения. В Coolify сюда монтируется persistent
+      # storage: без него фотографии пропадут при следующем деплое.
       - uploads:/app/data/uploads
+
     ports:
       - "${PORT:-3000}:3000"
 
 volumes:
-  db_data:
   uploads:

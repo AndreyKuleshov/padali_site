@@ -8,7 +8,7 @@ async function listLocales (conn) {
 
 async function getDefaultLocale (conn) {
   const row = await db(conn).one(
-    'SELECT code FROM locales WHERE is_default = 1 ORDER BY position LIMIT 1'
+    'SELECT code FROM locales WHERE is_default ORDER BY position LIMIT 1'
   )
   return row?.code ?? 'en'
 }

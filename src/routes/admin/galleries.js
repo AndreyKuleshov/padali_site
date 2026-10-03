@@ -23,7 +23,7 @@ function slugify (value) {
 async function galleryRoutes (app) {
   app.get('/galleries', async (request, reply) => {
     const [galleries, locales] = await Promise.all([listGalleries(), listLocales()])
-    const defaultLocale = locales.find((row) => row.is_default === 1)?.code ?? locales[0]?.code
+    const defaultLocale = locales.find((row) => row.is_default)?.code ?? locales[0]?.code
 
     const textsByGallery = await textsForGalleries(galleries.map((gallery) => gallery.id))
     const withTitles = galleries.map((gallery) => ({
@@ -67,8 +67,8 @@ async function galleryRoutes (app) {
 
     // Где этот альбом уже вставлен — чтобы было видно последствия правок.
     const usedIn = await query(
-      "SELECT id, type FROM blocks WHERE JSON_EXTRACT(settings, '$.gallery_id') = ?",
-      [id]
+      "SELECT id, type FROM blocks WHERE settings ->> 'gallery_id' = ?",
+      [String(id)]
     )
 
     return renderAdmin(request, reply, 'admin/gallery-form', {
@@ -124,8 +124,8 @@ async function galleryRoutes (app) {
     const id = Number(request.params.id)
 
     const usedIn = await query(
-      "SELECT id FROM blocks WHERE JSON_EXTRACT(settings, '$.gallery_id') = ?",
-      [id]
+      "SELECT id FROM blocks WHERE settings ->> 'gallery_id' = ?",
+      [String(id)]
     )
     if (usedIn.length > 0) {
       setFlash(reply, 'error', `Альбом вставлен в блоков: ${usedIn.length}. Сначала уберите вставки.`)

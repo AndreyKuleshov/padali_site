@@ -25,10 +25,15 @@ function readEnv (env = process.env) {
 
     db: {
       host: env.DB_HOST,
-      port: Number(env.DB_PORT ?? 3306),
+      port: Number(env.DB_PORT ?? 5432),
       database: env.DB_NAME,
       user: env.DB_USER,
-      password: env.DB_PASSWORD
+      password: env.DB_PASSWORD,
+      /**
+       * Приложение живёт в собственной схеме: база общая с другим
+       * проектом, и таблицы не должны пересекаться.
+       */
+      schema: env.DB_SCHEMA ?? 'padali'
     },
 
     sessionSecret: env.SESSION_SECRET,

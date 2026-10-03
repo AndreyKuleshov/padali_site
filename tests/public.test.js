@@ -150,6 +150,15 @@ test('служебные адреса работают', async () => {
   assert.match(sitemap.body, /<loc>[^<]+\/sr<\/loc>/)
 })
 
+test('строковая настройка доходит до страницы без потерь', async () => {
+  await buildPage()
+  await setSetting('footer_note', 'padali.band · 2026')
+  invalidateCache()
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  assert.match(response.body, /padali\.band · 2026/, 'подвал берёт значение из настроек')
+})
+
 test('текст из базы экранируется при выводе', async () => {
   const { pageId } = await buildPage()
   const block = await createBlock({ pageId, type: 'richtext', settings: defaultSettings('richtext') })

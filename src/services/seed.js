@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { query, transaction } from '../db/pool.js'
+import { db } from '../repositories/helpers.js'
 import { createPage, savePageTexts } from '../repositories/pages.js'
 import { createBlock, saveBlockTexts, saveBlockMedia } from '../repositories/blocks.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../repositories/galleries.js'
@@ -50,8 +51,11 @@ async function ensureSeeded ({ logger = console } = {}) {
   logger.info?.('База пуста — переношу содержимое исходного лендинга.')
 
   await transaction(async (conn) => {
-    await query('INSERT IGNORE INTO locales (code, title, is_default, position) VALUES (?, ?, ?, ?)', ['en', 'English', 1, 0])
-    await query('INSERT IGNORE INTO locales (code, title, is_default, position) VALUES (?, ?, ?, ?)', ['sr', 'Srpski', 0, 1])
+    const insertLocale =
+      'INSERT INTO locales (code, title, is_default, position) VALUES (?, ?, ?, ?) ' +
+      'ON CONFLICT (code) DO NOTHING'
+    await db(conn).run(insertLocale, ['en', 'English', true, 0])
+    await db(conn).run(insertLocale, ['sr', 'Srpski', false, 1])
   })
 
   const pageId = await createPage({ slug: 'home' })

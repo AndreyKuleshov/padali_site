@@ -20,12 +20,12 @@ const TABLES = [
 /** Чистая база и чистый каталог загрузок перед каждым тестом. */
 async function resetDatabase () {
   await migrate({ logger: { info () {}, warn () {} } })
-  await query('SET FOREIGN_KEY_CHECKS = 0')
-  for (const table of TABLES) await query(`TRUNCATE TABLE \`${table}\``)
-  await query('SET FOREIGN_KEY_CHECKS = 1')
+  // CASCADE снимает вопрос порядка внешних ключей, RESTART IDENTITY
+  // возвращает счётчики id к единице, чтобы тесты не зависели от прогона.
+  await query(`TRUNCATE TABLE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`)
 
-  await query("INSERT INTO locales (code, title, is_default, position) VALUES ('en', 'English', 1, 0)")
-  await query("INSERT INTO locales (code, title, is_default, position) VALUES ('sr', 'Srpski', 0, 1)")
+  await query("INSERT INTO locales (code, title, is_default, position) VALUES ('en', 'English', true, 0)")
+  await query("INSERT INTO locales (code, title, is_default, position) VALUES ('sr', 'Srpski', false, 1)")
 
   await rm(config.uploadDir, { recursive: true, force: true })
   await mkdir(config.uploadDir, { recursive: true })

@@ -1,10 +1,10 @@
 # PADALI — сайт группы
 
 Одностраничный сайт на двух языках (EN/SR) с блочной админкой.
-Текстовый контент — в MySQL, изображения — на диске, разделы страницы
+Текстовый контент — в PostgreSQL, изображения — на диске, разделы страницы
 собираются из блоков и переставляются мышью.
 
-- **Стек**: Node.js 22, Fastify, MySQL 8, шаблоны Eta (рендеринг на сервере)
+- **Стек**: Node.js 22, Fastify, PostgreSQL 16, шаблоны Eta (рендеринг на сервере)
 - **Деплой**: Docker, Coolify
 - **Спецификация**: [docs/superpowers/specs/2026-10-03-padali-cms-design.md](docs/superpowers/specs/2026-10-03-padali-cms-design.md)
 
@@ -14,7 +14,7 @@
 
 ```bash
 npm install
-npm run db:up        # MySQL 8 в контейнере на порту 33061
+npm run db:up        # PostgreSQL 16 в контейнере на порту 54321
 npm run seed         # миграции + перенос исходного контента + создание админа
 npm run dev          # http://localhost:3031
 ```
@@ -26,8 +26,7 @@ npm run dev          # http://localhost:3031
 ### Тесты
 
 ```bash
-docker exec padali-mysql-dev mysql -uroot -prootdev \
-  -e "CREATE DATABASE IF NOT EXISTS padali_test; GRANT ALL ON padali_test.* TO 'padali'@'%';"
+docker exec padali-pg-dev psql -U padali -d padali -c "CREATE DATABASE padali_test;"
 npm test
 ```
 
@@ -37,9 +36,14 @@ npm test
 
 1. Подключить репозиторий, тип приложения — **Docker Compose**.
 2. Задать переменные окружения (см. `.env.example`). Обязательны:
-   `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `SESSION_SECRET`, `PUBLIC_URL`,
-   `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+   `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SESSION_SECRET`,
+   `PUBLIC_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
    Секрет сессий: `openssl rand -hex 32`.
+
+   База — внешний PostgreSQL, заведённый в Coolify. `DB_HOST` — его
+   внутреннее имя сервиса. Приложение живёт в отдельной схеме
+   (`DB_SCHEMA`, по умолчанию `padali`), поэтому базу можно делить
+   с другим проектом, не смешивая таблицы.
 3. Добавить **persistent storage** на `/app/data/uploads` — там лежат
    загруженные изображения. Без тома они пропадут при следующем деплое.
 4. Развернуть. При первом старте приложение само применит миграции,
@@ -76,6 +80,9 @@ data/uploads/      загруженные изображения (том, в git
 | `galleries` + `gallery_items` | альбомы и их состав |
 | `media` + `media_texts` | файлы, их размеры и описания |
 | `pages` / `page_texts` | страница и её мета-теги |
+
+Все таблицы лежат в схеме `padali` — отдельно от таблиц соседних
+проектов в той же базе.
 
 Добавление языка — вставка строки в `locales`, а не изменение схемы.
 Если перевода поля нет, показывается значение языка по умолчанию.

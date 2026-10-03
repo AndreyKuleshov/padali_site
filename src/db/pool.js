@@ -1,53 +1,94 @@
-import mysql from 'mysql2/promise'
+import pg from 'pg'
 import config from '../config.js'
+
+/**
+ * Числовые типы Postgres приходят строками, чтобы не терять точность
+ * на bigint. Нам это не нужно: id и счётчики помещаются в Number.
+ */
+pg.types.setTypeParser(pg.types.builtins.INT8, (value) => Number(value))
+pg.types.setTypeParser(pg.types.builtins.NUMERIC, (value) => Number(value))
 
 let pool = null
 
-/** Ленивое создание пула: тесты могут подменить конфигурацию до первого вызова. */
 function getPool (overrides = {}) {
   if (!pool) {
-    pool = mysql.createPool({
-      ...config.db,
-      ...overrides,
-      waitForConnections: true,
-      connectionLimit: 10,
-      charset: 'utf8mb4_unicode_ci',
-      timezone: 'Z',
-      // Даты отдаём строками: иначе mysql2 сдвигает DATE на часовой пояс.
-      dateStrings: ['DATE'],
-      namedPlaceholders: false
+    pool = new pg.Pool({
+      host: config.db.host,
+      port: config.db.port,
+      database: config.db.database,
+      user: config.db.user,
+      password: config.db.password,
+      // Приложение живёт в своей схеме внутри общей базы.
+      options: `-c search_path=${config.db.schema},public`,
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      ...overrides
     })
   }
   return pool
 }
 
-async function query (sql, params = []) {
-  const [rows] = await getPool().execute(sql, params)
-  return rows
+/**
+ * Репозитории пишут запросы с `?` — привычно и позволяет собирать
+ * IN-списки одним помощником. Драйверу нужны $1, $2, …, поэтому
+ * плейсхолдеры нумеруются здесь. Знаки вопроса внутри строковых
+ * литералов пропускаются.
+ */
+function toNumberedPlaceholders (sql) {
+  let result = ''
+  let index = 0
+  let inString = false
+
+  for (let position = 0; position < sql.length; position += 1) {
+    const char = sql[position]
+
+    if (char === "'") {
+      // Удвоенная кавычка внутри строки — экранированная, не конец литерала.
+      if (inString && sql[position + 1] === "'") {
+        result += "''"
+        position += 1
+        continue
+      }
+      inString = !inString
+      result += char
+      continue
+    }
+
+    if (char === '?' && !inString) {
+      index += 1
+      result += `$${index}`
+      continue
+    }
+
+    result += char
+  }
+
+  return result
 }
 
-/** Первая строка результата или null. */
+async function query (sql, params = []) {
+  const result = await getPool().query(toNumberedPlaceholders(sql), params)
+  return result.rows
+}
+
 async function queryOne (sql, params = []) {
   const rows = await query(sql, params)
   return rows[0] ?? null
 }
 
-/**
- * Выполняет fn в транзакции, передавая соединение.
- * Коммитит при успехе, откатывает при исключении.
- */
+/** Выполняет fn в транзакции, передавая соединение. */
 async function transaction (fn) {
-  const connection = await getPool().getConnection()
+  const client = await getPool().connect()
   try {
-    await connection.beginTransaction()
-    const result = await fn(connection)
-    await connection.commit()
+    await client.query('BEGIN')
+    const result = await fn(client)
+    await client.query('COMMIT')
     return result
   } catch (error) {
-    await connection.rollback()
+    await client.query('ROLLBACK')
     throw error
   } finally {
-    connection.release()
+    client.release()
   }
 }
 
@@ -58,4 +99,4 @@ async function closePool () {
   }
 }
 
-export { getPool, query, queryOne, transaction, closePool }
+export { getPool, query, queryOne, transaction, closePool, toNumberedPlaceholders }

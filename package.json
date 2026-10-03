@@ -12,8 +12,8 @@
     "migrate": "node --env-file=.env.development src/db/migrate.js",
     "seed": "node --env-file=.env.development scripts/seed.js",
     "test": "node --env-file=.env.test --test --test-concurrency=1 tests/*.test.js",
-    "db:up": "docker run -d --name padali-mysql-dev -e MYSQL_ROOT_PASSWORD=rootdev -e MYSQL_DATABASE=padali -e MYSQL_USER=padali -e MYSQL_PASSWORD=padalidev -p 33061:3306 mysql:8.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci",
-    "db:down": "docker rm -f padali-mysql-dev"
+    "db:up": "docker run -d --name padali-pg-dev -e POSTGRES_USER=padali -e POSTGRES_PASSWORD=padalidev -e POSTGRES_DB=padali -p 54321:5432 postgres:16-alpine",
+    "db:down": "docker rm -f padali-pg-dev"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
@@ -24,7 +24,7 @@
     "argon2": "^0.41.1",
     "eta": "^3.5.0",
     "fastify": "^5.2.1",
-    "mysql2": "^3.12.0",
+    "pg": "^8.13.1",
     "qs": "^6.13.1",
     "sanitize-html": "^2.14.0",
     "sharp": "^0.33.5"

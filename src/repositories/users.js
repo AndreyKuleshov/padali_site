@@ -17,11 +17,10 @@ async function getUser (id, conn) {
 }
 
 async function createUser ({ email, passwordHash }, conn) {
-  const result = await db(conn).run(
-    'INSERT INTO admin_users (email, password_hash) VALUES (?, ?)',
+  return db(conn).insert(
+    'INSERT INTO admin_users (email, password_hash) VALUES (?, ?) RETURNING id',
     [email.trim().toLowerCase(), passwordHash]
   )
-  return result.insertId
 }
 
 async function updatePassword (id, passwordHash, conn) {

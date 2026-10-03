@@ -1,4 +1,4 @@
-import { db, placeholders, groupTexts, replaceTexts, parseJson } from './helpers.js'
+import { db, placeholders, groupTexts, replaceTexts, jsonValue } from './helpers.js'
 
 function hydrate (row) {
   return {
@@ -10,7 +10,7 @@ function hydrate (row) {
     bytes: row.bytes,
     hash: row.hash,
     originalName: row.original_name,
-    derivatives: parseJson(row.derivatives, []),
+    derivatives: jsonValue(row.derivatives, []),
     createdAt: row.created_at
   }
 }
@@ -53,15 +53,14 @@ async function countMedia (conn) {
 }
 
 async function insertMedia (record, conn) {
-  const result = await db(conn).run(
+  return db(conn).insert(
     'INSERT INTO media (path, mime, width, height, bytes, hash, original_name, derivatives) ' +
-    'VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON))',
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb) RETURNING id',
     [
       record.path, record.mime, record.width, record.height, record.bytes,
       record.hash, record.originalName, JSON.stringify(record.derivatives ?? [])
     ]
   )
-  return result.insertId
 }
 
 async function textsForMedia (ids, conn) {
@@ -106,7 +105,7 @@ async function usageCounts (ids, conn) {
   const list = placeholders(ids.length)
   const rows = await db(conn).all(
     `SELECT media_id, SUM(uses) AS uses FROM (
-       SELECT media_id, COUNT(*) AS uses FROM block_media  WHERE media_id IN (${list}) GROUP BY media_id
+       SELECT media_id, COUNT(*) AS uses FROM block_media   WHERE media_id IN (${list}) GROUP BY media_id
        UNION ALL
        SELECT media_id, COUNT(*) AS uses FROM gallery_items WHERE media_id IN (${list}) GROUP BY media_id
      ) AS combined GROUP BY media_id`,

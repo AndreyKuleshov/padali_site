@@ -63,7 +63,7 @@ async function composePage ({ slug = 'home', locale }) {
   const activeLocale = locales.some((row) => row.code === locale) ? locale : defaultLocale
 
   const page = await getPageBySlug(slug)
-  if (!page || page.is_published !== 1) return null
+  if (!page || !page.is_published) return null
 
   const [pageTexts, blockRows, settings] = await Promise.all([
     getPageTexts(page.id),

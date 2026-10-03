@@ -1,4 +1,4 @@
-import { db, placeholders, groupTexts, replaceTexts, parseJson } from './helpers.js'
+import { db, placeholders, groupTexts, replaceTexts, jsonValue } from './helpers.js'
 
 function hydrate (row) {
   return {
@@ -6,16 +6,16 @@ function hydrate (row) {
     pageId: row.page_id,
     type: row.type,
     position: row.position,
-    isVisible: row.is_visible === 1,
+    isVisible: row.is_visible,
     anchor: row.anchor,
-    settings: parseJson(row.settings, {})
+    settings: jsonValue(row.settings, {})
   }
 }
 
 async function listBlocks (pageId, { visibleOnly = false } = {}, conn) {
   const rows = await db(conn).all(
     'SELECT id, page_id, type, position, is_visible, anchor, settings FROM blocks ' +
-    `WHERE page_id = ?${visibleOnly ? ' AND is_visible = 1' : ''} ` +
+    `WHERE page_id = ?${visibleOnly ? ' AND is_visible' : ''} ` +
     'ORDER BY position, id',
     [pageId]
   )
@@ -34,26 +34,25 @@ async function getBlock (id, conn) {
 async function createBlock ({ pageId, type, settings = {}, anchor = null, isVisible = true }, conn) {
   const runner = db(conn)
   const last = await runner.one(
-    'SELECT COALESCE(MAX(position), -1) AS maxPosition FROM blocks WHERE page_id = ?',
+    'SELECT COALESCE(MAX(position), -1) AS maxposition FROM blocks WHERE page_id = ?',
     [pageId]
   )
-  const result = await runner.run(
+  return runner.insert(
     'INSERT INTO blocks (page_id, type, position, is_visible, anchor, settings) ' +
-    'VALUES (?, ?, ?, ?, ?, CAST(? AS JSON))',
-    [pageId, type, Number(last.maxPosition) + 1, isVisible ? 1 : 0, anchor, JSON.stringify(settings)]
+    'VALUES (?, ?, ?, ?, ?, ?::jsonb) RETURNING id',
+    [pageId, type, Number(last.maxposition) + 1, isVisible, anchor, JSON.stringify(settings)]
   )
-  return result.insertId
 }
 
 async function updateBlock (id, { settings, anchor, isVisible }, conn) {
   await db(conn).run(
-    'UPDATE blocks SET settings = CAST(? AS JSON), anchor = ?, is_visible = ? WHERE id = ?',
-    [JSON.stringify(settings ?? {}), anchor || null, isVisible ? 1 : 0, id]
+    'UPDATE blocks SET settings = ?::jsonb, anchor = ?, is_visible = ? WHERE id = ?',
+    [JSON.stringify(settings ?? {}), anchor || null, isVisible, id]
   )
 }
 
 async function setBlockVisibility (id, isVisible, conn) {
-  await db(conn).run('UPDATE blocks SET is_visible = ? WHERE id = ?', [isVisible ? 1 : 0, id])
+  await db(conn).run('UPDATE blocks SET is_visible = ? WHERE id = ?', [isVisible, id])
 }
 
 async function deleteBlock (id, conn) {

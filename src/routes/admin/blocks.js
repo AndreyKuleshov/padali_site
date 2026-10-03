@@ -25,7 +25,7 @@ async function blockRoutes (app) {
 
     // Подпись блока в списке — заголовок на языке по умолчанию.
     // Тексты всех блоков берём одним запросом, а не по запросу на блок.
-    const defaultLocale = locales.find((row) => row.is_default === 1)?.code ?? locales[0]?.code
+    const defaultLocale = locales.find((row) => row.is_default)?.code ?? locales[0]?.code
     const textsByBlock = await textsForBlocks(blocks.map((block) => block.id))
     const summaries = blocks.map((block) => {
       const byLocale = textsByBlock.get(block.id)?.[defaultLocale] ?? {}

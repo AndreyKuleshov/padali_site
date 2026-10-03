@@ -8,11 +8,10 @@ async function getPageBySlug (slug, conn) {
 }
 
 async function createPage ({ slug, isPublished = true, position = 0 }, conn) {
-  const result = await db(conn).run(
-    'INSERT INTO pages (slug, is_published, position) VALUES (?, ?, ?)',
-    [slug, isPublished ? 1 : 0, position]
+  return db(conn).insert(
+    'INSERT INTO pages (slug, is_published, position) VALUES (?, ?, ?) RETURNING id',
+    [slug, isPublished, position]
   )
-  return result.insertId
 }
 
 /** → { [locale]: { [field]: value } } */

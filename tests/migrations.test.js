@@ -18,7 +18,7 @@ test('схема содержит все нужные таблицы', async () 
   await migrate({ logger: silent })
   const rows = await query(
     'SELECT table_name AS name FROM information_schema.tables WHERE table_schema = ?',
-    [config.db.database]
+    [config.db.schema]
   )
   const tables = new Set(rows.map((row) => row.name))
 
@@ -34,9 +34,9 @@ test('схема содержит все нужные таблицы', async () 
 test('тексты и медиа блока удаляются вместе с блоком', async () => {
   await migrate({ logger: silent })
   const rows = await query(
-    'SELECT delete_rule AS deleteRule FROM information_schema.referential_constraints ' +
+    'SELECT delete_rule AS "deleteRule" FROM information_schema.referential_constraints ' +
     'WHERE constraint_schema = ? AND constraint_name = ?',
-    [config.db.database, 'fk_block_texts_block']
+    [config.db.schema, 'fk_block_texts_block']
   )
   assert.equal(rows[0].deleteRule, 'CASCADE')
 })
@@ -44,9 +44,9 @@ test('тексты и медиа блока удаляются вместе с �
 test('используемую картинку база удалить не даст', async () => {
   await migrate({ logger: silent })
   const rows = await query(
-    'SELECT delete_rule AS deleteRule FROM information_schema.referential_constraints ' +
+    'SELECT delete_rule AS "deleteRule" FROM information_schema.referential_constraints ' +
     'WHERE constraint_schema = ? AND constraint_name IN (?, ?)',
-    [config.db.database, 'fk_block_media_media', 'fk_gallery_items_media']
+    [config.db.schema, 'fk_block_media_media', 'fk_gallery_items_media']
   )
   assert.equal(rows.length, 2)
   for (const row of rows) assert.equal(row.deleteRule, 'RESTRICT')
