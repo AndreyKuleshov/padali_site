@@ -1,8 +1,91 @@
+# Зависимости
 node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/versions
+
+# Окружение
+# Именно «.env», без звёздочки: .env.development, .env.test и
+# .env.example лежат в git намеренно — там только параметры
+# локальной базы. «.env*» выкинул бы и их.
 .env
+.env.local
+.env.*.local
+.env.production
+
+# Данные приложения
+# data/uploads — том с загруженными фотографиями, data/pg — база
+# из docker compose. В репозитории им делать нечего.
 data/
+
+# Журналы
+*.log
 npm-debug.log*
-.DS_Store
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# Тесты и покрытие
 coverage/
+.nyc_output/
+*.lcov
+
+# Среды разработки
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.ipr
+*.iws
+.fleet/
+.zed/
+*.sublime-project
+*.sublime-workspace
+.history/
+nbproject/
+*.code-workspace
+
+# Операционная система
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon?
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.directory
+.fuse_hidden*
+.nfs*
+
+# Временные файлы и правки
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+*.tmp
+.cache/
+tmp/
+
+# Помощники на основе моделей
 .claude
 CLAUDE*
+.cursor/
+.cursorrules
+.aider*
+.continue/
+.windsurfrules
+.github/copilot-instructions.md
+GEMINI.md
+AGENTS.md
