@@ -1,32 +1,33 @@
 /**
  * Проверка контакта покупателя.
  *
- * Три вида связи ведут себя по-разному, и притворяться, что они
- * одинаковы, нечестно:
+ * Два вида связи, и оба проверяются по-настоящему:
  *
- *   email     — проверяется формой записи, этого достаточно;
- *   telegram  — t.me отдаёт страницу профиля, по ней видно,
- *               существует ли имя;
- *   instagram — без авторизации не проверить: на выдуманное имя
- *               приходит та же оболочка, что и на настоящее, —
- *               проверено. Поэтому только формат.
+ *   email    — форма записи, этого достаточно;
+ *   telegram — t.me отдаёт страницу профиля, по ней видно,
+ *              существует ли имя.
  *
- * Правило на все случаи: недостоверный ответ не повод отказать.
+ * Instagram в списке был и убран: без авторизации он не
+ * проверяется — на выдуманное имя приходит та же оболочка, что и
+ * на настоящее (проверено страницей, web_profile_info и ?__a=1).
+ * Предлагать покупателю способ, по которому до него потом не
+ * достучаться, хуже, чем его не предлагать.
+ *
+ * Правило на оба случая: недостоверный ответ не повод отказать.
  * Потерять настоящего покупателя из-за того, что сеть моргнула,
  * хуже, чем принять заказ с опечаткой.
  */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/
 const TELEGRAM = /^[A-Za-z][A-Za-z0-9_]{3,31}$/
-const INSTAGRAM = /^[A-Za-z0-9._]{1,30}$/
 
-export const CONTACT_KINDS = ['email', 'telegram', 'instagram']
+export const CONTACT_KINDS = ['email', 'telegram']
 
 /** Имя профиля из «@name», «t.me/name» или полной ссылки. */
 export function normalizeHandle (value) {
   return String(value ?? '')
     .trim()
     .replace(/^https?:\/\//i, '')
-    .replace(/^(www\.)?(t\.me|telegram\.me|instagram\.com)\//i, '')
+    .replace(/^(www\.)?(t\.me|telegram\.me)\//i, '')
     .replace(/^@/, '')
     .replace(/\/+$/, '')
     .split(/[?#]/)[0]
@@ -35,21 +36,20 @@ export function normalizeHandle (value) {
 /** Как контакт выглядит в письме и в списке сообщений. */
 export function formatContact (kind, value) {
   if (kind === 'email') return String(value ?? '').trim()
-  const handle = normalizeHandle(value)
-  return `${kind === 'telegram' ? 'Telegram' : 'Instagram'}: @${handle}`
+  return `Telegram: @${normalizeHandle(value)}`
 }
 
 /** Форма записи. Сеть не трогаем. */
 export function looksValid (kind, value) {
   if (kind === 'email') return EMAIL.test(String(value ?? '').trim())
-  const handle = normalizeHandle(value)
-  if (kind === 'telegram') return TELEGRAM.test(handle)
-  if (kind === 'instagram') return INSTAGRAM.test(handle)
+  if (kind === 'telegram') return TELEGRAM.test(normalizeHandle(value))
   return false
 }
 
 /**
- * Существует ли профиль. Только для telegram; остальным — true.
+ * Существует ли профиль. Почту по сети не проверяем: письмо на
+ * несуществующий ящик просто вернётся, а стучаться в чужой
+ * почтовый сервер ради проверки — дурной тон.
  * @returns {Promise<boolean>}
  */
 async function profileExists (kind, handle, { fetchImpl = fetch, timeoutMs = 6000 } = {}) {

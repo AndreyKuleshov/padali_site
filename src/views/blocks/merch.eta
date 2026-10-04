@@ -77,7 +77,6 @@
             <option value=""><%= sr ? '— izaberite —' : '— choose —' %></option>
             <option value="email">E-mail</option>
             <option value="telegram">Telegram</option>
-            <option value="instagram">Instagram</option>
           </select>
           <input type="text" name="contact" maxlength="256" required disabled
                  autocomplete="off" data-contact-value>

@@ -22,8 +22,8 @@ export default {
       },
       input: 'text',
       hint: {
-        en: 'Above the pair «kind of contact + address». The kinds themselves — e-mail, Telegram, Instagram — are fixed.',
-        sr: 'Iznad para «vrsta kontakta + adresa». Same vrste — e-mail, Telegram, Instagram — su fiksne.'
+        en: 'Above the pair «kind of contact + address». The kinds themselves — e-mail and Telegram — are fixed; both are checked before the order is accepted.',
+        sr: 'Iznad para «vrsta kontakta + adresa». Same vrste — e-mail i Telegram — su fiksne; obe se proveravaju pre prijema porudžbine.'
       }
     },
     {

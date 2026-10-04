@@ -20,7 +20,7 @@ import { listMessages, countUnread } from '../src/repositories/messages.js'
 import { defaultSettings } from '../src/blocks/index.js'
 import { sendMessage, isMailConfigured } from '../src/services/mail.js'
 import {
-  checkContact, looksValid, normalizeHandle
+  checkContact, looksValid, normalizeHandle, formatContact, CONTACT_KINDS
 } from '../src/services/contact-check.js'
 
 let app
@@ -67,15 +67,17 @@ test('сообщение из формы связи сохраняется', asy
 })
 
 test('заказ сохраняет город, связь и товар', async () => {
+  // Почтой, а не телеграмом: тот проверяется живым запросом к
+  // t.me, и тест зависел бы от сети и от чужого профиля.
   await send({
-    kind: 'order', city: 'Novi Sad', contact_kind: 'instagram', contact: '@padalifan',
+    kind: 'order', city: 'Novi Sad', contact_kind: 'email', contact: 'fan@mail.rs',
     item: 'Футболка — 2500 RSD', message: 'размер L'
   })
 
   const [saved] = await listMessages()
   assert.equal(saved.kind, 'order')
   assert.equal(saved.city, 'Novi Sad')
-  assert.equal(saved.contact, 'Instagram: @padalifan', 'вид связи виден в списке')
+  assert.equal(saved.contact, 'fan@mail.rs')
   assert.equal(saved.item, 'Футболка — 2500 RSD')
   assert.equal(saved.body, 'размер L')
 })
@@ -557,7 +559,7 @@ test('в форме альбома есть поле названия', async ()
 
 test('имя профиля вытаскивается из любой записи', () => {
   for (const input of ['@padali', 'padali', 'https://t.me/padali', 't.me/padali/',
-    'https://www.instagram.com/padali/', 'instagram.com/padali?hl=sr']) {
+    'telegram.me/padali', 't.me/padali?start=1']) {
     assert.equal(normalizeHandle(input), 'padali', input)
   }
 })
@@ -571,8 +573,8 @@ test('форма записи проверяется по виду связи', 
   assert.equal(looksValid('telegram', '@ab'), false, 'короче пяти знаков')
   assert.equal(looksValid('telegram', '@фан'), false, 'кириллицы там не бывает')
 
-  assert.equal(looksValid('instagram', 'padali.band'), true)
-  assert.equal(looksValid('instagram', 'пад али'), false)
+  // Instagram убран: без авторизации его не проверить.
+  assert.equal(looksValid('instagram', 'padali.band'), false)
 })
 
 test('почта проверяется без обращения в сеть', async () => {
@@ -610,23 +612,15 @@ test('недоступный t.me не отказывает покупателю
 
 /**
  * Instagram на выдуманное имя отдаёт ту же оболочку, что и на
- * настоящее: проверено запросами к странице, к web_profile_info
- * и к ?__a=1. Поэтому только формат — и в сеть не ходим.
+ * настоящее: проверено страницей, web_profile_info и ?__a=1.
+ * Способ связи, по которому до покупателя потом не достучаться,
+ * предлагать не стали.
  */
-test('инстаграм проверяется только формой записи', async () => {
-  let called = false
-  const good = await checkContact('instagram', '@padali.band', {
-    fetchImpl: async () => { called = true }
-  })
-  assert.deepEqual(good, { ok: true, contact: 'Instagram: @padali.band' })
-  assert.equal(called, false)
-
-  const bad = await checkContact('instagram', 'пад али', { fetchImpl: async () => {} })
-  assert.deepEqual(bad, { ok: false, reason: 'format' })
-})
-
-test('неизвестный вид связи отвергается', async () => {
-  assert.deepEqual(await checkContact('whatsapp', '+381...'), { ok: false, reason: 'kind' })
+test('инстаграм и прочие виды связи не принимаются', async () => {
+  for (const kind of ['instagram', 'whatsapp', 'viber', '']) {
+    assert.deepEqual(await checkContact(kind, '@padali.band'), { ok: false, reason: 'kind' }, kind)
+  }
+  assert.deepEqual(CONTACT_KINDS, ['email', 'telegram'])
 })
 
 test('проверка доступна с сайта и отвечает да/нет', async () => {
@@ -664,8 +658,9 @@ test('в окне заказа есть выбор вида связи и вык
   const body = (await app.inject({ method: 'GET', url: '/' })).body
 
   assert.match(body, /name="contact_kind"/)
+  assert.match(body, /value="email"/)
   assert.match(body, /value="telegram"/)
-  assert.match(body, /value="instagram"/)
+  assert.doesNotMatch(body, /value="instagram"/, 'инстаграм убран из списка')
   assert.match(body, /data-contact-value/)
   assert.match(body, /disabled/, 'поле адреса ждёт выбора')
 })
@@ -703,4 +698,10 @@ test('письмо из формы связи тоже на английском
   )
 
   assert.equal(sent[0].subject, 'Message from the site')
+})
+
+/** Вид связи виден в списке сообщений: «@fan» сам по себе немой. */
+test('телеграм в сообщении подписан видом связи', () => {
+  assert.equal(formatContact('telegram', 'https://t.me/padali_fan'), 'Telegram: @padali_fan')
+  assert.equal(formatContact('email', '  fan@mail.rs '), 'fan@mail.rs')
 })
