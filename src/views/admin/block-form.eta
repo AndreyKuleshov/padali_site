@@ -193,7 +193,7 @@
         <input type="text" id="albumSlug" placeholder="<%= it.t('galleries.slug') %>"
                maxlength="128" autocomplete="off">
       </div>
-      <p class="hint" id="albumError" hidden></p>
+      <p class="hint" id="albumError" data-failed="<%= it.t('galleries.createFailed') %>" hidden></p>
       <div class="media-actions">
         <button type="button" class="btn btn--primary btn--small" id="albumCreate"><%= it.t('galleries.create') %></button>
         <button type="button" class="btn btn--small" data-album-close><%= it.t('common.cancel') %></button>

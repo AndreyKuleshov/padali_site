@@ -961,10 +961,14 @@
     var create = document.getElementById('albumCreate')
     var select = null
 
+    /* Ответ без текста и оборванная сеть выглядят одинаково, и
+       показать в этом месте нечего, кроме общей фразы. Раньше
+       сюда попадали введённое имя и подсказка поля — редактор
+       читал собственный ввод как сообщение об ошибке. */
     function fail (message) {
       error.hidden = false
       error.setAttribute('data-state', 'error')
-      error.textContent = message
+      error.textContent = message || error.getAttribute('data-failed') || ''
     }
 
     document.addEventListener('click', function (event) {
@@ -1006,7 +1010,7 @@
       })
         .then(function (response) { return response.json() })
         .then(function (result) {
-          if (!result.ok) { fail(result.message || value); return }
+          if (!result.ok) { fail(result.message); return }
 
           var option = document.createElement('option')
           option.value = String(result.id)
@@ -1027,7 +1031,7 @@
           document.getElementById('albumStepPhotos').hidden = false
           document.getElementById('albumDialogTitle').textContent = result.slug
         })
-        .catch(function () { fail(slug.getAttribute('placeholder') || '') })
+        .catch(function () { fail('') })
         .finally(function () {
           create.disabled = false
           create.classList.remove('is-busy')
