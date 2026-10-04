@@ -343,14 +343,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .repeater-rows { display: grid; gap: 10px; margin-bottom: 10px; }
 
+/* Флексы, а не сетка: у разных повторителей разное число полей,
+   и колонки равной ширины оставляли справа пустоту, а ссылке —
+   половину её длины. Здесь короткие поля держат свою ширину,
+   ссылка забирает остаток, крестик прижат к правому краю. */
 .repeater-row {
-  display: grid;
-  /* Последняя дорожка — обязательно с определённой шириной.
-     Рядом с repeat(auto-fit, …) грамматика допускает только
-     <fixed-size>, и «auto» делало всё правило недействительным:
-     строка молча раскладывалась в одну колонку, поля вставали
-     столбиком, а крестик растягивался во всю ширину. */
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 44px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: end;
   background: var(--panel-2);
@@ -359,11 +358,22 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   padding: 10px;
 }
 
-.repeater-cell { display: grid; gap: 3px; min-width: 0; }
+.repeater-cell { display: grid; gap: 3px; min-width: 0; flex: 0 1 150px; }
 
-/* Кнопка в сетке по умолчанию растягивается во всю дорожку —
-   крестик выглядел полем ввода. */
-.repeater-remove { justify-self: start; }
+/* Последнее поле строки — всегда ссылка, и она длиннее прочих. */
+.repeater-cell:last-of-type { flex: 1 1 220px; }
+
+/* Крестик — у правого края и ростом ровно с поле рядом.
+   Высота не числом, а той же формулой: тот же шрифт и те же
+   отступы, что у input. С уменьшенным шрифтом кнопки крестик был
+   ниже поля, и ряд выглядел неровным. */
+.repeater-remove {
+  margin-left: auto;
+  width: 38px;
+  padding: 8px 0;
+  font-size: inherit;
+  justify-content: center;
+}
 .cell-label { color: var(--soft); }
 
 /* ─── Картинки в формах ──────────────────────────────────── */
@@ -663,10 +673,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 @media (max-width: 720px) {
 
-  /* Узкий экран: четыре поля в ряд не помещаются, и последнее
-     обрезалось. Возвращаем строку в столбик, крестик — направо. */
-  .repeater-row { grid-template-columns: minmax(0, 1fr); }
-  .repeater-remove { justify-self: end; }
+  /* Узкий экран: в ряд поля не помещаются и последнее обрезалось.
+     Столбиком, а крестик — наверх: внизу он отрывался от своей
+     строки и читался как начало следующей. */
+  .repeater-row { flex-direction: column; align-items: stretch; }
+  .repeater-cell, .repeater-cell:last-of-type { flex: 0 0 auto; }
+  .repeater-remove { order: -1; align-self: flex-end; margin-left: 0; }
   .locale-grid { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; align-items: stretch; }
   .block-row { flex-wrap: wrap; }
