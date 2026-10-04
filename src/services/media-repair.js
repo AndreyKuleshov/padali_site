@@ -1,7 +1,7 @@
-import { readFile, rm } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { listMedia, updateMediaFile } from '../repositories/media.js'
 import {
-  absolutePath, derivativeRelPath, writeDerivatives, needsRepair
+  absolutePath, writeDerivatives, dropReplacedFiles, needsRepair
 } from './media-processor.js'
 
 /**
@@ -12,18 +12,22 @@ import {
  * мегабайта, и галерея открывалась минутами. Правила с тех пор
  * менялись и ещё будут, поэтому проверка выполняется при каждом
  * запуске, а трогаются только отставшие записи.
+ *
+ * `force` пересобирает всё подряд: им пользуется ручной запуск
+ * scripts/rebuild-derivatives.js, когда поменялись качество или
+ * лестница ширин — такое признаком «отстал» не ловится.
  */
-async function repairMedia ({ logger = console, limit = 500 } = {}) {
+async function repairMedia ({ logger = console, limit = 500, force = false } = {}) {
   const items = await listMedia({ limit })
   const repaired = []
 
   for (const media of items) {
-    if (!needsRepair(media)) continue
+    if (!force && !needsRepair(media)) continue
 
     try {
       const source = await readFile(absolutePath(media.path))
       const before = { path: media.path, derivatives: media.derivatives ?? [], bytes: media.bytes }
-      const rebuilt = await writeDerivatives({ buffer: source, mime: media.mime, hash: media.hash })
+      const rebuilt = await writeDerivatives({ buffer: source, hash: media.hash })
 
       await updateMediaFile(media.id, {
         path: rebuilt.path,
@@ -36,12 +40,7 @@ async function repairMedia ({ logger = console, limit = 500 } = {}) {
         derivatives: rebuilt.derivatives
       })
 
-      // Ступени и мастер прежнего формата иначе остались бы на диске.
-      for (const stale of before.derivatives.filter((w) => !rebuilt.derivatives.includes(w))) {
-        await rm(absolutePath(derivativeRelPath(before.path, stale)), { force: true })
-      }
-      if (before.path !== rebuilt.path) await rm(absolutePath(before.path), { force: true })
-
+      await dropReplacedFiles(before, rebuilt)
       repaired.push({ name: media.originalName, before, after: rebuilt })
     } catch (error) {
       logger.warn?.(`Не удалось пересобрать ${media.originalName}: ${error.message}`)
@@ -52,8 +51,7 @@ async function repairMedia ({ logger = console, limit = 500 } = {}) {
     const saved = repaired.reduce((sum, item) => sum + (item.before.bytes - item.after.bytes), 0)
     for (const item of repaired) {
       logger.info?.(
-        `Пересобрано ${item.name}: ${item.before.after ?? ''}` +
-        `[${item.before.derivatives}] → [${item.after.derivatives}], ` +
+        `Пересобрано ${item.name}: [${item.before.derivatives}] → [${item.after.derivatives}], ` +
         `${Math.round(item.before.bytes / 1024)} КБ → ${Math.round(item.after.bytes / 1024)} КБ.`
       )
     }

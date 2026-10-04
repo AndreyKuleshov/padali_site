@@ -205,6 +205,18 @@ test('удаление блока уносит его тексты', async () =>
   assert.deepEqual(await getBlockTexts(block.id), {})
 })
 
+/* Выход жил вне охраны: POST с чужой страницы разлогинивал
+   редактора без токена. */
+test('выход без CSRF-токена не разрывает сессию', async () => {
+  const response = await app.inject({
+    method: 'POST', url: '/admin/logout', cookies: session.cookies, ...form({})
+  })
+  assert.equal(response.statusCode, 403)
+
+  const after = await app.inject({ method: 'GET', url: '/admin', cookies: session.cookies })
+  assert.equal(after.statusCode, 200, 'сессия на месте')
+})
+
 test('выход закрывает доступ', async () => {
   await app.inject({
     method: 'POST', url: '/admin/logout', cookies: session.cookies, ...form({ _csrf: session.csrf })

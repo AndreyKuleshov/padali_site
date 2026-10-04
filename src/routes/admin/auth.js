@@ -54,11 +54,19 @@ async function authRoutes (app) {
     setFlash(reply, 'success', request.t('login.welcome', { email: user.email }))
     return reply.redirect('/admin', 302)
   })
+}
 
+/**
+ * Выход стоит отдельно: он единственный из auth живёт под охраной.
+ * Без неё POST с чужой страницы разлогинивал редактора — мелочь,
+ * но ровно та, от которой охрана и защищает.
+ */
+async function sessionRoutes (app) {
   app.post('/logout', async (request, reply) => {
     await logout(request, reply)
     return reply.redirect('/admin/login', 302)
   })
 }
 
+export { sessionRoutes }
 export default authRoutes

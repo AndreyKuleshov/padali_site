@@ -2,10 +2,11 @@ import { readdir, readFile, rm } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { query } from '../db/pool.js'
-import { findMediaByHash, getMediaByManagedKey, updateMediaFile } from '../repositories/media.js'
 import {
-  hashOf, writeDerivatives, deleteFiles, MIME_BY_EXTENSION, needsRepair
+  findMediaByHash, getMediaByManagedKey, updateMediaFile, countBlockUsesByManagedKey
+} from '../repositories/media.js'
+import {
+  hashOf, writeDerivatives, dropReplacedFiles, MIME_BY_EXTENSION, needsRepair
 } from './media-processor.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -60,22 +61,21 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
          условия про ширину мастера. */
       if (!needsRepair(media)) continue
 
-      const previousPath = media.path
-      const previousBytes = media.bytes
-      const previousWidths = [...(media.derivatives ?? [])].sort((a, b) => a - b)
-      const rebuilt = await writeDerivatives({ buffer, mime: source.mime, hash })
+      const previous = {
+        path: media.path,
+        bytes: media.bytes,
+        derivatives: [...(media.derivatives ?? [])].sort((a, b) => a - b)
+      }
+      const rebuilt = await writeDerivatives({ buffer, hash })
       await updateMediaFile(media.id, {
         path: rebuilt.path, mime: 'image/webp',
         width: rebuilt.width, height: rebuilt.height, bytes: rebuilt.bytes,
         hash, originalName: media.originalName, derivatives: rebuilt.derivatives
       })
-      // Прежний мастер другого формата остался бы висеть на диске.
-      if (previousPath !== rebuilt.path) {
-        await deleteFiles({ path: previousPath, derivatives: [] })
-      }
+      await dropReplacedFiles(previous, rebuilt)
       logger.info?.(
-        `Пересобран ${media.originalName}: [${previousWidths}] → [${rebuilt.derivatives}], ` +
-        `${Math.round(previousBytes / 1024)} КБ → ${Math.round(rebuilt.bytes / 1024)} КБ.`
+        `Пересобран ${media.originalName}: [${previous.derivatives}] → [${rebuilt.derivatives}], ` +
+        `${Math.round(previous.bytes / 1024)} КБ → ${Math.round(rebuilt.bytes / 1024)} КБ.`
       )
       updated.push({ key: source.key, file: source.file, width: rebuilt.width, height: rebuilt.height })
       continue
@@ -90,7 +90,7 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
     }
 
     const previous = { path: media.path, derivatives: media.derivatives }
-    const written = await writeDerivatives({ buffer, mime: source.mime, hash })
+    const written = await writeDerivatives({ buffer, hash })
 
     await updateMediaFile(media.id, {
       path: written.path,
@@ -103,17 +103,13 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
       derivatives: written.derivatives
     })
 
-    await deleteFiles(previous)
+    await dropReplacedFiles(previous, written)
     updated.push({ key: source.key, file: source.file, width: written.width, height: written.height })
   }
 
   if (updated.length > 0) {
     for (const item of updated) {
-      const usage = await query(
-        'SELECT COUNT(*)::int AS uses FROM block_media WHERE media_id = ' +
-        '(SELECT id FROM media WHERE managed_key = ?)', [item.key]
-      )
-      const uses = usage[0]?.uses ?? 0
+      const uses = await countBlockUsesByManagedKey(item.key)
       logger.info?.(
         `Обновлён файл ${item.file} (${item.width}×${item.height}); ` +
         (uses > 0 ? `используется в блоках: ${uses}.` : 'в блоках сейчас не используется.')

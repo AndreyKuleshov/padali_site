@@ -1,10 +1,11 @@
 import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { resetDatabase, makeImage, closePool } from './helpers.js'
 import config from '../src/config.js'
 import {
-  processUpload, deleteFiles, absolutePath, derivativeRelPath, pictureSources, UploadError
+  processUpload, deleteFiles, dropReplacedFiles, absolutePath, derivativeRelPath,
+  pictureSources, UploadError
 } from '../src/services/media-processor.js'
 import { createPage } from '../src/repositories/pages.js'
 import { createBlock, saveBlockMedia } from '../src/repositories/blocks.js'
@@ -179,6 +180,50 @@ test('готовый webp подходящей ширины не перекод�
 
   assert.equal(media.bytes, webp.length, 'байты мастера совпадают с присланными')
   assert.equal(media.width, 900)
+})
+
+/* Тип приходит из формы: сказать «webp» про png мог кто угодно.
+   Раньше такие байты ложились на диск как есть под именем .webp
+   и с записанным mime image/webp. */
+test('заявленный тип не решает за содержимое файла', async () => {
+  const png = await makeImage({ width: 900, height: 600, seed: 61 })
+  const { media } = await processUpload({
+    buffer: png, originalName: 'подделка.webp', mime: 'image/webp'
+  })
+
+  assert.notEqual(media.bytes, png.length, 'png перекодирован, а не положен как есть')
+  const head = await readFile(absolutePath(media.path))
+  assert.equal(head.subarray(8, 12).toString('latin1'), 'WEBP', 'на диске действительно webp')
+})
+
+/* Папка мастера — текущий месяц. Первого числа пересборка кладёт
+   файлы рядом, и сверка по числам ширин считала октябрьскую 640-ю
+   «оставшейся в наборе»: она висела на диске навсегда. */
+test('пересборка в другую папку не оставляет старых ступеней', async () => {
+  const before = (await processUpload({
+    buffer: await makeImage({ width: 1500, height: 1000, seed: 71 }),
+    originalName: 'октябрь.png', mime: 'image/png'
+  })).media
+  const after = (await processUpload({
+    buffer: await makeImage({ width: 1500, height: 1000, seed: 72 }),
+    originalName: 'ноябрь.png', mime: 'image/png'
+  })).media
+
+  assert.deepEqual(before.derivatives, after.derivatives, 'ширины совпадают — важен путь')
+
+  await dropReplacedFiles(before, after)
+
+  for (const width of before.derivatives) {
+    assert.equal(
+      await exists(absolutePath(derivativeRelPath(before.path, width))), false,
+      `ступень ${width} прежней версии убрана`
+    )
+  }
+  assert.equal(await exists(absolutePath(before.path)), false, 'прежний мастер убран')
+  assert.equal(await exists(absolutePath(after.path)), true, 'новый мастер на месте')
+  for (const width of after.derivatives) {
+    assert.equal(await exists(absolutePath(derivativeRelPath(after.path, width))), true)
+  }
 })
 
 test('слишком широкий кадр ужимается до предела мастер-копии', async () => {

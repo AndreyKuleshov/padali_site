@@ -5,6 +5,17 @@ import sharp from 'sharp'
 import config from '../config.js'
 import { findMediaByHash, insertMedia } from '../repositories/media.js'
 
+/* Что в файле на самом деле — знает только sharp. Заявленный тип
+   приходит из формы, его пишет отправитель, и верить ему нельзя:
+   по нему мы решали, можно ли положить присланные байты на диск
+   как готовый webp. */
+const MIME_BY_FORMAT = {
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif'
+}
+
 const MIME_BY_EXTENSION = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -66,7 +77,7 @@ function derivativeRelPath (relativeOriginal, width) {
  *
  * @returns {{path: string, width: number, height: number, derivatives: number[]}}
  */
-async function writeDerivatives ({ buffer, mime, hash }) {
+async function writeDerivatives ({ buffer, hash }) {
   let image = sharp(buffer, { failOn: 'error' })
   let metadata
   try {
@@ -78,6 +89,11 @@ async function writeDerivatives ({ buffer, mime, hash }) {
     throw new UploadError('Не удалось определить размеры изображения.')
   }
 
+  const actualMime = MIME_BY_FORMAT[metadata.format]
+  if (!actualMime || !config.allowedImageMimes.includes(actualMime)) {
+    throw new UploadError(`Тип файла «${metadata.format ?? '?'}» не поддерживается. Разрешены: JPEG, PNG, WebP, AVIF.`)
+  }
+
   /* Присланный файл на диск не кладём: вместо него пишем мастер-копию
      в webp, повёрнутую по EXIF и ограниченную по ширине. Снимок с
      телефона на 12 мегабайт превращается в несколько сотен килобайт,
@@ -87,7 +103,7 @@ async function writeDerivatives ({ buffer, mime, hash }) {
      его бессмысленно. Это вторая потеря качества, а размер от неё
      может даже вырасти, если исходник был сжат сильнее нашего. */
   const alreadyFine =
-    mime === 'image/webp' &&
+    metadata.format === 'webp' &&
     metadata.width <= config.masterMaxWidth &&
     (metadata.orientation ?? 1) === 1
 
@@ -134,6 +150,9 @@ async function writeDerivatives ({ buffer, mime, hash }) {
  * hash уникален, файлы не дублируются.
  */
 async function processUpload ({ buffer, originalName, mime, managedKey = null }) {
+  /* Ранняя отбраковка по заявленному типу: ошибку про .pdf лучше
+     показать до чтения файла. Настоящую проверку делает
+     writeDerivatives — по тому, что внутри. */
   if (!config.allowedImageMimes.includes(mime)) {
     throw new UploadError(`Тип файла «${mime}» не поддерживается. Разрешены: JPEG, PNG, WebP, AVIF.`)
   }
@@ -145,7 +164,7 @@ async function processUpload ({ buffer, originalName, mime, managedKey = null })
   const existing = await findMediaByHash(hash)
   if (existing) return { media: existing, deduplicated: true }
 
-  const written = await writeDerivatives({ buffer, mime, hash })
+  const written = await writeDerivatives({ buffer, hash })
 
   const record = {
     ...written,
@@ -158,6 +177,31 @@ async function processUpload ({ buffer, originalName, mime, managedKey = null })
   record.id = await insertMedia(record)
 
   return { media: record, deduplicated: false }
+}
+
+/**
+ * Убирает с диска файлы прежней версии записи — те, которых нет в новой.
+ *
+ * Сравниваем пути, а не ширины: мастер кладётся в папку текущего
+ * месяца, поэтому после пересборки в ноябре ступень 640 — это уже
+ * другой файл, и октябрьская остаётся висеть, если смотреть
+ * только на числа.
+ */
+async function dropReplacedFiles (before, after) {
+  const kept = new Set([
+    after.path,
+    ...(after.derivatives ?? []).map((width) => derivativeRelPath(after.path, width))
+  ])
+
+  const stale = [
+    before.path,
+    ...(before.derivatives ?? []).map((width) => derivativeRelPath(before.path, width))
+  ]
+
+  for (const file of stale) {
+    if (kept.has(file)) continue
+    await rm(absolutePath(file), { force: true })
+  }
 }
 
 /** Удаляет оригинал и все деривативы с диска. Запись в БД удаляется отдельно. */
@@ -215,7 +259,7 @@ function needsRepair (media) {
 }
 
 export {
-  processUpload, writeDerivatives, deleteFiles, pictureSources, thumbnailUrl,
+  processUpload, writeDerivatives, deleteFiles, dropReplacedFiles, pictureSources, thumbnailUrl,
   mediaUrl, derivativeRelPath, absolutePath, hashOf,
   MIME_BY_EXTENSION, expectedWidths, needsRepair, UploadError
 }

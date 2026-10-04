@@ -174,9 +174,18 @@ async function deleteMedia (id, conn) {
   await db(conn).run('DELETE FROM media WHERE id = ?', [id])
 }
 
+/** Сколько блоков показывают файл репозитория — для журнала обновлений. */
+async function countBlockUsesByManagedKey (key, conn) {
+  const row = await db(conn).one(
+    'SELECT COUNT(*)::int AS uses FROM block_media WHERE media_id = ' +
+    '(SELECT id FROM media WHERE managed_key = ?)', [key]
+  )
+  return row?.uses ?? 0
+}
+
 export {
   findMediaByHash, getMedia, getMediaByIds, getMediaByManagedKey,
   listMedia, countMedia, insertMedia, updateMediaFile,
-  textsForMedia, saveMediaTexts,
+  textsForMedia, saveMediaTexts, countBlockUsesByManagedKey,
   mediaUsage, usageCounts, deleteMedia
 }
