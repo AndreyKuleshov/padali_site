@@ -75,7 +75,7 @@ function derivativeRelPath (relativeOriginal, width) {
  * Кладёт оригинал на диск и генерирует webp-версии.
  * Общая часть загрузки через админку и обновления файлов репозитория.
  *
- * @returns {{path: string, width: number, height: number, derivatives: number[]}}
+ * @returns {{path: string, width: number, height: number, bytes: number, derivatives: number[]}}
  */
 async function writeDerivatives ({ buffer, hash }) {
   let image = sharp(buffer, { failOn: 'error' })
