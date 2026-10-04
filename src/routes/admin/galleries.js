@@ -1,4 +1,5 @@
-import { query, transaction } from '../../db/pool.js'
+import { transaction } from '../../db/pool.js'
+import { blocksUsingGallery } from '../../repositories/blocks.js'
 import {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery,
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
@@ -171,10 +172,7 @@ async function galleryRoutes (app) {
       }))
 
     // Где этот альбом уже вставлен — чтобы было видно последствия правок.
-    const usedIn = await query(
-      "SELECT id, type FROM blocks WHERE settings ->> 'gallery_id' = ?",
-      [String(id)]
-    )
+    const usedIn = await blocksUsingGallery(id)
 
     return renderAdmin(request, reply, 'admin/gallery-form', {
       gallery,
@@ -242,10 +240,7 @@ async function galleryRoutes (app) {
     const id = numericId(request)
     if (id === null) return reply.callNotFound()
 
-    const usedIn = await query(
-      "SELECT id FROM blocks WHERE settings ->> 'gallery_id' = ?",
-      [String(id)]
-    )
+    const usedIn = await blocksUsingGallery(id)
     if (usedIn.length > 0) {
       setFlash(reply, 'error', request.t('galleries.inUse', { count: usedIn.length }))
       return reply.redirect(`/admin/galleries/${id}`, 302)

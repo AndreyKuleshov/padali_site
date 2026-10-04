@@ -13,4 +13,13 @@ async function getDefaultLocale (conn) {
   return row?.code ?? 'en'
 }
 
-export { listLocales, getDefaultLocale }
+/** Заводит язык, если его ещё нет. Повторный вызов ничего не меняет. */
+async function ensureLocale ({ code, title, isDefault = false, position = 0 }, conn) {
+  await db(conn).run(
+    'INSERT INTO locales (code, title, is_default, position) VALUES (?, ?, ?, ?) ' +
+    'ON CONFLICT (code) DO NOTHING',
+    [code, title, isDefault, position]
+  )
+}
+
+export { listLocales, getDefaultLocale, ensureLocale }

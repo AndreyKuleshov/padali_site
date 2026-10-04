@@ -134,9 +134,24 @@ async function saveBlockMedia (blockId, mediaByField, conn) {
   )
 }
 
+/**
+ * Блоки, в которые вставлен альбом.
+ *
+ * Ссылка лежит в settings как строка: альбом выбирают списком, и
+ * число приходит из формы текстом. Поэтому сравниваем со строкой,
+ * а не приводим колонку к числу — иначе индекс по settings не
+ * пригодится, а мусор в поле уронит запрос.
+ */
+async function blocksUsingGallery (galleryId, conn) {
+  return db(conn).all(
+    "SELECT id, type FROM blocks WHERE settings ->> 'gallery_id' = ?",
+    [String(galleryId)]
+  )
+}
+
 export {
   listBlocks, getBlock, createBlock, updateBlock, setBlockVisibility,
   deleteBlock, reorderBlocks,
   textsForBlocks, getBlockTexts, saveBlockTexts,
-  mediaForBlocks, getBlockMedia, saveBlockMedia
+  mediaForBlocks, getBlockMedia, saveBlockMedia, blocksUsingGallery
 }

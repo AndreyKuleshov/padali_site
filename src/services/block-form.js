@@ -11,6 +11,7 @@
  * переводимые — в block_texts под ключом `<повторитель>.<i>.<подполе>`.
  */
 import { parseVideoId, watchUrl } from './youtube.js'
+import { textKeysFor } from '../blocks/index.js'
 
 function asString (value) {
   if (Array.isArray(value)) value = value[0]
@@ -142,15 +143,11 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
     settings[field.key] = rows
   }
 
-  // Ключи текстов, которые вообще имеет смысл сохранять.
-  const allowedKeys = new Set(['nav_label', ...(descriptor.texts ?? []).map((field) => field.key)])
-  for (const field of descriptor.settings ?? []) {
-    if (field.input !== 'repeater') continue
-    const rows = settings[field.key] ?? []
-    for (const sub of field.fields.filter((item) => item.translatable)) {
-      rows.forEach((_row, index) => allowedKeys.add(`${field.key}.${index}.${sub.key}`))
-    }
-  }
+  /* Ключи текстов, которые вообще имеет смысл сохранять. Строки
+     повторителя считаем по уже перенумерованным settings: ключ
+     должен указывать на ту строку, что осталась в форме.
+     Подпись в меню в дескрипторе не описана — она есть у всех. */
+  const allowedKeys = new Set(['nav_label', ...textKeysFor(descriptor, settings)])
 
   const textsByLocale = {}
   for (const locale of locales) {

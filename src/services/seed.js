@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
-import { query, transaction } from '../db/pool.js'
-import { db } from '../repositories/helpers.js'
-import { createPage, getPageBySlug, savePageTexts, HOME_SLUG } from '../repositories/pages.js'
+import { transaction } from '../db/pool.js'
+import {
+  createPage, getPageBySlug, savePageTexts, countPages, HOME_SLUG
+} from '../repositories/pages.js'
 import { createBlock, listBlocks, saveBlockTexts, saveBlockMedia } from '../repositories/blocks.js'
-import { listLocales } from '../repositories/locales.js'
+import { listLocales, ensureLocale } from '../repositories/locales.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../repositories/galleries.js'
 import { saveMediaTexts } from '../repositories/media.js'
 import { getSetting, setSetting } from '../repositories/settings.js'
@@ -39,17 +40,13 @@ async function importAsset (directory, filename, texts, logger) {
  * Запускается один раз — при пустой таблице pages.
  */
 async function ensureSeeded ({ logger = console } = {}) {
-  const [{ total }] = await query('SELECT COUNT(*) AS total FROM pages')
-  if (Number(total) > 0) return false
+  if (await countPages() > 0) return false
 
   logger.info?.('База пуста — переношу содержимое исходного лендинга.')
 
   await transaction(async (conn) => {
-    const insertLocale =
-      'INSERT INTO locales (code, title, is_default, position) VALUES (?, ?, ?, ?) ' +
-      'ON CONFLICT (code) DO NOTHING'
-    await db(conn).run(insertLocale, ['en', 'English', true, 0])
-    await db(conn).run(insertLocale, ['sr', 'Srpski', false, 1])
+    await ensureLocale({ code: 'en', title: 'English', isDefault: true, position: 0 }, conn)
+    await ensureLocale({ code: 'sr', title: 'Srpski', position: 1 }, conn)
   })
 
   const pageId = await createPage({ slug: HOME_SLUG })

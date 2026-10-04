@@ -35,4 +35,10 @@ async function savePageTexts (pageId, textsByLocale, conn) {
   })
 }
 
-export { getPageBySlug, createPage, getPageTexts, savePageTexts, HOME_SLUG }
+/** Есть ли вообще страницы — по этому признаку решают, сидировать ли базу. */
+async function countPages (conn) {
+  const row = await db(conn).one('SELECT COUNT(*) AS total FROM pages')
+  return Number(row.total)
+}
+
+export { getPageBySlug, createPage, getPageTexts, savePageTexts, countPages, HOME_SLUG }
