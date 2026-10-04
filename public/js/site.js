@@ -45,17 +45,20 @@
      стрелки и счётчик не показываются. */
   function initLightbox () {
     var lightbox = document.getElementById('lightbox')
-    var image = document.getElementById('lightboxImg')
-    var caption = document.getElementById('lightboxCaption')
+    var track = document.getElementById('lightboxTrack')
     var counter = document.getElementById('lightboxCounter')
     var closeButton = document.getElementById('lightboxClose')
     var prevButton = document.getElementById('lightboxPrev')
     var nextButton = document.getElementById('lightboxNext')
-    if (!lightbox || !image) return
+    if (!lightbox || !track) return
 
-    var items = []
+    var GLIDE_MS = 260
+
+    var count = 0
     var index = 0
     var lastFocused = null
+    var settle = null
+    var gliding = null
 
     function sourceOf (node) {
       return node.getAttribute('data-lightbox') || node.currentSrc || node.src
@@ -67,32 +70,98 @@
       return text ? text.textContent.trim() : ''
     }
 
-    /** Соседние кадры подгружаем заранее: листание без мигания. */
-    function preloadNeighbours () {
-      if (items.length < 2) return
-      ;[index - 1, index + 1].forEach(function (position) {
-        var node = items[(position + items.length) % items.length]
-        if (node) new Image().src = sourceOf(node)
+    /* Человек мог попросить систему не двигать ничего лишнего. */
+    function stillness () {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    }
+
+    function updateCounter () {
+      if (!counter) return
+      counter.textContent = count > 1 ? (index + 1) + ' / ' + count : ''
+    }
+
+    function stopGliding () {
+      if (gliding === null) return
+      cancelAnimationFrame(gliding)
+      gliding = null
+      track.style.scrollSnapType = ''
+    }
+
+    /**
+     * Плавный переезд к кадру — своими руками, а не behavior:
+     * 'smooth'.
+     *
+     * Программную плавную прокрутку в контейнере с примагничиванием
+     * часть браузеров отменяет на полпути: об это уже спотыкались в
+     * ленте галереи, и там от неё отказались. Свой переезд ведёт
+     * себя одинаково везде. Примагничивание на время движения
+     * снимаем, иначе оно тянет ленту назад к текущему кадру.
+     */
+    function glide (to) {
+      stopGliding()
+      var from = track.scrollLeft
+      var distance = to - from
+      if (distance === 0) return
+
+      var started = 0
+      track.style.scrollSnapType = 'none'
+
+      gliding = requestAnimationFrame(function frame (now) {
+        if (started === 0) started = now
+        var passed = Math.min((now - started) / GLIDE_MS, 1)
+        // Замедление к концу: ровная скорость с резкой остановкой
+        // читается как тот же рывок, только длиннее.
+        track.scrollLeft = from + distance * (1 - Math.pow(1 - passed, 3))
+
+        if (passed < 1) { gliding = requestAnimationFrame(frame); return }
+        gliding = null
+        track.style.scrollSnapType = ''
       })
     }
 
-    function show (position) {
-      index = (position + items.length) % items.length
-      var node = items[index]
+    function goTo (position, animate) {
+      index = Math.max(0, Math.min(position, count - 1))
+      var left = index * track.clientWidth
 
-      image.src = sourceOf(node)
-      image.alt = node.alt || ''
-      if (caption) caption.textContent = captionOf(node)
+      if (animate && !stillness()) glide(left)
+      else { stopGliding(); track.scrollLeft = left }
 
-      var many = items.length > 1
-      if (prevButton) prevButton.hidden = !many
-      if (nextButton) nextButton.hidden = !many
-      if (counter) {
-        counter.hidden = !many
-        counter.textContent = many ? (index + 1) + ' / ' + items.length : ''
-      }
+      updateCounter()
+    }
 
-      preloadNeighbours()
+    /**
+     * Кадры лежат в ленте все сразу, иначе соседний неоткуда взять
+     * во время движения пальца. Качаются при этом не все: дальним
+     * проставлен loading="lazy", и браузер берёт их по мере
+     * приближения. Атрибут ставится до адреса — после него загрузка
+     * уже началась бы, и альбом на сотню кадров потянул бы сотню
+     * файлов разом.
+     */
+    function build (nodes, start) {
+      var frame = document.createDocumentFragment()
+
+      nodes.forEach(function (node, position) {
+        var slide = document.createElement('figure')
+        slide.className = 'lightbox-slide'
+
+        var picture = document.createElement('img')
+        picture.alt = node.alt || ''
+        picture.loading = Math.abs(position - start) <= 1 ? 'eager' : 'lazy'
+        picture.decoding = 'async'
+        picture.src = sourceOf(node)
+        slide.appendChild(picture)
+
+        var text = captionOf(node)
+        if (text) {
+          var label = document.createElement('figcaption')
+          label.textContent = text
+          slide.appendChild(label)
+        }
+
+        frame.appendChild(slide)
+      })
+
+      track.replaceChildren(frame)
     }
 
     function collect (trigger) {
@@ -104,26 +173,62 @@
 
     function open (trigger) {
       lastFocused = document.activeElement
-      items = collect(trigger)
-      var start = items.indexOf(trigger)
-      show(start === -1 ? 0 : start)
+      var nodes = collect(trigger)
+      var start = nodes.indexOf(trigger)
+      if (start === -1) start = 0
+
+      count = nodes.length
+      build(nodes, start)
+
+      var many = count > 1
+      if (prevButton) prevButton.hidden = !many
+      if (nextButton) nextButton.hidden = !many
+      if (counter) counter.hidden = !many
 
       lightbox.hidden = false
-      document.body.style.overflow = 'hidden'
+      document.body.classList.add('no-scroll')
+      // Ширину ленты видно только после показа: у скрытого нуль.
+      goTo(start, false)
       if (closeButton) closeButton.focus()
     }
 
     function close () {
+      stopGliding()
       lightbox.hidden = true
-      image.src = ''
-      items = []
-      document.body.style.overflow = ''
+      track.replaceChildren()
+      count = 0
+      index = 0
+      document.body.classList.remove('no-scroll')
       if (lastFocused && lastFocused.focus) lastFocused.focus()
     }
 
+    /* На краях заворачиваем мгновенно: плавно пришлось бы проехать
+       мимо всех кадров сразу, а это не листание, а поездка. */
     function step (delta) {
-      if (items.length > 1) show(index + delta)
+      if (count < 2) return
+      var next = index + delta
+      if (next < 0) goTo(count - 1, false)
+      else if (next > count - 1) goTo(0, false)
+      else goTo(next, true)
     }
+
+    // Палец главнее начатого переезда: иначе они тянут ленту вдвоём.
+    track.addEventListener('touchstart', stopGliding, { passive: true })
+
+    // Человек листает сам — считаем кадр по положению ленты.
+    track.addEventListener('scroll', function () {
+      clearTimeout(settle)
+      settle = setTimeout(function () {
+        if (count === 0 || track.clientWidth === 0 || gliding !== null) return
+        index = Math.round(track.scrollLeft / track.clientWidth)
+        updateCounter()
+      }, 90)
+    }, { passive: true })
+
+    // Повернули телефон — ширина кадра другая, лента уехала бы вбок.
+    window.addEventListener('resize', function () {
+      if (!lightbox.hidden) goTo(index, false)
+    })
 
     document.addEventListener('click', function (event) {
       var trigger = event.target.closest('img[data-lightbox]')
@@ -135,7 +240,7 @@
       if (event.target.closest('#lightboxClose')) { close(); return }
 
       // Клик по подложке закрывает, по самой фотографии — нет.
-      if (event.target.closest('#lightbox') && !event.target.closest('.lightbox-figure img')) {
+      if (event.target.closest('#lightbox') && !event.target.closest('.lightbox-slide img')) {
         close()
       }
     })
@@ -146,8 +251,9 @@
       if (event.key === 'Escape') { close(); return }
       if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1); return }
       if (event.key === 'ArrowRight') { event.preventDefault(); step(1); return }
-      if (event.key === 'Home') { event.preventDefault(); show(0); return }
-      if (event.key === 'End') { event.preventDefault(); show(items.length - 1); return }
+      // К краям альбома переходим сразу: плавно это проезд насквозь.
+      if (event.key === 'Home') { event.preventDefault(); goTo(0, false); return }
+      if (event.key === 'End') { event.preventDefault(); goTo(count - 1, false); return }
 
       // Фокус не должен уходить на страницу под просмотром.
       if (event.key === 'Tab') {
@@ -161,24 +267,6 @@
         focusable[(next + focusable.length) % focusable.length].focus()
       }
     })
-
-    /* Свайп на телефоне. Вертикальное движение не перехватываем —
-       это обычная прокрутка или закрытие жестом браузера. */
-    var touchStartX = 0
-    var touchStartY = 0
-
-    lightbox.addEventListener('touchstart', function (event) {
-      touchStartX = event.changedTouches[0].clientX
-      touchStartY = event.changedTouches[0].clientY
-    }, { passive: true })
-
-    lightbox.addEventListener('touchend', function (event) {
-      var deltaX = event.changedTouches[0].clientX - touchStartX
-      var deltaY = event.changedTouches[0].clientY - touchStartY
-      if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
-        step(deltaX < 0 ? 1 : -1)
-      }
-    }, { passive: true })
   }
 
   /* ── Прокрутка галереи без открытия фотографии ────────────

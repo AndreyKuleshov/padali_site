@@ -14,10 +14,10 @@
     <%~ it.h.icon('arrow-right') %>
   </button>
 
-  <figure class="lightbox-figure">
-    <img id="lightboxImg" src="" alt="">
-    <figcaption id="lightboxCaption"></figcaption>
-  </figure>
+  <% ;/* Кадры складывает скрипт при открытии: лента с
+         примагничиванием листается пальцем, а не подменой
+         адреса в одной картинке. */ %>
+  <div class="lightbox-track" id="lightboxTrack"></div>
 
   <p class="lightbox-counter" id="lightboxCounter" hidden aria-live="polite"></p>
 </div>
