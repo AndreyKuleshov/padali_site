@@ -831,7 +831,9 @@ img[data-lightbox] { cursor: zoom-in; }
 
 /* ─── Контакт покупателя ─────────────────────────────────── */
 
-.contact-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
+/* Переключатель и поле — в две строки: в один ряд «Telegram» не
+   помещался и уезжал под поле ввода. */
+.contact-row { display: grid; gap: 8px; }
 
 .contact-row select {
   width: 100%;
@@ -855,6 +857,58 @@ img[data-lightbox] { cursor: zoom-in; }
 .contact-pick > span { color: var(--soft); font-size: .9rem; display: block; margin-bottom: 6px; }
 .contact-pick .form-note { margin-top: 6px; }
 
-@media (max-width: 420px) {
-  .contact-row { grid-template-columns: 1fr; }
+
+
+/* Крутилка на отправке: до ответа сервера ничего не меняется, и
+   без неё жмут второй раз. */
+.button.is-busy { position: relative; color: transparent; }
+
+.button.is-busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bg);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .button.is-busy::after { animation: none; }
+}
+
+/* ─── Вид связи ──────────────────────────────────────────── */
+
+.contact-kinds { display: flex; gap: 6px; }
+
+.contact-kind { flex: 1 1 0; }
+.contact-kind input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.contact-kind span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--soft);
+  font-size: .9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.contact-kind svg { width: 16px; height: 16px; flex: none; }
+.contact-kind span:hover { border-color: var(--soft); color: var(--ink); }
+
+.contact-kind input:checked + span {
+  border-color: var(--neon);
+  color: var(--neon);
+}
+
+.contact-kind input:focus-visible + span { outline: 2px solid var(--neon); outline-offset: 2px; }

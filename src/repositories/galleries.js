@@ -74,15 +74,35 @@ async function itemsForGalleries (ids, conn) {
  */
 async function itemFieldsForGalleries (ids, conn) {
   if (ids.length === 0) return new Map()
-  const rows = await db(conn).all(
-    'SELECT gallery_id, media_id, title, price FROM gallery_items ' +
-    `WHERE gallery_id IN (${placeholders(ids.length)}) AND (title <> '' OR price <> '')`,
-    ids
-  )
+  const runner = db(conn)
+  const list = placeholders(ids.length)
+
+  const [prices, texts] = await Promise.all([
+    runner.all(
+      `SELECT gallery_id, media_id, price FROM gallery_items ` +
+      `WHERE gallery_id IN (${list}) AND price <> ''`,
+      ids
+    ),
+    runner.all(
+      'SELECT gallery_id, media_id, locale, field, value FROM gallery_item_texts ' +
+      `WHERE gallery_id IN (${list})`,
+      ids
+    )
+  ])
+
   const grouped = new Map()
-  for (const row of rows) {
-    if (!grouped.has(row.gallery_id)) grouped.set(row.gallery_id, new Map())
-    grouped.get(row.gallery_id).set(row.media_id, { title: row.title, price: row.price })
+  const slot = (galleryId, mediaId) => {
+    if (!grouped.has(galleryId)) grouped.set(galleryId, new Map())
+    const album = grouped.get(galleryId)
+    if (!album.has(mediaId)) album.set(mediaId, { price: '', title: {} })
+    return album.get(mediaId)
+  }
+
+  for (const row of prices) slot(row.gallery_id, row.media_id).price = row.price
+  for (const row of texts) {
+    const item = slot(row.gallery_id, row.media_id)
+    item[row.field] ??= {}
+    item[row.field][row.locale] = row.value
   }
   return grouped
 }
@@ -111,19 +131,25 @@ async function setGalleryItems (galleryId, items, conn) {
     seen.add(mediaId)
     unique.push({
       mediaId,
-      title: String(isPair ? item.title ?? '' : '').trim().slice(0, 160),
+      // Название — объект по языкам; строка допускается ради
+      // вызовов, которым язык не важен (сид, тесты).
+      title: isPair ? item.title : undefined,
       price: String(isPair ? item.price ?? '' : '').trim().slice(0, 64)
     })
   }
   if (unique.length === 0) return
 
-  const values = unique.map(() => '(?, ?, ?, ?, ?)').join(', ')
-  const params = unique.flatMap((item, index) =>
-    [galleryId, item.mediaId, index, item.title, item.price])
+  const values = unique.map(() => '(?, ?, ?, ?)').join(', ')
+  const params = unique.flatMap((item, index) => [galleryId, item.mediaId, index, item.price])
   await runner.run(
-    `INSERT INTO gallery_items (gallery_id, media_id, position, title, price) VALUES ${values}`,
+    `INSERT INTO gallery_items (gallery_id, media_id, position, price) VALUES ${values}`,
     params
   )
+
+  for (const item of unique) {
+    if (item.title === undefined) continue
+    await writeItemTexts(runner, galleryId, item.mediaId, item.title)
+  }
   await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
 }
 
@@ -168,6 +194,28 @@ async function appendGalleryItems (galleryId, mediaIds, conn) {
 }
 
 /**
+ * Убрать снимки из альбома. Сами файлы остаются в медиатеке:
+ * их могли вставить в другой блок, да и перезагружать их потом
+ * заново — лишняя работа.
+ *
+ * @returns {Promise<number>} сколько убралось
+ */
+async function removeGalleryItems (galleryId, mediaIds, conn) {
+  const ids = mediaIds.map(Number).filter(Boolean)
+  if (ids.length === 0) return 0
+
+  const runner = db(conn)
+  const result = await runner.run(
+    `DELETE FROM gallery_items WHERE gallery_id = ? AND media_id IN (${placeholders(ids.length)})`,
+    [galleryId, ...ids]
+  )
+  /* Дыры в позициях не чиним: порядок задан самими числами, а
+     перенумерация ради красоты переписала бы весь альбом. */
+  if (result.rowCount > 0) await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
+  return result.rowCount ?? 0
+}
+
+/**
  * Название и цена у уже лежащих в альбоме снимков.
  *
  * Только UPDATE: состав альбома эта правка не меняет, а чужой
@@ -182,24 +230,61 @@ async function setGalleryItemFields (galleryId, fields, conn) {
   for (const [key, value] of Object.entries(fields ?? {})) {
     const mediaId = Number(key)
     if (!mediaId) continue
+
     const result = await runner.run(
-      'UPDATE gallery_items SET title = ?, price = ? WHERE gallery_id = ? AND media_id = ?',
-      [
-        String(value?.title ?? '').trim().slice(0, 160),
-        String(value?.price ?? '').trim().slice(0, 64),
-        galleryId,
-        mediaId
-      ]
+      'UPDATE gallery_items SET price = ? WHERE gallery_id = ? AND media_id = ?',
+      [String(value?.price ?? '').trim().slice(0, 64), galleryId, mediaId]
     )
-    changed += result.rowCount ?? 0
+    // Чужой media_id ни во что не попал — тексты ему тоже не пишем.
+    if ((result.rowCount ?? 0) === 0) continue
+
+    changed += 1
+    await writeItemTexts(runner, galleryId, mediaId, value?.title)
   }
 
   if (changed > 0) await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
   return changed
 }
 
+/**
+ * Название товара по языкам. Принимает и строку — тогда она
+ * ложится в язык по умолчанию: так зовут сид и тесты, которым
+ * перевод не нужен.
+ */
+async function writeItemTexts (runner, galleryId, mediaId, title) {
+  await runner.run(
+    "DELETE FROM gallery_item_texts WHERE gallery_id = ? AND media_id = ? AND field = 'title'",
+    [galleryId, mediaId]
+  )
+  if (title === undefined || title === null || title === '') return
+
+  let byLocale = title
+  if (typeof title === 'string') {
+    const row = await runner.one(
+      'SELECT code FROM locales ORDER BY is_default DESC, position LIMIT 1'
+    )
+    byLocale = { [row?.code ?? 'en']: title }
+  }
+
+  const values = []
+  const params = []
+  for (const [locale, value] of Object.entries(byLocale)) {
+    const text = String(value ?? '').trim().slice(0, 160)
+    if (text === '') continue
+    values.push('(?, ?, ?, ?, ?)')
+    params.push(galleryId, mediaId, locale, 'title', text)
+  }
+  if (values.length === 0) return
+
+  await runner.run(
+    'INSERT INTO gallery_item_texts (gallery_id, media_id, locale, field, value) ' +
+    `VALUES ${values.join(', ')}`,
+    params
+  )
+}
+
 export {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery, deleteGallery,
   textsForGalleries, getGalleryTexts, saveGalleryTexts,
-  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems, setGalleryItemFields
+  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems, removeGalleryItems, setGalleryItemFields
 }

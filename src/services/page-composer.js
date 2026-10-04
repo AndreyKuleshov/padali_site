@@ -137,7 +137,14 @@ async function composePage ({ slug = 'home', locale }) {
           // Название и цену видит только блок мерча, остальным
           // они не мешают.
           const own = fields.get(mediaId)
-          return { ...view, title: own?.title ?? '', price: own?.price ?? '' }
+          return {
+            ...view,
+            // Название товара переводится, поэтому выбирается так
+            // же, как остальные тексты: язык страницы, затем язык
+            // по умолчанию.
+            title: own?.title?.[activeLocale] ?? own?.title?.[defaultLocale] ?? '',
+            price: own?.price ?? ''
+          }
         })
         .filter(Boolean)
       const galleryTexts = textsByGallery.get(galleryId)

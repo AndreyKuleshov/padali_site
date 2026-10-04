@@ -48,7 +48,17 @@
       data-uploading="<%= it.t('blockForm.uploading') %>"
       data-failed="<%= it.t('blockForm.uploadFailed') %>"
       data-item-title="<%= it.t('galleries.itemTitle') %>"
-      data-item-price="<%= it.t('galleries.price') %>"></span>
+      data-item-price="<%= it.t('galleries.price') %>"
+      data-remove="<%= it.t('galleries.removeFromAlbum') %>"
+      data-locales="<%= (it.locales || []).map(function (l) { return l.code }).join(',') %>"></span>
+
+<% if (it.canTranslate) { %>
+<% ;/* Строка перевода для карточек товара: они рисуются скриптом,
+       а разметка должна остаться одна на всю админку. */ %>
+<template data-translate-template>
+  <%~ include('/admin/partials/translate-row', it) %>
+</template>
+<% } %>
 <span id="uploadStrings" hidden
       data-uploading="<%= it.t('blockForm.uploading') %>"
       data-failed="<%= it.t('blockForm.uploadFailed') %>"></span>

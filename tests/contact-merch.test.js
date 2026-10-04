@@ -477,16 +477,46 @@ test('в форме блока есть загрузка и показ сост�
 test('название товара принадлежит альбому, а не файлу', async () => {
   const id = await photo(51)
   const album = await createGallery('merch')
-  await setGalleryItems(album, [{ mediaId: id, title: 'Футболка PADALI', price: '2500 RSD' }])
+  await setGalleryItems(album, [
+    { mediaId: id, title: { en: 'PADALI shirt', sr: 'PADALI majica' }, price: '2500 RSD' }
+  ])
 
   await createBlock({
     pageId, type: 'merch', isVisible: true,
     settings: { ...defaultSettings('merch'), gallery_id: album }
   })
 
-  const body = (await app.inject({ method: 'GET', url: '/' })).body
-  assert.match(body, /Футболка PADALI/)
-  assert.match(body, /data-order-item="Футболка PADALI — 2500 RSD"/)
+  const en = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(en, /PADALI shirt/)
+  assert.match(en, /data-order-item="PADALI shirt — 2500 RSD"/)
+
+  const sr = (await app.inject({ method: 'GET', url: '/sr' })).body
+  assert.match(sr, /PADALI majica/, 'на сербской странице — сербское название')
+  assert.doesNotMatch(sr, /PADALI shirt/)
+})
+
+/** Перевода на язык страницы нет — показываем язык по умолчанию. */
+test('без перевода название откатывается на язык по умолчанию', async () => {
+  const id = await photo(57)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [{ mediaId: id, title: { en: 'Only English' }, price: '900 RSD' }])
+
+  await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const sr = (await app.inject({ method: 'GET', url: '/sr' })).body
+  assert.match(sr, /Only English/)
+})
+
+test('строкой название ложится в язык по умолчанию', async () => {
+  const id = await photo(58)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [{ mediaId: id, title: 'Просто строка', price: '100 RSD' }])
+
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.deepEqual(fields.get(id).title, { en: 'Просто строка' })
 })
 
 test('без названия берётся подпись файла, а без неё — только цена', async () => {
@@ -503,32 +533,29 @@ test('без названия берётся подпись файла, а бе�
   assert.match(body, /data-order-item="900 RSD"/, 'без висящего тире')
 })
 
-test('название сохраняется из формы альбома вместе с ценой', async () => {
+/** Название переводится и правится в блоке; здесь — только цена. */
+test('форма альбома правит цену и не трогает переводы названия', async () => {
   const id = await photo(53)
   const album = await createGallery('merch')
-  await setGalleryItems(album, [id])
+  await setGalleryItems(album, [{ mediaId: id, title: { en: 'Hoodie', sr: 'Duks' } }])
 
   await app.inject({
     method: 'POST',
     url: `/admin/galleries/${album}`,
     cookies: auth.cookies,
-    ...form({
-      _csrf: auth.csrf, slug: 'merch', items: String(id),
-      [`title[m${id}]`]: 'Худи PADALI',
-      [`price[m${id}]`]: '5500 RSD'
-    })
+    ...form({ _csrf: auth.csrf, slug: 'merch', items: String(id), [`price[m${id}]`]: '5500 RSD' })
   })
 
   const fields = (await itemFieldsForGalleries([album])).get(album)
-  assert.equal(fields.get(id).title, 'Худи PADALI')
   assert.equal(fields.get(id).price, '5500 RSD')
+  assert.deepEqual(fields.get(id).title, { en: 'Hoodie', sr: 'Duks' }, 'переводы уцелели')
 })
 
 test('дозагрузка не стирает название', async () => {
   const first = await photo(54)
   const second = await photo(55)
   const album = await createGallery('merch')
-  await setGalleryItems(album, [{ mediaId: first, title: 'Кепка', price: '1500 RSD' }])
+  await setGalleryItems(album, [{ mediaId: first, title: { en: 'Cap' }, price: '1500 RSD' }])
 
   await app.inject({
     method: 'POST',
@@ -538,11 +565,11 @@ test('дозагрузка не стирает название', async () => {
   })
 
   const fields = (await itemFieldsForGalleries([album])).get(album)
-  assert.equal(fields.get(first).title, 'Кепка')
+  assert.deepEqual(fields.get(first).title, { en: 'Cap' })
   assert.equal(fields.get(first).price, '1500 RSD')
 })
 
-test('в форме альбома есть поле названия', async () => {
+test('в форме альбома есть цена, а названия нет', async () => {
   const id = await photo(56)
   const album = await createGallery('merch')
   await setGalleryItems(album, [id])
@@ -551,8 +578,8 @@ test('в форме альбома есть поле названия', async ()
     method: 'GET', url: `/admin/galleries/${album}`, cookies: auth.cookies
   })).body
 
-  assert.ok(body.includes(`name="title[m${id}]"`), 'поле названия')
-  assert.ok(body.includes(`name="price[m${id}]"`), 'поле цены')
+  assert.ok(body.includes(`name="price[m${id}]"`), 'цена здесь')
+  assert.ok(!body.includes(`name="title[m${id}]"`), 'название — в блоке мерча')
 })
 
 /* ─── Контакт покупателя ─────────────────────────────────── */
@@ -657,12 +684,11 @@ test('в окне заказа есть выбор вида связи и вык
 
   const body = (await app.inject({ method: 'GET', url: '/' })).body
 
-  assert.match(body, /name="contact_kind"/)
-  assert.match(body, /value="email"/)
-  assert.match(body, /value="telegram"/)
+  assert.match(body, /name="contact_kind" value="email" checked/)
+  assert.match(body, /name="contact_kind" value="telegram"/)
   assert.doesNotMatch(body, /value="instagram"/, 'инстаграм убран из списка')
   assert.match(body, /data-contact-value/)
-  assert.match(body, /disabled/, 'поле адреса ждёт выбора')
+  assert.match(body, /placeholder="name@example\.com"/, 'почта выбрана заранее')
 })
 
 /** Ящик у группы общий — письмо на языке сайта, а не разработки. */
@@ -728,17 +754,19 @@ test('название и цена сохраняются формой блок�
       _csrf: auth.csrf,
       'settings[gallery_id]': String(album),
       'settings[columns]': '3',
-      [`item[m${first}][title]`]: 'Футболка',
+      [`item[m${first}][title][en]`]: 'Shirt',
+      [`item[m${first}][title][sr]`]: 'Majica',
       [`item[m${first}][price]`]: '2500 RSD',
-      [`item[m${second}][title]`]: 'Нашивка',
+      [`item[m${second}][title][en]`]: 'Patch',
+      [`item[m${second}][title][sr]`]: '',
       [`item[m${second}][price]`]: '600 RSD'
     })
   })
 
   const fields = (await itemFieldsForGalleries([album])).get(album)
-  assert.equal(fields.get(first).title, 'Футболка')
+  assert.deepEqual(fields.get(first).title, { en: 'Shirt', sr: 'Majica' })
   assert.equal(fields.get(first).price, '2500 RSD')
-  assert.equal(fields.get(second).title, 'Нашивка')
+  assert.deepEqual(fields.get(second).title, { en: 'Patch' }, 'пустой перевод не хранится')
 })
 
 /** Чужой media_id ни во что не попадёт: правим только свой альбом. */
@@ -748,7 +776,7 @@ test('правка не трогает чужие альбомы', async () => {
   const album = await createGallery('merch')
   const other = await createGallery('other')
   await setGalleryItems(album, [mine])
-  await setGalleryItems(other, [{ mediaId: alien, title: 'Чужое', price: '1 RSD' }])
+  await setGalleryItems(other, [{ mediaId: alien, title: { en: 'Alien' }, price: '1 RSD' }])
 
   const id = await createBlock({
     pageId, type: 'merch',
@@ -763,26 +791,28 @@ test('правка не трогает чужие альбомы', async () => {
       _csrf: auth.csrf,
       'settings[gallery_id]': String(album),
       'settings[columns]': '3',
-      [`item[m${alien}][title]`]: 'Подмена',
+      [`item[m${alien}][title][en]`]: 'Подмена',
       [`item[m${alien}][price]`]: '999 RSD'
     })
   })
 
   const fields = (await itemFieldsForGalleries([other])).get(other)
-  assert.equal(fields.get(alien).title, 'Чужое')
+  assert.deepEqual(fields.get(alien).title, { en: 'Alien' })
   assert.equal(fields.get(alien).price, '1 RSD')
 })
 
-test('состав альбома отдаёт название и цену для полей', async () => {
+test('состав альбома отдаёт название по языкам и цену', async () => {
   const id = await photo(75)
   const album = await createGallery('merch')
-  await setGalleryItems(album, [{ mediaId: id, title: 'Кепка', price: '1500 RSD' }])
+  await setGalleryItems(album, [
+    { mediaId: id, title: { en: 'Cap', sr: 'Kapa' }, price: '1500 RSD' }
+  ])
 
   const body = (await app.inject({
     method: 'GET', url: `/admin/galleries/${album}/items.json`, cookies: auth.cookies
   })).json()
 
-  assert.equal(body.items[0].title, 'Кепка')
+  assert.deepEqual(body.items[0].title, { en: 'Cap', sr: 'Kapa' })
   assert.equal(body.items[0].price, '1500 RSD')
 })
 
@@ -826,4 +856,40 @@ test('одна колонка разрешена', async () => {
   })
 
   assert.equal((await getBlock(id)).settings.columns, 1)
+})
+
+/** Поле адреса включено сразу: выключенное браузер не проверяет,
+ *  и заказ уходил бы вовсе без связи. */
+test('город и адрес обязательны, адрес не выключен', async () => {
+  const album = await createGallery('merch')
+  const id = await photo(81)
+  await setGalleryItems(album, [{ mediaId: id, title: { en: 'Shirt' }, price: '2500 RSD' }])
+  await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const city = /<input type="text" name="city"[^>]*>/.exec(body)[0]
+  const contact = /<input type="text" name="contact"[^>]*>/.exec(body)[0]
+
+  assert.match(city, /required/)
+  assert.match(contact, /required/)
+  assert.doesNotMatch(contact, /disabled/)
+})
+
+test('вид связи показан иконками, почта выбрана заранее', async () => {
+  const album = await createGallery('merch')
+  const id = await photo(82)
+  await setGalleryItems(album, [{ mediaId: id, price: '900 RSD' }])
+  await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const kinds = body.slice(body.indexOf('contact-kinds'), body.indexOf('data-contact-value'))
+
+  assert.match(body, /value="email" checked/)
+  assert.equal((kinds.match(/<svg/g) || []).length, 2, 'по иконке на каждый вид')
 })

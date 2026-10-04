@@ -17,6 +17,37 @@
     if (message && !window.confirm(message)) event.preventDefault()
   })
 
+  /* ── Enter в форме ───────────────────────────────────────
+     В длинной форме Enter из любого поля отправлял всю форму —
+     недописанный блок сохранялся на полуслове. Теперь Enter в
+     строке перевода переводит, в остальных полях не делает
+     ничего, а сохранение — Cmd+Enter (⌘) или Ctrl+Enter. */
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter') return
+
+    var form = event.target.form
+    if (!form || !form.matches('.block-form, .stack, form')) return
+    if (event.target.tagName === 'TEXTAREA' && !(event.metaKey || event.ctrlKey)) return
+
+    if (event.metaKey || event.ctrlKey) {
+      var save = form.querySelector('button[type="submit"]')
+      if (!save) return
+      event.preventDefault()
+      save.click()
+      return
+    }
+
+    if (event.target.matches('[data-translate-source]')) {
+      var run = event.target.closest('[data-translate]').querySelector('[data-translate-run]')
+      event.preventDefault()
+      if (run && !run.hidden) run.click()
+      return
+    }
+
+    // Обычное поле: Enter больше не отправляет форму целиком.
+    if (event.target.matches('input')) event.preventDefault()
+  })
+
   /* ── Ожидание на отправке формы ──────────────────────────
      Сохранение перезагружает страницу, и до ответа сервера
      ничего не меняется: редактор не понимает, нажалось ли, и
@@ -187,15 +218,32 @@
       }).join('')
     }
 
+    /* Что уже в альбоме — отмечаем в выборе: иначе один и тот же
+       снимок жмут повторно, а он просто не добавляется, и это
+       выглядит как сломанная кнопка. */
+    function markPicked () {
+      var panel = activeTrigger && activeTrigger.closest('[data-album-panel]')
+      var taken = (panel && panel.albumMediaIds) || []
+      var items = grid.querySelectorAll('.picker-item')
+
+      for (var i = 0; i < items.length; i += 1) {
+        var picked = taken.indexOf(Number(items[i].getAttribute('data-id'))) !== -1
+        items[i].classList.toggle('is-picked', picked)
+        items[i].setAttribute('aria-pressed', picked ? 'true' : 'false')
+      }
+    }
+
+    window.padaliMarkPicked = markPicked
+
     function open (trigger) {
       activeTrigger = trigger
       dialog.showModal()
-      if (library) { renderLibrary(); return }
+      if (library) { renderLibrary(); markPicked(); return }
 
       grid.textContent = dialog.getAttribute('data-loading')
       fetch('/admin/media.json')
         .then(function (response) { return response.json() })
-        .then(function (items) { library = items; renderLibrary() })
+        .then(function (items) { library = items; renderLibrary(); markPicked() })
         .catch(function () { grid.textContent = dialog.getAttribute('data-failed') })
     }
 
@@ -209,11 +257,9 @@
       chip.setAttribute('data-id', String(item.id))
       var holder = document.getElementById('galleryItems')
       var price = holder.getAttribute('data-price-label') || ''
-      var title = holder.getAttribute('data-title-label') || ''
       chip.innerHTML =
         '<img src="' + item.thumb + '" alt="" loading="lazy">' +
         '<button type="button" class="media-remove">×</button>' +
-        '<input type="text" class="chip-title" name="title[m' + item.id + ']" maxlength="160" placeholder="' + title + '">' +
         '<input type="text" class="chip-price" name="price[m' + item.id + ']" maxlength="64" placeholder="' + price + '">'
       container.appendChild(chip)
       syncGalleryValue()
@@ -230,9 +276,15 @@
         var item = { id: Number(choice.getAttribute('data-id')), thumb: choice.getAttribute('data-thumb') }
         if (activeTrigger.getAttribute('data-target') === 'galleryItems') addToGallery(item)
         else if (activeTrigger.hasAttribute('data-album-pick')) {
-          // Панель альбома сама знает, куда дописывать.
+          /* Панель альбома сама знает, куда дописывать. Повторный
+             клик по уже добавленному убирает его: бездействие
+             выглядело бы как сломанная кнопка. */
           var panel = activeTrigger.closest('[data-album-panel]')
-          if (panel && panel.albumAdd) panel.albumAdd([item.id])
+          if (panel) {
+            var taken = (panel.albumMediaIds || []).indexOf(item.id) !== -1
+            if (taken && panel.albumDrop) panel.albumDrop([item.id])
+            else if (panel.albumAdd) panel.albumAdd([item.id])
+          }
         } else {
           var field = activeTrigger.closest('.media-field')
           if (field) addToBlockField(field, item)
@@ -711,11 +763,17 @@
     var strings = document.getElementById('translateStrings')
     if (!strings) return
 
+    /* Цели перевода: обычные поля блока зовутся «text[<язык>]…»,
+       а названия товаров — иначе, и язык у них помечен атрибутом.
+       Поддерживаем оба способа, чтобы не плодить вторую машинку. */
     function targetsOf (field) {
       var found = []
-      var inputs = field.querySelectorAll('[name^="text["]')
+      var inputs = field.querySelectorAll('[name^="text["], [data-locale]')
+
       for (var i = 0; i < inputs.length; i += 1) {
-        var match = /^text\[([^\]]+)\]/.exec(inputs[i].getAttribute('name'))
+        var marked = inputs[i].getAttribute('data-locale')
+        if (marked) { found.push({ locale: marked, node: inputs[i] }); continue }
+        var match = /^text\[([^\]]+)\]/.exec(inputs[i].getAttribute('name') || '')
         if (match) found.push({ locale: match[1], node: inputs[i] })
       }
       return found
@@ -953,19 +1011,44 @@
       }
 
       var withFields = panel.hasAttribute('data-album-fields')
+      var locales = (strings.getAttribute('data-locales') || '').split(',').filter(Boolean)
 
       /* Имя не «input»: так уже называется файловое поле в этой
          же области, и объявление переменной затирало бы функцию. */
-      function fieldInput (key, item, placeholder, limit) {
+      function fieldInput (key, item, locale, placeholder, limit) {
         var node = document.createElement('input')
         node.type = 'text'
         node.className = 'album-card-' + key
         // Ключ с буквой: «item[7]» qs считает индексом массива.
-        node.name = 'item[m' + item.id + '][' + key + ']'
-        node.value = item[key] || ''
+        node.name = 'item[m' + item.id + '][' + key + ']' + (locale ? '[' + locale + ']' : '')
+        node.value = (locale ? (item[key] || {})[locale] : item[key]) || ''
         node.placeholder = placeholder || ''
         node.maxLength = limit
+        if (locale) node.setAttribute('data-locale', locale)
         return node
+      }
+
+      /** Название товара: строка перевода и поле на каждый язык. */
+      function titleBox (item) {
+        var box = document.createElement('div')
+        box.className = 'album-card-title-box'
+        box.setAttribute('data-translate', '')
+
+        var row = document.querySelector('[data-translate-template]')
+        if (row) box.appendChild(row.content.cloneNode(true))
+
+        locales.forEach(function (locale) {
+          var line = document.createElement('label')
+          line.className = 'album-card-locale'
+          var tag = document.createElement('span')
+          tag.textContent = locale.toUpperCase()
+          line.appendChild(tag)
+          line.appendChild(fieldInput('title', item, locale,
+            strings.getAttribute('data-item-title'), 160))
+          box.appendChild(line)
+        })
+
+        return box
       }
 
       function render (result) {
@@ -985,21 +1068,39 @@
           shot.alt = ''
           shot.title = item.name
 
-          if (!withFields) { strip.appendChild(shot); return }
+          var card = document.createElement('div')
+          card.className = withFields ? 'album-card' : 'album-card album-card--bare'
+          card.setAttribute('data-media', String(item.id))
+
+          /* Крестик нужен ровно для «добавил не ту»: убирает снимок
+             из альбома, но не из медиатеки — файл мог попасть и в
+             другой блок. */
+          var drop = document.createElement('button')
+          drop.type = 'button'
+          drop.className = 'media-remove'
+          drop.setAttribute('data-album-remove', String(item.id))
+          drop.textContent = '×'
+          drop.title = strings.getAttribute('data-remove') || ''
+
+          card.appendChild(shot)
+          card.appendChild(drop)
 
           /* Название и цена правятся здесь же и уходят с формой
              блока: ради двух строк гонять редактора на страницу
-             альбома незачем. */
-          var card = document.createElement('div')
-          card.className = 'album-card'
-          card.appendChild(shot)
-          card.appendChild(fieldInput('title', item, strings.getAttribute('data-item-title'), 160))
-          card.appendChild(fieldInput('price', item, strings.getAttribute('data-item-price'), 64))
+             альбома незачем. Обычной галерее они не нужны. */
+          if (withFields) {
+            card.appendChild(titleBox(item))
+            card.appendChild(fieldInput('price', item, '', strings.getAttribute('data-item-price'), 64))
+          }
           strip.appendChild(card)
         })
         count.textContent = items.length === 0
           ? strings.getAttribute('data-empty')
           : fill(strings.getAttribute('data-count'), { count: items.length })
+
+        // Выбор из медиатеки отмечает по этому списку уже добавленные.
+        panel.albumMediaIds = items.map(function (item) { return item.id })
+        if (window.padaliMarkPicked) window.padaliMarkPicked()
       }
 
       function refresh () {
@@ -1041,6 +1142,32 @@
           })
           .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
       }
+
+      /** Убрать снимки из альбома; файлы остаются в медиатеке. */
+      panel.albumDrop = function (mediaIds) {
+        var id = panel.albumId()
+        if (!id || mediaIds.length === 0) return Promise.resolve()
+
+        return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items/remove.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _csrf: csrf(), media: mediaIds })
+        })
+          .then(function (response) { return response.json() })
+          .then(function (result) {
+            if (!result.ok) throw new Error('reject')
+            say('')
+            refresh()
+          })
+          .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
+      }
+
+      strip.addEventListener('click', function (event) {
+        var drop = event.target.closest('[data-album-remove]')
+        if (!drop) return
+        drop.disabled = true
+        panel.albumDrop([Number(drop.getAttribute('data-album-remove'))])
+      })
 
       if (select) select.addEventListener('change', refresh)
       refresh()

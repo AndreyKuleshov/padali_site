@@ -622,6 +622,33 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 .picker-item:hover { border-color: var(--neon); }
 .picker-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* Уже в альбоме: обводка и галочка. Без отметки один и тот же
+   снимок жмут повторно, он не добавляется — и это выглядит как
+   сломанная кнопка. */
+.picker-item.is-picked {
+  position: relative;
+  border-color: var(--neon);
+  box-shadow: inset 0 0 0 2px var(--neon);
+}
+
+.picker-item.is-picked img { opacity: .55; }
+
+.picker-item.is-picked::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--neon);
+  color: #111;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: center;
+  font-weight: 700;
+}
+
 /* ─── Узкий экран ────────────────────────────────────────── */
 
 @media (max-width: 720px) {
@@ -976,4 +1003,41 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 }
 
 .album-card-title { font-weight: 500; }
+
+/* Крестик на карточке — поверх снимка, как в остальных плитках. */
+.album-card { position: relative; }
+.album-card .media-remove { top: 4px; right: 4px; }
+
+/* Без полей товара карточка — это просто снимок с крестиком. */
+.album-card--bare { width: 72px; }
+.album-card--bare img { height: 72px; }
 .album-panel .media-actions { margin-top: 8px; }
+
+/* Карточка товара с переводимым названием: шире, в строку. */
+.album-card { width: 100%; display: grid; grid-template-columns: 96px minmax(0, 1fr) 140px; gap: 12px; align-items: start; padding: 10px; }
+.album-card img { width: 96px; height: 96px; border-radius: 4px; }
+.album-card--bare { width: 72px; display: block; padding: 0; }
+.album-card--bare img { width: 100%; height: 72px; border-radius: 0; }
+
+.album-card-title-box { display: grid; gap: 6px; min-width: 0; }
+.album-card-locale { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 6px; }
+.album-card-locale > span { font-family: var(--mono); font-size: .68rem; color: var(--soft); }
+
+.album-card input {
+  border: 1px solid var(--line) !important;
+  border-radius: 4px !important;
+  padding: 7px 9px !important;
+  background: var(--bg) !important;
+}
+
+.album-card .translate-row { margin-bottom: 2px; }
+
+/* Полоса из карточек — колонкой, а не в ряд. */
+[data-album-fields] .album-strip { display: grid; gap: 10px; }
+
+@media (max-width: 720px) {
+  .album-card { grid-template-columns: 64px minmax(0, 1fr); }
+  .album-card .album-card-price { grid-column: 2; }
+}
+
+.form-hint { margin: 0; align-self: center; }

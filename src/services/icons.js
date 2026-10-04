@@ -49,6 +49,11 @@ const ICONS = {
     '<path d="M21 4.5L2.8 11.3c-.6.2-.6 1 .1 1.2l4.6 1.4 1.7 5.1c.2.5.8.6 1.1.2l2.5-2.6 4.6 3.4c.5.4 1.2.1 1.3-.5L21.9 5.3c.1-.6-.4-1-.9-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
     '<path d="M7.5 13.9L17 7.6l-7 7.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
 
+  // Конверт для выбора вида связи в форме заказа.
+  email:
+    '<path d="M3 6.5h18v11H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
+    '<path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+
   ticket:
     '<path d="M3 8.5a2 2 0 012-2h14a2 2 0 012 2v1.2a2.3 2.3 0 000 4.6v1.2a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.2a2.3 2.3 0 000-4.6z" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
     '<path d="M14 7v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.5"/>'

@@ -76,6 +76,7 @@ const DICTIONARY = {
     'blockForm.galleryHint': 'One album can be placed in several blocks — a strip on top and a grid below, for instance.',
     'blockForm.manageAlbums': 'Manage albums',
     'blockForm.addRow': 'Add row',
+    'blockForm.saveShortcut': 'Enter in a translate field translates; ⌘/Ctrl + Enter saves.',
 
     'translate.placeholder': 'Write it in any language — I will translate',
     'translate.button': 'Translate',
@@ -148,6 +149,7 @@ const DICTIONARY = {
     'galleries.addPhotos': 'Upload photos',
     'galleries.inAlbum': 'In the album: {count}',
     'galleries.itemFieldsHint': 'Name and price are saved together with the block. Only photos with a price get an order button; the order of the photos is set on the album page.',
+    'galleries.removeFromAlbum': 'Remove from the album — the file stays in the media library',
     'galleries.albumEmpty': 'The album is empty — upload photos.',
     'galleries.pricesElsewhere': 'Prices and order of the photos are set on the album page.',
     'galleries.priceHint': 'A price turns a photo into merch: in a «Merch» block such photos get an order button. Write it as people should read it — «2500 RSD», «25 €». Leave empty for an ordinary photo. The name goes above the price and shows on the card; leave it empty and the caption from the media library is used.',
@@ -321,6 +323,7 @@ const DICTIONARY = {
     'blockForm.galleryHint': 'Jedan album može stajati u više blokova — na primer tračno gore i kao mreža niže.',
     'blockForm.manageAlbums': 'Upravljanje albumima',
     'blockForm.addRow': 'Dodaj red',
+    'blockForm.saveShortcut': 'Enter u polju za prevod prevodi; ⌘/Ctrl + Enter čuva.',
 
     'translate.placeholder': 'Napišite na bilo kom jeziku — prevešću',
     'translate.button': 'Prevedi',
@@ -393,6 +396,7 @@ const DICTIONARY = {
     'galleries.addPhotos': 'Otpremi fotografije',
     'galleries.inAlbum': 'U albumu: {count}',
     'galleries.itemFieldsHint': 'Naziv i cena se čuvaju zajedno sa blokom. Dugme za porudžbinu dobijaju samo fotografije sa cenom; redosled se zadaje na strani albuma.',
+    'galleries.removeFromAlbum': 'Ukloni iz albuma — fajl ostaje u medijateci',
     'galleries.albumEmpty': 'Album je prazan — otpremite fotografije.',
     'galleries.pricesElsewhere': 'Cene i redosled fotografija zadaju se na strani albuma.',
     'galleries.priceHint': 'Cena pretvara fotografiju u artikal: u bloku «Merch» takve dobijaju dugme za porudžbinu. Pišite onako kako treba da se čita — «2500 RSD», «25 €». Prazno — obična fotografija. Naziv stoji iznad cene i vidi se na kartici; ako je prazan, koristi se potpis iz medijateke.',

@@ -2,7 +2,7 @@ import { query, transaction } from '../../db/pool.js'
 import {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery,
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
-  getGalleryItems, setGalleryItems, itemFieldsForGalleries, appendGalleryItems
+  getGalleryItems, setGalleryItems, itemFieldsForGalleries, appendGalleryItems, removeGalleryItems
 } from '../../repositories/galleries.js'
 import { getMediaByIds, listMedia } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
@@ -74,7 +74,7 @@ async function galleryRoutes (app) {
         id: media.id,
         thumb: thumbnailUrl(media),
         name: media.originalName,
-        title: fields.get(media.id)?.title ?? '',
+        title: fields.get(media.id)?.title ?? {},
         price: fields.get(media.id)?.price ?? ''
       }))
 
@@ -105,6 +105,26 @@ async function galleryRoutes (app) {
     const added = await appendGalleryItems(id, mediaIds);
     afterWrite()
     return reply.send({ ok: true, added })
+  })
+
+  /** Убрать снимок из альбома, не уходя из формы блока. */
+  app.post('/galleries/:id/items/remove.json', async (request, reply) => {
+    const id = Number(request.params.id)
+    const gallery = await getGallery(id)
+    if (!gallery) return reply.callNotFound()
+
+    const raw = request.body?.media
+    const mediaIds = (Array.isArray(raw) ? raw : [raw])
+      .map((value) => Number.parseInt(value, 10))
+      .filter((value) => Number.isInteger(value) && value > 0)
+
+    if (mediaIds.length === 0) {
+      return reply.code(400).send({ ok: false, message: request.t('media.noFiles') })
+    }
+
+    const removed = await removeGalleryItems(id, mediaIds)
+    afterWrite()
+    return reply.send({ ok: true, removed })
   })
 
   app.post('/galleries', async (request, reply) => {
@@ -143,7 +163,6 @@ async function galleryRoutes (app) {
         id: media.id,
         thumb: thumbnailUrl(media),
         name: media.originalName,
-        title: fields.get(media.id)?.title ?? '',
         price: fields.get(media.id)?.price ?? ''
       }))
 
@@ -194,11 +213,15 @@ async function galleryRoutes (app) {
     /* Цена едет вместе с составом: setGalleryItems переписывает
        строки целиком, и отдельным запросом после неё цену пришлось
        бы восстанавливать. */
+    /* Название товара переводится и правится в блоке мерча, где
+       рядом стоит строка перевода. Здесь — состав, порядок и
+       цена; title не трогаем, иначе переписывание состава стёрло
+       бы переводы. */
     const prices = request.body?.price ?? {}
-    const titles = request.body?.title ?? {}
+    const existing = (await itemFieldsForGalleries([id])).get(id) ?? new Map()
     const items = mediaIds.map((mediaId) => ({
       mediaId,
-      title: String(titles['m' + mediaId] ?? '').trim().slice(0, 160),
+      title: existing.get(mediaId)?.title,
       price: String(prices['m' + mediaId] ?? '').trim().slice(0, 64)
     }))
 

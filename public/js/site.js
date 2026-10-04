@@ -336,13 +336,19 @@
         note.textContent = text
       }
 
-      if (button) button.disabled = true
+      if (button) { button.disabled = true; button.classList.add('is-busy') }
 
       // Адрес проверяем до отправки: иначе заказ уйдёт в тупик.
       var ready = contact ? verify(contact) : Promise.resolve(true)
 
+      function done () {
+        if (!button) return
+        button.disabled = false
+        button.classList.remove('is-busy')
+      }
+
       ready.then(function (valid) {
-        if (!valid) { if (button) button.disabled = false; return }
+        if (!valid) { done(); return }
         send()
       })
 
@@ -362,7 +368,7 @@
           for (var i = 0; i < fields.length; i += 1) fields[i].hidden = true
         })
         .catch(function () { say(form.getAttribute('data-failed'), 'error') })
-        .finally(function () { if (button) button.disabled = false })
+        .finally(done)
       }
     })
   }
@@ -373,20 +379,17 @@
      проверяется у поля, а не после «отправлено». */
   function initContactPick () {
     document.addEventListener('change', function (event) {
-      var select = event.target
-      if (!select.matches || !select.matches('[data-contact-pick] select')) return
+      var radio = event.target
+      if (!radio.matches || !radio.matches('[data-contact-pick] input[name="contact_kind"]')) return
 
-      var box = select.closest('[data-contact-pick]')
+      var box = radio.closest('[data-contact-pick]')
       var value = box.querySelector('[data-contact-value]')
       var note = box.querySelector('[data-contact-error]')
 
-      value.disabled = select.value === ''
       value.value = ''
       note.hidden = true
-      value.placeholder = select.value === 'email'
-        ? 'name@example.com'
-        : (select.value === '' ? '' : '@username')
-      if (!value.disabled) value.focus()
+      value.placeholder = radio.value === 'email' ? 'name@example.com' : '@username'
+      value.focus()
     })
 
     // Проверяем, когда человек ушёл из поля: подсказка вовремя,
@@ -401,14 +404,14 @@
 
   /** @returns {Promise<boolean>} годится ли адрес */
   function verify (box) {
-    var select = box.querySelector('select')
+    var kind = box.querySelector('input[name="contact_kind"]:checked')
     var value = box.querySelector('[data-contact-value]')
     var note = box.querySelector('[data-contact-error]')
 
     return fetch('/check-contact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: select.value, value: value.value })
+      body: JSON.stringify({ kind: kind ? kind.value : '', value: value.value })
     })
       .then(function (response) { return response.json() })
       .then(function (result) {
@@ -437,6 +440,21 @@
         var field = dialog.querySelector('[data-order-field]')
         if (label) label.textContent = item
         if (field) field.value = item
+
+        /* После отправки форма сворачивается в «спасибо». Второй
+           заказ открывал бы её такой же — возвращаем поля на
+           место при каждом открытии. */
+        var form = dialog.querySelector('[data-send-form]')
+        if (form) {
+          form.reset()
+          var hidden = form.querySelectorAll('.field, button[type="submit"]')
+          for (var i = 0; i < hidden.length; i += 1) hidden[i].hidden = false
+          var note = form.querySelector('[data-send-note]')
+          if (note) { note.hidden = true; note.textContent = '' }
+          var bad = form.querySelector('[data-contact-error]')
+          if (bad) bad.hidden = true
+          if (field) field.value = item
+        }
 
         dialog.showModal()
         var first = dialog.querySelector('input:not([type="hidden"]):not([tabindex="-1"])')

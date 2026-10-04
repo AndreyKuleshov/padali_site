@@ -230,6 +230,7 @@
   <div class="form-actions">
     <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
     <a class="btn" href="/admin"><%= it.t('common.cancel') %></a>
+    <span class="hint form-hint"><%= it.t('blockForm.saveShortcut') %></span>
   </div>
 </form>
 

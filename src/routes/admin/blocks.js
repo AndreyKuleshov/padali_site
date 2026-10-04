@@ -36,6 +36,18 @@ function stripPrefix (fields) {
   return out
 }
 
+/** Пустые переводы названия не храним: иначе откат на язык по
+ *  умолчанию не сработает. */
+function cleanTitles (fields) {
+  for (const item of Object.values(fields)) {
+    if (!item || typeof item.title !== 'object') continue
+    for (const [locale, value] of Object.entries(item.title)) {
+      if (String(value ?? '').trim() === '') delete item.title[locale]
+    }
+  }
+  return fields
+}
+
 async function blockRoutes (app) {
   /* ─── Список блоков главной ─────────────────────────────── */
   app.get('/', async (request, reply) => {
@@ -191,7 +203,7 @@ async function blockRoutes (app) {
       await saveBlockTexts(id, parsed.textsByLocale, conn)
       await saveBlockMedia(id, parsed.mediaByField, conn)
       if (albumId && itemFields) {
-        await setGalleryItemFields(albumId, stripPrefix(itemFields), conn)
+        await setGalleryItemFields(albumId, cleanTitles(stripPrefix(itemFields)), conn)
       }
     })
 
