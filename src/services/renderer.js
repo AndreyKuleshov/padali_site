@@ -44,8 +44,30 @@ function localeUrl (code, defaultLocale, path = '') {
   return `${prefix}/${path}`.replace(/\/+$/, '') || '/'
 }
 
+/**
+ * Числа раскладки, которые нужны и шаблону, и стилям.
+ *
+ * Шаблон галереи считает по ним атрибут sizes: браузер выбирает
+ * версию снимка до того, как применит CSS, и ошибиться здесь
+ * значит выдать версию 1280px в колонку шириной 240.
+ *
+ * Стили остаются источником истины — здесь их копия, и
+ * tests/layout.test.js следит, чтобы копия не разошлась
+ * с public/css/site.css.
+ */
+const LAYOUT = {
+  wrap: 760,
+  gutter: 24,
+  gutterNarrow: 20,
+  galleryGap: 10,
+  narrow: 640,
+  stripVw: 72,
+  stripMax: 320
+}
+
 const helpers = {
   icon,
+  layout: LAYOUT,
   asset: assetUrl,
   // Разбор ссылки один на админку и на сайт: иначе шаблон знал бы
   // про форматы адресов YouTube отдельно от того, кто их проверяет.
@@ -69,4 +91,4 @@ function render (template, data = {}) {
   return html
 }
 
-export { render, helpers, sanitize, formatDate, localeUrl, eta, VIEWS_DIR }
+export { render, helpers, sanitize, formatDate, localeUrl, eta, LAYOUT, VIEWS_DIR }

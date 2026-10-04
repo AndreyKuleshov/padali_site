@@ -847,6 +847,26 @@
     var fields = document.querySelectorAll('[data-translate]')
     for (var index = 0; index < fields.length; index += 1) lockEmpty(fields[index])
 
+    /* Карточки товаров и строки повторителя рисуются уже после
+       загрузки страницы. Без наблюдателя правило «пустое поле
+       заперто» действовало бы только на то, что пришло с сервера:
+       в только что добавленной строке языковые поля оставались
+       открытыми, и туда писали руками мимо перевода. */
+    if (window.MutationObserver) {
+      new window.MutationObserver(function (records) {
+        for (var r = 0; r < records.length; r += 1) {
+          var added = records[r].addedNodes
+          for (var a = 0; a < added.length; a += 1) {
+            var node = added[a]
+            if (node.nodeType !== 1) continue
+            if (node.matches('[data-translate]')) lockEmpty(node)
+            var nested = node.querySelectorAll('[data-translate]')
+            for (var k = 0; k < nested.length; k += 1) lockEmpty(nested[k])
+          }
+        }
+      }).observe(document.body, { childList: true, subtree: true })
+    }
+
     document.addEventListener('input', function (event) {
       var source = event.target
       if (!source.matches || !source.matches('[data-translate-source]')) return
