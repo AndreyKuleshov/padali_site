@@ -2,7 +2,7 @@ import { getBlockType, sortBlocks } from '../blocks/index.js'
 import { getPageBySlug, getPageTexts } from '../repositories/pages.js'
 import { listBlocks, textsForBlocks, mediaForBlocks } from '../repositories/blocks.js'
 import {
-  itemsForGalleries, pricesForGalleries, textsForGalleries
+  itemsForGalleries, itemFieldsForGalleries, textsForGalleries
 } from '../repositories/galleries.js'
 import { getMediaByIds, textsForMedia } from '../repositories/media.js'
 import { listLocales, getDefaultLocale } from '../repositories/locales.js'
@@ -85,9 +85,9 @@ async function composePage ({ slug = 'home', locale }) {
       .map((block) => Number(block.settings?.gallery_id))
       .filter((id) => Number.isInteger(id) && id > 0)
   )]
-  const [itemsByGallery, pricesByGallery, textsByGallery] = await Promise.all([
+  const [itemsByGallery, fieldsByGallery, textsByGallery] = await Promise.all([
     itemsForGalleries(galleryIds),
-    pricesForGalleries(galleryIds),
+    itemFieldsForGalleries(galleryIds),
     textsForGalleries(galleryIds)
   ])
 
@@ -129,12 +129,15 @@ async function composePage ({ slug = 'home', locale }) {
     const galleryId = Number(block.settings?.gallery_id)
     if (Number.isInteger(galleryId) && itemsByGallery.has(galleryId)) {
       const limit = Number(block.settings?.limit) || 0
-      const prices = pricesByGallery.get(galleryId) ?? new Map()
+      const fields = fieldsByGallery.get(galleryId) ?? new Map()
       const items = itemsByGallery.get(galleryId)
         .map((mediaId) => {
           const view = toView(mediaId)
-          // Цену видит только блок мерча, остальным она не мешает.
-          return view ? { ...view, price: prices.get(mediaId) ?? '' } : null
+          if (!view) return null
+          // Название и цену видит только блок мерча, остальным
+          // они не мешают.
+          const own = fields.get(mediaId)
+          return { ...view, title: own?.title ?? '', price: own?.price ?? '' }
         })
         .filter(Boolean)
       const galleryTexts = textsByGallery.get(galleryId)

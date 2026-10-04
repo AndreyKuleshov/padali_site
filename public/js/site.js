@@ -324,6 +324,7 @@
 
       var button = form.querySelector('button[type="submit"]')
       var note = form.querySelector('[data-send-note]')
+      var contact = form.querySelector('[data-contact-pick]')
       var data = new FormData(form)
       var payload = { kind: form.getAttribute('data-kind'), locale: document.documentElement.lang }
       data.forEach(function (value, key) { payload[key] = value })
@@ -337,6 +338,15 @@
 
       if (button) button.disabled = true
 
+      // Адрес проверяем до отправки: иначе заказ уйдёт в тупик.
+      var ready = contact ? verify(contact) : Promise.resolve(true)
+
+      ready.then(function (valid) {
+        if (!valid) { if (button) button.disabled = false; return }
+        send()
+      })
+
+      function send () {
       fetch('/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -353,7 +363,64 @@
         })
         .catch(function () { say(form.getAttribute('data-failed'), 'error') })
         .finally(function () { if (button) button.disabled = false })
+      }
     })
+  }
+
+  /* ── Контакт покупателя ──────────────────────────────────
+     Поле ввода оживает после выбора вида связи: до него человек
+     не знает, что туда писать, и пишет как попало. Адрес
+     проверяется у поля, а не после «отправлено». */
+  function initContactPick () {
+    document.addEventListener('change', function (event) {
+      var select = event.target
+      if (!select.matches || !select.matches('[data-contact-pick] select')) return
+
+      var box = select.closest('[data-contact-pick]')
+      var value = box.querySelector('[data-contact-value]')
+      var note = box.querySelector('[data-contact-error]')
+
+      value.disabled = select.value === ''
+      value.value = ''
+      note.hidden = true
+      value.placeholder = select.value === 'email'
+        ? 'name@example.com'
+        : (select.value === '' ? '' : '@username')
+      if (!value.disabled) value.focus()
+    })
+
+    // Проверяем, когда человек ушёл из поля: подсказка вовремя,
+    // но не на каждую букву.
+    document.addEventListener('blur', function (event) {
+      var value = event.target
+      if (!value.matches || !value.matches('[data-contact-value]')) return
+      if (value.value.trim() === '') return
+      verify(value.closest('[data-contact-pick]'))
+    }, true)
+  }
+
+  /** @returns {Promise<boolean>} годится ли адрес */
+  function verify (box) {
+    var select = box.querySelector('select')
+    var value = box.querySelector('[data-contact-value]')
+    var note = box.querySelector('[data-contact-error]')
+
+    return fetch('/check-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: select.value, value: value.value })
+    })
+      .then(function (response) { return response.json() })
+      .then(function (result) {
+        note.hidden = result.ok
+        if (!result.ok) {
+          note.setAttribute('data-state', 'error')
+          note.textContent = box.getAttribute('data-invalid')
+        }
+        return result.ok
+      })
+      // Сеть не ответила — не повод держать человека у формы.
+      .catch(function () { note.hidden = true; return true })
   }
 
   /* ── Окно заказа ─────────────────────────────────────────── */
@@ -389,5 +456,6 @@
   initGalleryScrollers()
   initVideoFacades()
   initSendForms()
+  initContactPick()
   initOrderDialog()
 })()

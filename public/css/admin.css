@@ -412,7 +412,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .gallery-chip img { height: 120px; }
 
-.chip-price {
+.chip-title, .chip-title, .chip-price {
   width: 100%;
   border: 0 !important;
   border-top: 1px solid var(--line) !important;
@@ -423,6 +423,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   /* Перетаскивают плитку за снимок; в поле нужно попадать курсором. */
   cursor: text;
 }
+
+.chip-title { font-weight: 500; }
 
 .media-remove {
   position: absolute;
@@ -923,7 +925,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   background: var(--panel);
   color: var(--ink);
   padding: 20px;
-  width: min(92vw, 420px);
+  width: min(92vw, 520px);
 }
 
 .album-dialog::backdrop { background: rgba(0, 0, 0, .66); }
@@ -932,7 +934,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 /* ─── Состав альбома в форме блока ───────────────────────── */
 
-.album-contents { margin-bottom: 10px; }
+.album-panel { margin-bottom: 10px; }
 
 .album-strip { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -945,4 +947,5 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   display: block;
 }
 
-.album-contents .hint { margin: 6px 0 0; }
+.album-panel .hint { margin: 6px 0 0; }
+.album-panel .media-actions { margin-top: 8px; }

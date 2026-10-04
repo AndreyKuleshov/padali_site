@@ -64,24 +64,25 @@ async function itemsForGalleries (ids, conn) {
 }
 
 /**
- * Цены по альбомам: Map<gallery_id, Map<media_id, price>>.
+ * Название и цена по альбомам:
+ * Map<gallery_id, Map<media_id, {title, price}>>.
  *
  * Отдельным запросом, а не внутри itemsForGalleries: там состав —
  * плоский список id, на который опирается и композитор страницы,
- * и тесты, и менять его форму ради поля, нужного одному блоку,
+ * и тесты, и менять его форму ради полей, нужных одному блоку,
  * невыгодно.
  */
-async function pricesForGalleries (ids, conn) {
+async function itemFieldsForGalleries (ids, conn) {
   if (ids.length === 0) return new Map()
   const rows = await db(conn).all(
-    `SELECT gallery_id, media_id, price FROM gallery_items ` +
-    `WHERE gallery_id IN (${placeholders(ids.length)}) AND price <> ''`,
+    'SELECT gallery_id, media_id, title, price FROM gallery_items ' +
+    `WHERE gallery_id IN (${placeholders(ids.length)}) AND (title <> '' OR price <> '')`,
     ids
   )
   const grouped = new Map()
   for (const row of rows) {
     if (!grouped.has(row.gallery_id)) grouped.set(row.gallery_id, new Map())
-    grouped.get(row.gallery_id).set(row.media_id, row.price)
+    grouped.get(row.gallery_id).set(row.media_id, { title: row.title, price: row.price })
   }
   return grouped
 }
@@ -108,14 +109,19 @@ async function setGalleryItems (galleryId, items, conn) {
     const mediaId = Number(isPair ? item.mediaId : item)
     if (!mediaId || seen.has(mediaId)) continue
     seen.add(mediaId)
-    unique.push({ mediaId, price: String(isPair ? item.price ?? '' : '').trim().slice(0, 64) })
+    unique.push({
+      mediaId,
+      title: String(isPair ? item.title ?? '' : '').trim().slice(0, 160),
+      price: String(isPair ? item.price ?? '' : '').trim().slice(0, 64)
+    })
   }
   if (unique.length === 0) return
 
-  const values = unique.map(() => '(?, ?, ?, ?)').join(', ')
-  const params = unique.flatMap((item, index) => [galleryId, item.mediaId, index, item.price])
+  const values = unique.map(() => '(?, ?, ?, ?, ?)').join(', ')
+  const params = unique.flatMap((item, index) =>
+    [galleryId, item.mediaId, index, item.title, item.price])
   await runner.run(
-    `INSERT INTO gallery_items (gallery_id, media_id, position, price) VALUES ${values}`,
+    `INSERT INTO gallery_items (gallery_id, media_id, position, title, price) VALUES ${values}`,
     params
   )
   await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
@@ -164,5 +170,5 @@ async function appendGalleryItems (galleryId, mediaIds, conn) {
 export {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery, deleteGallery,
   textsForGalleries, getGalleryTexts, saveGalleryTexts,
-  itemsForGalleries, pricesForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems
+  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems
 }

@@ -13,12 +13,15 @@ import {
 import { createPage } from '../src/repositories/pages.js'
 import { createBlock, saveBlockTexts } from '../src/repositories/blocks.js'
 import {
-  createGallery, setGalleryItems, getGalleryItems, pricesForGalleries
+  createGallery, setGalleryItems, getGalleryItems, itemFieldsForGalleries
 } from '../src/repositories/galleries.js'
 import { processUpload } from '../src/services/media-processor.js'
 import { listMessages, countUnread } from '../src/repositories/messages.js'
 import { defaultSettings } from '../src/blocks/index.js'
 import { sendMessage, isMailConfigured } from '../src/services/mail.js'
+import {
+  checkContact, looksValid, normalizeHandle
+} from '../src/services/contact-check.js'
 
 let app
 let auth
@@ -65,14 +68,14 @@ test('сообщение из формы связи сохраняется', asy
 
 test('заказ сохраняет город, связь и товар', async () => {
   await send({
-    kind: 'order', city: 'Novi Sad', contact: '@padalifan',
+    kind: 'order', city: 'Novi Sad', contact_kind: 'instagram', contact: '@padalifan',
     item: 'Футболка — 2500 RSD', message: 'размер L'
   })
 
   const [saved] = await listMessages()
   assert.equal(saved.kind, 'order')
   assert.equal(saved.city, 'Novi Sad')
-  assert.equal(saved.contact, '@padalifan')
+  assert.equal(saved.contact, 'Instagram: @padalifan', 'вид связи виден в списке')
   assert.equal(saved.item, 'Футболка — 2500 RSD')
   assert.equal(saved.body, 'размер L')
 })
@@ -91,7 +94,7 @@ test('без настроенной почты сообщение всё рав�
 
 test('письмо без текста и заказ без связи отклоняются', async () => {
   assert.equal((await send({ kind: 'contact', message: '   ' })).statusCode, 400)
-  assert.equal((await send({ kind: 'order', city: 'Niš', contact: '' })).statusCode, 400)
+  assert.equal((await send({ kind: 'order', city: 'Niš', contact_kind: 'email', contact: '' })).statusCode, 400)
   assert.equal((await listMessages()).length, 0)
 })
 
@@ -205,9 +208,9 @@ test('цена переживает перезапись состава альб
     { mediaId: first, price: '2500 RSD' }
   ])
 
-  const prices = (await pricesForGalleries([album])).get(album)
-  assert.equal(prices.get(first), '2500 RSD')
-  assert.equal(prices.get(second), '1200 RSD')
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.equal(fields.get(first).price, '2500 RSD')
+  assert.equal(fields.get(second).price, '1200 RSD')
   assert.deepEqual(await getGalleryItems(album), [second, first], 'порядок — как прислали')
 })
 
@@ -218,7 +221,7 @@ test('состав без цен сохраняется по-прежнему', 
   await setGalleryItems(album, [id])
 
   assert.deepEqual(await getGalleryItems(album), [id])
-  assert.equal((await pricesForGalleries([album])).size, 0)
+  assert.equal((await itemFieldsForGalleries([album])).size, 0)
 })
 
 test('цена сохраняется из формы альбома', async () => {
@@ -236,8 +239,8 @@ test('цена сохраняется из формы альбома', async () 
     })
   })
 
-  const prices = (await pricesForGalleries([album])).get(album)
-  assert.equal(prices.get(id), '2500 RSD')
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.equal(fields.get(id).price, '2500 RSD')
 })
 
 /* ─── Админка ────────────────────────────────────────────── */
@@ -402,8 +405,8 @@ test('дозагрузка дописывает в конец и не трога
   assert.equal(response.json().added, 1)
   assert.deepEqual(await getGalleryItems(album), [first, second], 'новое в конце')
 
-  const prices = (await pricesForGalleries([album])).get(album)
-  assert.equal(prices.get(first), '2500 RSD', 'цена уцелела')
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.equal(fields.get(first).price, '2500 RSD', 'цена уцелела')
 })
 
 test('повторная фотография не задваивается', async () => {
@@ -459,5 +462,245 @@ test('в форме блока есть загрузка и показ сост�
 
   assert.match(body, /data-album-upload/)
   assert.match(body, /data-album-strip/)
+  assert.match(body, /data-album-pick/, 'выбор из медиатеки')
   assert.match(body, /id="albumStrings"/)
+  assert.match(body, /id="albumStepPhotos"/, 'второй шаг окна создания')
+  // Панель одна и та же: под выбором и внутри окна.
+  assert.equal((body.match(/data-album-panel/g) || []).length, 2)
+})
+
+/* ─── Название товара ────────────────────────────────────── */
+
+/** Подпись из медиатеки одна на все альбомы — для товара не годится. */
+test('название товара принадлежит альбому, а не файлу', async () => {
+  const id = await photo(51)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [{ mediaId: id, title: 'Футболка PADALI', price: '2500 RSD' }])
+
+  await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(body, /Футболка PADALI/)
+  assert.match(body, /data-order-item="Футболка PADALI — 2500 RSD"/)
+})
+
+test('без названия берётся подпись файла, а без неё — только цена', async () => {
+  const id = await photo(52)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [{ mediaId: id, price: '900 RSD' }])
+
+  await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(body, /data-order-item="900 RSD"/, 'без висящего тире')
+})
+
+test('название сохраняется из формы альбома вместе с ценой', async () => {
+  const id = await photo(53)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [id])
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/galleries/${album}`,
+    cookies: auth.cookies,
+    ...form({
+      _csrf: auth.csrf, slug: 'merch', items: String(id),
+      [`title[m${id}]`]: 'Худи PADALI',
+      [`price[m${id}]`]: '5500 RSD'
+    })
+  })
+
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.equal(fields.get(id).title, 'Худи PADALI')
+  assert.equal(fields.get(id).price, '5500 RSD')
+})
+
+test('дозагрузка не стирает название', async () => {
+  const first = await photo(54)
+  const second = await photo(55)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [{ mediaId: first, title: 'Кепка', price: '1500 RSD' }])
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/galleries/${album}/items.json`,
+    cookies: auth.cookies,
+    payload: { _csrf: auth.csrf, media: [second] }
+  })
+
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.equal(fields.get(first).title, 'Кепка')
+  assert.equal(fields.get(first).price, '1500 RSD')
+})
+
+test('в форме альбома есть поле названия', async () => {
+  const id = await photo(56)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [id])
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/galleries/${album}`, cookies: auth.cookies
+  })).body
+
+  assert.ok(body.includes(`name="title[m${id}]"`), 'поле названия')
+  assert.ok(body.includes(`name="price[m${id}]"`), 'поле цены')
+})
+
+/* ─── Контакт покупателя ─────────────────────────────────── */
+
+test('имя профиля вытаскивается из любой записи', () => {
+  for (const input of ['@padali', 'padali', 'https://t.me/padali', 't.me/padali/',
+    'https://www.instagram.com/padali/', 'instagram.com/padali?hl=sr']) {
+    assert.equal(normalizeHandle(input), 'padali', input)
+  }
+})
+
+test('форма записи проверяется по виду связи', () => {
+  assert.equal(looksValid('email', 'fan@mail.rs'), true)
+  assert.equal(looksValid('email', 'fan@mail'), false)
+  assert.equal(looksValid('email', 'просто текст'), false)
+
+  assert.equal(looksValid('telegram', '@padali_fan'), true)
+  assert.equal(looksValid('telegram', '@ab'), false, 'короче пяти знаков')
+  assert.equal(looksValid('telegram', '@фан'), false, 'кириллицы там не бывает')
+
+  assert.equal(looksValid('instagram', 'padali.band'), true)
+  assert.equal(looksValid('instagram', 'пад али'), false)
+})
+
+test('почта проверяется без обращения в сеть', async () => {
+  let called = false
+  const result = await checkContact('email', '  fan@mail.rs ', {
+    fetchImpl: async () => { called = true }
+  })
+
+  assert.deepEqual(result, { ok: true, contact: 'fan@mail.rs' })
+  assert.equal(called, false)
+})
+
+/** t.me отдаёт 200 и на выдуманное имя — отличает только карточка. */
+test('телеграм проверяется по странице профиля', async () => {
+  const page = (body) => async () => ({ ok: true, status: 200, text: async () => body })
+
+  const real = await checkContact('telegram', '@durov', {
+    fetchImpl: page('<div class="tgme_page_title">Pavel</div>')
+  })
+  assert.deepEqual(real, { ok: true, contact: 'Telegram: @durov' })
+
+  const fake = await checkContact('telegram', '@nobody_here_1234', {
+    fetchImpl: page('<div class="tgme_page_icon">Telegram</div>')
+  })
+  assert.deepEqual(fake, { ok: false, reason: 'missing' })
+})
+
+/** Потерять покупателя из-за моргнувшей сети хуже, чем принять опечатку. */
+test('недоступный t.me не отказывает покупателю', async () => {
+  const result = await checkContact('telegram', '@padali_fan', {
+    fetchImpl: async () => { throw new Error('ETIMEDOUT') }
+  })
+  assert.equal(result.ok, true)
+})
+
+/**
+ * Instagram на выдуманное имя отдаёт ту же оболочку, что и на
+ * настоящее: проверено запросами к странице, к web_profile_info
+ * и к ?__a=1. Поэтому только формат — и в сеть не ходим.
+ */
+test('инстаграм проверяется только формой записи', async () => {
+  let called = false
+  const good = await checkContact('instagram', '@padali.band', {
+    fetchImpl: async () => { called = true }
+  })
+  assert.deepEqual(good, { ok: true, contact: 'Instagram: @padali.band' })
+  assert.equal(called, false)
+
+  const bad = await checkContact('instagram', 'пад али', { fetchImpl: async () => {} })
+  assert.deepEqual(bad, { ok: false, reason: 'format' })
+})
+
+test('неизвестный вид связи отвергается', async () => {
+  assert.deepEqual(await checkContact('whatsapp', '+381...'), { ok: false, reason: 'kind' })
+})
+
+test('проверка доступна с сайта и отвечает да/нет', async () => {
+  const good = await app.inject({
+    method: 'POST', url: '/check-contact', payload: { kind: 'email', value: 'fan@mail.rs' }
+  })
+  assert.deepEqual(good.json(), { ok: true })
+
+  const bad = await app.inject({
+    method: 'POST', url: '/check-contact', payload: { kind: 'email', value: 'не адрес' }
+  })
+  assert.deepEqual(bad.json(), { ok: false })
+})
+
+/** Проверке из браузера верить нельзя — заказ проверяется заново. */
+test('заказ с негодным адресом не принимается', async () => {
+  const response = await send({
+    kind: 'order', city: 'Niš', contact_kind: 'email', contact: 'не адрес'
+  })
+
+  assert.equal(response.statusCode, 400)
+  assert.equal(response.json().reason, 'contact')
+  assert.equal((await listMessages()).length, 0)
+})
+
+test('в окне заказа есть выбор вида связи и выключенное поле', async () => {
+  const album = await createGallery('merch')
+  const id = await photo(61)
+  await setGalleryItems(album, [{ mediaId: id, title: 'Футболка', price: '2500 RSD' }])
+  await createBlock({
+    pageId, type: 'merch', isVisible: true,
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  assert.match(body, /name="contact_kind"/)
+  assert.match(body, /value="telegram"/)
+  assert.match(body, /value="instagram"/)
+  assert.match(body, /data-contact-value/)
+  assert.match(body, /disabled/, 'поле адреса ждёт выбора')
+})
+
+/** Ящик у группы общий — письмо на языке сайта, а не разработки. */
+test('письмо приходит на английском', async () => {
+  const sent = []
+  await sendMessage(
+    { kind: 'order', item: 'Футболка — 2500 RSD', city: 'Novi Sad',
+      contact: 'Telegram: @fan', locale: 'sr', body: 'размер L' },
+    {
+      settings: { host: 'smtp.test', port: 587, from: 'a@b', to: 'c@d' },
+      transporter: { sendMail: async (mail) => { sent.push(mail) } }
+    }
+  )
+
+  const [mail] = sent
+  assert.match(mail.subject, /^Merch order: Футболка — 2500 RSD$/)
+  assert.match(mail.text, /^Item: /m)
+  assert.match(mail.text, /^City: Novi Sad$/m)
+  assert.match(mail.text, /^Contact: Telegram: @fan$/m)
+  assert.match(mail.text, /^Page language: sr$/m)
+  assert.match(mail.text, /размер L/, 'текст посетителя не трогаем')
+  assert.doesNotMatch(mail.text, /Товар|Город|Связь/)
+})
+
+test('письмо из формы связи тоже на английском', async () => {
+  const sent = []
+  await sendMessage(
+    { kind: 'contact', body: 'Позовите нас играть', contact: 'club@ns.rs' },
+    {
+      settings: { host: 'smtp.test', port: 587, from: 'a@b', to: 'c@d' },
+      transporter: { sendMail: async (mail) => { sent.push(mail) } }
+    }
+  )
+
+  assert.equal(sent[0].subject, 'Message from the site')
 })

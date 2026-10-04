@@ -14,7 +14,23 @@ export default {
     { key: 'order', label: { en: '«Order» button', sr: 'Dugme «Poruči»' }, input: 'text' },
     { key: 'form_title', label: { en: 'Order window title', sr: 'Naslov prozora porudžbine' }, input: 'text' },
     { key: 'label_city', label: { en: 'City field label', sr: 'Naziv polja za grad' }, input: 'text' },
-    { key: 'label_contact', label: { en: 'Contact field label', sr: 'Naziv polja za kontakt' }, input: 'text' },
+    {
+      key: 'label_contact',
+      label: {
+        en: 'Buyer contact — field label',
+        sr: 'Kontakt kupca — naziv polja'
+      },
+      input: 'text',
+      hint: {
+        en: 'Above the pair «kind of contact + address». The kinds themselves — e-mail, Telegram, Instagram — are fixed.',
+        sr: 'Iznad para «vrsta kontakta + adresa». Same vrste — e-mail, Telegram, Instagram — su fiksne.'
+      }
+    },
+    {
+      key: 'bad_contact',
+      label: { en: 'Wrong address message', sr: 'Poruka o netačnoj adresi' },
+      input: 'text'
+    },
     { key: 'label_message', label: { en: 'Message field label', sr: 'Naziv polja za poruku' }, input: 'text' },
     { key: 'submit', label: { en: 'Send button', sr: 'Dugme za slanje' }, input: 'text' },
     { key: 'sent', label: { en: 'Thank-you message', sr: 'Poruka zahvalnosti' }, input: 'text' },

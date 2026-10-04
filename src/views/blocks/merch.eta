@@ -7,7 +7,9 @@
   var order = block.text.order || (sr ? 'Poruči' : 'Order')
   var formTitle = block.text.form_title || (sr ? 'Porudžbina' : 'Order')
   var labelCity = block.text.label_city || (sr ? 'Grad' : 'City')
-  var labelContact = block.text.label_contact || (sr ? 'Kontakt — mejl, Telegram, bilo šta' : 'Contact — email, Telegram, anything')
+  /* Вид связи теперь выбирают списком, перечислять их в
+     подписи незачем. */
+  var labelContact = block.text.label_contact || (sr ? 'Kako da vas nađemo' : 'How we reach you')
   var labelMessage = block.text.label_message || (sr ? 'Poruka (nije obavezno)' : 'Message (optional)')
   var submit = block.text.submit || (sr ? 'Pošalji' : 'Send')
   var close = sr ? 'Zatvori' : 'Close'
@@ -22,7 +24,10 @@
     <% ;/* Подпись заказа собираем здесь: у снимка может не быть
            названия, и «— 2500 RSD» с висящим тире читается как
            недоделка. */ %>
-    <% var name = item.caption || item.alt || '' %>
+    <% ;/* Название товара принадлежит альбому. Подпись из
+           медиатеки общая на все альбомы, поэтому только запасной
+           вариант. */ %>
+    <% var name = item.title || item.caption || item.alt || '' %>
     <% var label = name ? name + ' — ' + item.price : item.price %>
     <li class="merch-card">
       <div class="merch-shot">
@@ -60,10 +65,25 @@
         <input type="text" name="city" maxlength="128" required>
       </label>
 
-      <label class="field">
+      <% ;/* Сначала вид связи, потом адрес: «контакт» без уточнения
+             люди заполняют как попало, и заказ упирается в тупик.
+             Поле ввода оживает после выбора — до него непонятно,
+             что туда писать. */ %>
+      <div class="field contact-pick" data-contact-pick
+           data-invalid="<%= block.text.bad_contact || (sr ? 'Netačna adresa' : 'That address does not look right') %>">
         <span><%= labelContact %></span>
-        <input type="text" name="contact" maxlength="256" required>
-      </label>
+        <div class="contact-row">
+          <select name="contact_kind" required>
+            <option value=""><%= sr ? '— izaberite —' : '— choose —' %></option>
+            <option value="email">E-mail</option>
+            <option value="telegram">Telegram</option>
+            <option value="instagram">Instagram</option>
+          </select>
+          <input type="text" name="contact" maxlength="256" required disabled
+                 autocomplete="off" data-contact-value>
+        </div>
+        <p class="form-note" data-contact-error hidden></p>
+      </div>
 
       <label class="field">
         <span><%= labelMessage %></span>

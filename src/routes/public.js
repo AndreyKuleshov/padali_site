@@ -13,6 +13,7 @@ import {
 } from '../services/analytics.js'
 import { createMessage, markMailed } from '../repositories/messages.js'
 import { sendMessage } from '../services/mail.js'
+import { checkContact } from '../services/contact-check.js'
 
 function etagOf (html) {
   return `"${createHash('sha1').update(html).digest('base64url')}"`
@@ -126,6 +127,15 @@ async function publicRoutes (app) {
       locale: trim(body.locale, 8) || null
     }
 
+    /* Вид связи приходит только с заказом. Проверяем здесь ещё
+       раз: проверке из браузера верить нельзя, а неверный адрес
+       превращает заказ в тупик. */
+    if (kind === 'order') {
+      const checked = await checkContact(trim(body.contact_kind, 16), message.contact)
+      if (!checked.ok) return reply.code(400).send({ ok: false, reason: 'contact' })
+      message.contact = checked.contact
+    }
+
     // Заказ без связи бесполезен, письмо без текста — тем более.
     const empty = kind === 'order' ? message.contact === '' : message.body === ''
     if (empty) return reply.code(400).send({ ok: false, reason: 'empty' })
@@ -147,6 +157,20 @@ async function publicRoutes (app) {
     if (!sent.ok) request.log.warn({ id, error: sent.error }, 'Письмо не ушло, сообщение осталось в базе')
 
     return reply.send({ ok: true })
+  })
+
+  /**
+   * Проверка контакта покупателя до отправки заказа.
+   *
+   * Отдельным запросом, чтобы человек узнал об опечатке у поля, а
+   * не после «отправлено». Тот же вызов повторяется при приёме
+   * заказа: проверке из браузера верить нельзя.
+   */
+  app.post('/check-contact', {
+    config: { rateLimit: { max: 30, timeWindow: '10 minutes' } }
+  }, async (request, reply) => {
+    const result = await checkContact(request.body?.kind, request.body?.value)
+    return reply.send({ ok: result.ok })
   })
 
   app.get('/robots.txt', async (request, reply) => {

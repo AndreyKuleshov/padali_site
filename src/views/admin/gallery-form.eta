@@ -61,11 +61,13 @@
            массива и схлопывает разрывы, теряя привязку к id. */ %>
     <p class="hint"><%= it.t('galleries.priceHint') %></p>
 
-    <div class="gallery-items" id="galleryItems" data-price-label="<%= it.t('galleries.price') %>">
+    <div class="gallery-items" id="galleryItems" data-price-label="<%= it.t('galleries.price') %>" data-title-label="<%= it.t('galleries.itemTitle') %>">
       <% it.items.forEach(function (item) { %>
       <div class="gallery-chip" data-id="<%= item.id %>">
         <img src="<%= item.thumb %>" alt="" loading="lazy">
         <button type="button" class="media-remove" aria-label="<%= it.t('blockForm.remove') %>">×</button>
+        <input type="text" class="chip-title" name="title[m<%= item.id %>]" value="<%= item.title %>"
+               maxlength="160" placeholder="<%= it.t('galleries.itemTitle') %>">
         <input type="text" class="chip-price" name="price[m<%= item.id %>]" value="<%= item.price %>"
                maxlength="64" placeholder="<%= it.t('galleries.price') %>">
       </div>

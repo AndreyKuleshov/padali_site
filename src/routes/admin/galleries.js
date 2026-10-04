@@ -2,7 +2,7 @@ import { query, transaction } from '../../db/pool.js'
 import {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery,
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
-  getGalleryItems, setGalleryItems, pricesForGalleries, appendGalleryItems
+  getGalleryItems, setGalleryItems, itemFieldsForGalleries, appendGalleryItems
 } from '../../repositories/galleries.js'
 import { getMediaByIds, listMedia } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
@@ -123,10 +123,10 @@ async function galleryRoutes (app) {
       getGalleryTexts(id), getGalleryItems(id), listLocales(), listMedia({ limit: 500 })
     ])
 
-    const [mediaById, pricesByGallery] = await Promise.all([
-      getMediaByIds(itemIds), pricesForGalleries([id])
+    const [mediaById, fieldsByGallery] = await Promise.all([
+      getMediaByIds(itemIds), itemFieldsForGalleries([id])
     ])
-    const prices = pricesByGallery.get(id) ?? new Map()
+    const fields = fieldsByGallery.get(id) ?? new Map()
     const items = itemIds
       .map((mediaId) => mediaById.get(mediaId))
       .filter(Boolean)
@@ -134,7 +134,8 @@ async function galleryRoutes (app) {
         id: media.id,
         thumb: thumbnailUrl(media),
         name: media.originalName,
-        price: prices.get(media.id) ?? ''
+        title: fields.get(media.id)?.title ?? '',
+        price: fields.get(media.id)?.price ?? ''
       }))
 
     // Где этот альбом уже вставлен — чтобы было видно последствия правок.
@@ -185,8 +186,11 @@ async function galleryRoutes (app) {
        строки целиком, и отдельным запросом после неё цену пришлось
        бы восстанавливать. */
     const prices = request.body?.price ?? {}
+    const titles = request.body?.title ?? {}
     const items = mediaIds.map((mediaId) => ({
-      mediaId, price: String(prices['m' + mediaId] ?? '').trim().slice(0, 64)
+      mediaId,
+      title: String(titles['m' + mediaId] ?? '').trim().slice(0, 160),
+      price: String(prices['m' + mediaId] ?? '').trim().slice(0, 64)
     }))
 
     await transaction(async (conn) => {

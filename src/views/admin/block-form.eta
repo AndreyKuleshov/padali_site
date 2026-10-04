@@ -197,22 +197,14 @@
       <% ;/* Создание альбома здесь же: ссылка на страницу альбомов
              уводила с незаписанной формой, и всё заполненное
              пропадало. */ %>
-      <% ;/* Состав альбома и загрузка — здесь же: иначе наполнять
-             его приходилось бы на отдельной странице, уходя с
-             незаписанной формы. */ %>
-      <div class="album-contents" data-album-contents hidden>
-        <div class="album-strip" data-album-strip></div>
-        <p class="hint" data-album-count></p>
-      </div>
+      <% ;/* Состав альбома, загрузка и выбор — здесь же: иначе
+             наполнять его приходилось бы на отдельной странице,
+             уходя с незаписанной формы. */ %>
+      <%~ include('/admin/partials/album-panel', it) %>
 
       <div class="media-actions">
         <button type="button" class="btn btn--small" data-new-album><%= it.t('galleries.create') %></button>
-        <label class="btn btn--small media-upload" data-album-upload>
-          <%= it.t('galleries.addPhotos') %>
-          <input type="file" accept="image/*" multiple hidden>
-        </label>
         <a class="btn btn--small" href="/admin/galleries" target="_blank" rel="noopener"><%= it.t('blockForm.manageAlbums') %></a>
-        <span class="media-upload-note hint" data-album-note hidden></span>
       </div>
       <p class="hint"><%= it.t('blockForm.galleryHint') %></p>
       <p class="hint"><%= it.t('galleries.pricesElsewhere') %></p>
@@ -242,21 +234,34 @@
 </form>
 
 <dialog class="album-dialog" id="albumDialog">
-  <form method="dialog" class="stack">
-    <strong><%= it.t('galleries.create') %></strong>
-    <label class="field">
-      <span><%= it.t('galleries.shortName') %></span>
-      <% ;/* Без pattern: сервер приводит имя сам и кириллицу
-             принимает, а поле отвергало бы её молча. */ %>
-      <input type="text" id="albumSlug" placeholder="<%= it.t('galleries.slug') %>"
-             maxlength="128" autocomplete="off">
-    </label>
-    <p class="hint" id="albumError" hidden></p>
-    <div class="media-actions">
-      <button type="button" class="btn btn--primary btn--small" id="albumCreate"><%= it.t('galleries.create') %></button>
-      <button type="button" class="btn btn--small" data-album-close><%= it.t('common.cancel') %></button>
+  <div class="stack">
+    <strong id="albumDialogTitle"><%= it.t('galleries.create') %></strong>
+
+    <% ;/* Первый шаг — имя. Второй — наполнение: после создания
+           альбом ещё пуст, и закрывать окно, отправляя редактора
+           искать те же кнопки ниже, незачем. */ %>
+    <div id="albumStepName">
+      <div class="field">
+        <label for="albumSlug"><%= it.t('galleries.shortName') %></label>
+        <% ;/* Без pattern: сервер приводит имя сам и кириллицу
+               принимает, а поле отвергало бы её молча. */ %>
+        <input type="text" id="albumSlug" placeholder="<%= it.t('galleries.slug') %>"
+               maxlength="128" autocomplete="off">
+      </div>
+      <p class="hint" id="albumError" hidden></p>
+      <div class="media-actions">
+        <button type="button" class="btn btn--primary btn--small" id="albumCreate"><%= it.t('galleries.create') %></button>
+        <button type="button" class="btn btn--small" data-album-close><%= it.t('common.cancel') %></button>
+      </div>
     </div>
-  </form>
+
+    <div id="albumStepPhotos" hidden>
+      <%~ include('/admin/partials/album-panel', Object.assign({}, it, { inDialog: true })) %>
+      <div class="media-actions">
+        <button type="button" class="btn btn--primary btn--small" data-album-close><%= it.t('common.save') %></button>
+      </div>
+    </div>
+  </div>
 </dialog>
 
 <%~ include('/admin/partials/media-picker', it) %>

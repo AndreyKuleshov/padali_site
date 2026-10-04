@@ -169,6 +169,11 @@
     var library = null
     var activeTrigger = null
 
+    /* Список забирается один раз на страницу. Загрузка из панели
+       альбома его пополняет, и без сброса в выборе не было бы
+       только что отправленных снимков. */
+    window.padaliMediaLibraryStale = function () { library = null }
+
     function renderLibrary () {
       if (library.length === 0) {
         grid.innerHTML = '<p class="hint"></p>'
@@ -202,10 +207,13 @@
       var chip = document.createElement('div')
       chip.className = 'gallery-chip'
       chip.setAttribute('data-id', String(item.id))
-      var price = document.getElementById('galleryItems').getAttribute('data-price-label') || ''
+      var holder = document.getElementById('galleryItems')
+      var price = holder.getAttribute('data-price-label') || ''
+      var title = holder.getAttribute('data-title-label') || ''
       chip.innerHTML =
         '<img src="' + item.thumb + '" alt="" loading="lazy">' +
         '<button type="button" class="media-remove">×</button>' +
+        '<input type="text" class="chip-title" name="title[m' + item.id + ']" maxlength="160" placeholder="' + title + '">' +
         '<input type="text" class="chip-price" name="price[m' + item.id + ']" maxlength="64" placeholder="' + price + '">'
       container.appendChild(chip)
       syncGalleryValue()
@@ -221,7 +229,11 @@
       if (choice && activeTrigger) {
         var item = { id: Number(choice.getAttribute('data-id')), thumb: choice.getAttribute('data-thumb') }
         if (activeTrigger.getAttribute('data-target') === 'galleryItems') addToGallery(item)
-        else {
+        else if (activeTrigger.hasAttribute('data-album-pick')) {
+          // Панель альбома сама знает, куда дописывать.
+          var panel = activeTrigger.closest('[data-album-panel]')
+          if (panel && panel.albumAdd) panel.albumAdd([item.id])
+        } else {
           var field = activeTrigger.closest('.media-field')
           if (field) addToBlockField(field, item)
         }
@@ -835,11 +847,19 @@
         select = event.target.closest('.field').querySelector('select')
         slug.value = ''
         error.hidden = true
+        document.getElementById('albumStepName').hidden = false
+        document.getElementById('albumStepPhotos').hidden = true
+        document.getElementById('albumDialogTitle').textContent = create.textContent.trim()
         dialog.showModal()
         slug.focus()
         return
       }
-      if (event.target.closest('[data-album-close]')) dialog.close()
+      if (event.target.closest('[data-album-close]')) {
+        dialog.close()
+        // В окне могли дослать снимки — полоса под выбором устарела.
+        var inline = document.querySelector('.field [data-album-panel]')
+        if (inline && inline.albumRefresh) inline.albumRefresh()
+      }
     })
 
     // Enter в поле — то же, что нажать «Создать».
@@ -872,7 +892,18 @@
           select.appendChild(option)
           select.value = String(result.id)
           select.dispatchEvent(new Event('change', { bubbles: true }))
-          dialog.close()
+
+          /* Альбом создан, но пуст. Закрыть окно значило бы
+             отправить редактора искать те же кнопки ниже —
+             показываем наполнение прямо здесь. */
+          var panel = document.querySelector('#albumStepPhotos [data-album-panel]')
+          if (panel) {
+            panel.setAttribute('data-album-id', String(result.id))
+            panel.albumRefresh()
+          }
+          document.getElementById('albumStepName').hidden = true
+          document.getElementById('albumStepPhotos').hidden = false
+          document.getElementById('albumDialogTitle').textContent = result.slug
         })
         .catch(function () { fail(slug.getAttribute('placeholder') || '') })
         .finally(function () {
@@ -882,27 +913,30 @@
     })
   }
 
-  /* ── Состав альбома и загрузка прямо в форме блока ───────
-     Наполнять альбом на отдельной странице значило уходить с
-     незаписанной формы. Здесь видно, что в альбоме лежит, и
-     можно дослать снимки, ничего не теряя. */
-  function initAlbumContents () {
-    var fields = document.querySelectorAll('[data-album-contents]')
-    if (fields.length === 0) return
+  /* ── Панель альбома: что внутри, загрузка, выбор ─────────
+     Одна и та же панель живёт под выбором альбома в форме блока
+     и во втором шаге окна создания. Альбом она спрашивает у
+     хозяина: в форме это выпадайка, в окне — только что
+     созданный. */
+  function initAlbumPanels () {
+    var panels = document.querySelectorAll('[data-album-panel]')
+    if (panels.length === 0) return
 
     var strings = document.getElementById('albumStrings')
+    for (var i = 0; i < panels.length; i += 1) setup(panels[i])
 
-    for (var i = 0; i < fields.length; i += 1) setup(fields[i].closest('.field'))
-
-    function setup (field) {
-      var select = field.querySelector('select')
-      var box = field.querySelector('[data-album-contents]')
-      var strip = field.querySelector('[data-album-strip]')
-      var count = field.querySelector('[data-album-count]')
-      var note = field.querySelector('[data-album-note]')
-      var upload = field.querySelector('[data-album-upload]')
+    function setup (panel) {
+      var strip = panel.querySelector('[data-album-strip]')
+      var count = panel.querySelector('[data-album-count]')
+      var note = panel.querySelector('[data-album-note]')
+      var upload = panel.querySelector('[data-album-upload]')
       var input = upload && upload.querySelector('input[type="file"]')
-      if (!select) return
+      var select = panel.closest('.field') && panel.closest('.field').querySelector('select')
+
+      // В окне альбом задаётся снаружи, в форме — выбором в списке.
+      panel.albumId = function () {
+        return panel.getAttribute('data-album-id') || (select ? select.value : '')
+      }
 
       function say (text, state) {
         if (!note) return
@@ -912,19 +946,21 @@
         else note.removeAttribute('data-state')
       }
 
-      function fill (text, params) {
-        return String(text || '').replace(/\{(\w+)\}/g, function (m, key) {
-          return Object.prototype.hasOwnProperty.call(params, key) ? params[key] : m
+      function fill (template, params) {
+        return String(template || '').replace(/\{(\w+)\}/g, function (match, key) {
+          return Object.prototype.hasOwnProperty.call(params, key) ? params[key] : match
         })
       }
 
       function render (result) {
         var items = result.items
+
         /* Подпись пункта в списке — «имя (сколько фото)». После
            дозагрузки она устаревала, и редактор видел старое
            число прямо над свежими снимками. */
-        var option = select.selectedOptions[0]
-        if (option && result.slug) option.textContent = result.slug + ' (' + items.length + ')'
+        if (select && select.selectedOptions[0] && result.slug) {
+          select.selectedOptions[0].textContent = result.slug + ' (' + items.length + ')'
+        }
 
         strip.innerHTML = ''
         items.slice(0, 24).forEach(function (item) {
@@ -937,32 +973,55 @@
         count.textContent = items.length === 0
           ? strings.getAttribute('data-empty')
           : fill(strings.getAttribute('data-count'), { count: items.length })
-        box.hidden = false
       }
 
       function refresh () {
-        var id = select.value
-        if (!id) { box.hidden = true; if (upload) upload.hidden = true; return }
-        if (upload) upload.hidden = false
+        var id = panel.albumId()
+        if (!id) { panel.hidden = true; return }
+        panel.hidden = false
 
         fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json')
           .then(function (response) { return response.json() })
           .then(function (result) { if (result.ok) render(result) })
-          .catch(function () { box.hidden = true })
+          .catch(function () {})
       }
 
-      select.addEventListener('change', refresh)
+      panel.albumRefresh = refresh
+
+      function csrf () {
+        var form = panel.closest('form') || document.querySelector('form')
+        var field = form && form.querySelector('input[name="_csrf"]')
+        return field ? field.value : ''
+      }
+
+      /** Привязать уже загруженные картинки к альбому. */
+      panel.albumAdd = function (mediaIds) {
+        var id = panel.albumId()
+        if (!id || mediaIds.length === 0) return Promise.resolve()
+
+        return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _csrf: csrf(), media: mediaIds })
+        })
+          .then(function (response) { return response.json() })
+          .then(function (result) {
+            if (!result.ok) throw new Error('reject')
+            say('')
+            refresh()
+          })
+          .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
+      }
+
+      if (select) select.addEventListener('change', refresh)
       refresh()
 
       if (!input) return
       input.addEventListener('change', function () {
-        var id = select.value
-        if (input.files.length === 0 || !id) return
+        if (input.files.length === 0 || !panel.albumId()) return
 
-        var form = select.closest('form')
-        var token = form && form.querySelector('input[name="_csrf"]')
         var data = new FormData()
-        data.append('_csrf', token ? token.value : '')
+        data.append('_csrf', csrf())
         for (var k = 0; k < input.files.length; k += 1) data.append('files', input.files[k])
         input.value = ''
 
@@ -974,19 +1033,9 @@
           .then(function (result) {
             var ids = (result.items || []).map(function (item) { return item.id })
             if (ids.length === 0) throw new Error('empty')
-
-            // Картинки загружены — теперь привязываем их к альбому.
-            return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ _csrf: token ? token.value : '', media: ids })
-            })
-          })
-          .then(function (response) { return response.json() })
-          .then(function (result) {
-            if (!result.ok) throw new Error('reject')
-            say('')
-            refresh()
+            // Медиатека пополнилась — список в выборе устарел.
+            if (window.padaliMediaLibraryStale) window.padaliMediaLibraryStale()
+            return panel.albumAdd(ids)
           })
           .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
           .finally(function () { upload.classList.remove('is-busy') })
@@ -1004,6 +1053,6 @@
   initYoutubeField()
   initTranslate()
   initAlbumDialog()
-  initAlbumContents()
+  initAlbumPanels()
   initHeatmap()
 })()

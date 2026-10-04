@@ -1,0 +1,15 @@
+<% ;/* Панель альбома: что внутри, загрузка файлов и выбор из
+       медиатеки. Одна и та же под выбором альбома в форме блока
+       и во втором шаге окна создания. */ %>
+<div class="album-panel" data-album-panel<%= it.inDialog ? ' data-album-id=""' : '' %> hidden>
+  <div class="album-strip" data-album-strip></div>
+  <p class="hint" data-album-count></p>
+  <div class="media-actions">
+    <label class="btn btn--small media-upload" data-album-upload>
+      <%= it.t('galleries.addPhotos') %>
+      <input type="file" accept="image/*" multiple hidden>
+    </label>
+    <button type="button" class="btn btn--small media-pick" data-album-pick data-multiple="1"><%= it.t('blockForm.pickFromMedia') %></button>
+    <span class="media-upload-note hint" data-album-note hidden></span>
+  </div>
+</div>

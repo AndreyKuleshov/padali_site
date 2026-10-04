@@ -43,17 +43,20 @@ export async function sendMessage (message, {
 } = {}) {
   if (!isMailConfigured(settings)) return { ok: false, error: 'mail not configured' }
 
+  /* Письмо на английском: ящик у группы один, читают его вместе,
+     и общий язык сайта тут уместнее языка разработки. Сам текст
+     посетителя не трогаем — он как написан. */
   const lines = []
-  if (message.item) lines.push(`Товар: ${message.item}`)
-  if (message.city) lines.push(`Город: ${message.city}`)
-  if (message.contact) lines.push(`Связь: ${message.contact}`)
-  if (message.locale) lines.push(`Язык страницы: ${message.locale}`)
+  if (message.item) lines.push(`Item: ${message.item}`)
+  if (message.city) lines.push(`City: ${message.city}`)
+  if (message.contact) lines.push(`Contact: ${message.contact}`)
+  if (message.locale) lines.push(`Page language: ${message.locale}`)
   if (lines.length > 0) lines.push('')
   if (message.body) lines.push(message.body)
 
   const subject = message.kind === 'order'
-    ? `Заказ мерча${message.item ? `: ${message.item}` : ''}`
-    : 'Сообщение с сайта'
+    ? `Merch order${message.item ? `: ${message.item}` : ''}`
+    : 'Message from the site'
 
   try {
     await (transporter ?? transport(settings)).sendMail({
