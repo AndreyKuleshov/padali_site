@@ -13,30 +13,16 @@
 
   <section class="card">
     <h2><%= it.t('settings.meta') %></h2>
-    <div class="field" data-translate>
-      <label><%= it.t('settings.pageTitle') %></label>
-      <%~ include('/admin/partials/translate-row', it) %>
-      <div class="locale-grid">
-        <% it.locales.forEach(function (locale) { %>
-        <div>
-          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-          <input type="text" name="text[<%= locale.code %>][title]" value="<%= pageText(locale.code, 'title') %>">
-        </div>
-        <% }) %>
-      </div>
-    </div>
-    <div class="field" data-translate>
-      <label><%= it.t('settings.pageDescription') %></label>
-      <%~ include('/admin/partials/translate-row', it) %>
-      <div class="locale-grid locale-grid--stacked">
-        <% it.locales.forEach(function (locale) { %>
-        <div>
-          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-          <textarea name="text[<%= locale.code %>][description]" rows="2"><%= pageText(locale.code, 'description') %></textarea>
-        </div>
-        <% }) %>
-      </div>
-    </div>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.t('settings.pageTitle'),
+          prefix: 'text', key: 'title',
+          field: { input: 'text' }, values: pageText
+        })) %>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.t('settings.pageDescription'),
+          prefix: 'text', key: 'description',
+          field: { input: 'textarea', rows: 2 }, values: pageText
+        })) %>
     <div class="field">
       <label for="og_image_id"><%= it.t('settings.ogImage') %></label>
       <select id="og_image_id" name="og_image_id">

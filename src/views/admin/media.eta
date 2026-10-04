@@ -54,19 +54,15 @@
                по одному полю сразу на все языки, и его строка
                должна стоять над своей группой. */ %>
         <% ;['alt', 'caption'].forEach(function (key) { %>
-        <div class="field" data-translate>
-          <label><%= key %></label>
-          <%~ include('/admin/partials/translate-row', it) %>
-          <div class="locale-grid">
-            <% it.locales.forEach(function (locale) { %>
-            <div>
-              <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-              <input type="text" name="text[<%= locale.code %>][<%= key %>]"
-                     value="<%= (item.texts[locale.code] && item.texts[locale.code][key]) || '' %>">
-            </div>
-            <% }) %>
-          </div>
-        </div>
+        <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+              label: key,
+              prefix: 'text',
+              key: key,
+              field: { input: 'text' },
+              values: function (locale, field) {
+                return (item.texts[locale] && item.texts[locale][field]) || ''
+              }
+            })) %>
         <% }) %>
         <button type="submit" class="btn btn--small btn--primary"><%= it.t('common.save') %></button>
       </form>

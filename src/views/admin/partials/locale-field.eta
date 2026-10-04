@@ -1,0 +1,26 @@
+<% ;/* Поле, заполняемое на каждом языке: подпись, строка перевода
+       и по полю на язык. Копий этого блока было восемь, и они
+       успели разъехаться — у пункта меню стоял голый input мимо
+       общего шаблона полей, то есть без textarea и без будущих
+       типов ввода.
+
+       Ожидает: label, prefix (text[<язык>] или свой), key, field
+       (описание поля для /admin/fields/input), values(locale, key),
+       hint. */ %>
+<div class="field" data-translate>
+  <label><%= it.label %></label>
+  <%~ include('/admin/partials/translate-row', it) %>
+  <div class="locale-grid<%= (it.field.input === 'richtext' || it.field.input === 'textarea') ? ' locale-grid--stacked' : '' %>">
+    <% it.locales.forEach(function (locale) { %>
+    <div>
+      <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
+      <%~ include('/admin/fields/input', Object.assign({}, it, {
+            field: it.field,
+            name: it.prefix + '[' + locale.code + '][' + it.key + ']',
+            value: it.values(locale.code, it.key)
+          })) %>
+    </div>
+    <% }) %>
+  </div>
+  <% if (it.hint) { %><p class="hint"><%~ it.hint %></p><% } %>
+</div>

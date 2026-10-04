@@ -29,61 +29,38 @@
     <h2><%= it.t('blockForm.general') %></h2>
 
     <% generalTexts.forEach(function (field) { %>
-    <div class="field" data-translate>
-      <label><%= it.localize(field.label) %></label>
-      <%~ include('/admin/partials/translate-row', it) %>
-      <div class="locale-grid">
-        <% locales.forEach(function (locale) { %>
-        <div>
-          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-          <%~ include('/admin/fields/input', Object.assign({}, it, {
-                field: field,
-                name: 'text[' + locale.code + '][' + field.key + ']',
-                value: textValue(locale.code, field.key)
-              })) %>
-        </div>
-        <% }) %>
-      </div>
-      <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
-    </div>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.localize(field.label),
+          prefix: 'text',
+          key: field.key,
+          field: field,
+          values: textValue,
+          hint: field.hint ? it.localize(field.hint) : ''
+        })) %>
     <% }) %>
 
-    <div class="field" data-translate>
-      <label><%= it.t('blockForm.navLabel') %></label>
-      <%~ include('/admin/partials/translate-row', it) %>
-      <div class="locale-grid">
-        <% locales.forEach(function (locale) { %>
-        <div>
-          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-          <input type="text" name="text[<%= locale.code %>][nav_label]" value="<%= textValue(locale.code, 'nav_label') %>">
-        </div>
-        <% }) %>
-      </div>
-      <p class="hint"><%= it.t('blockForm.navLabelHint') %></p>
-    </div>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.t('blockForm.navLabel'),
+          prefix: 'text',
+          key: 'nav_label',
+          field: { input: 'text' },
+          values: textValue,
+          hint: it.t('blockForm.navLabelHint')
+        })) %>
   </section>
 
   <% if (otherTexts.length > 0) { %>
   <section class="card">
     <h2><%= it.t('blockForm.texts') %></h2>
     <% otherTexts.forEach(function (field) { %>
-    <div class="field" data-translate>
-      <label><%= it.localize(field.label) %></label>
-      <%~ include('/admin/partials/translate-row', it) %>
-      <div class="locale-grid<%= field.input === 'richtext' || field.input === 'textarea' ? ' locale-grid--stacked' : '' %>">
-        <% locales.forEach(function (locale) { %>
-        <div>
-          <span class="locale-tag"><%= locale.code.toUpperCase() %></span>
-          <%~ include('/admin/fields/input', Object.assign({}, it, {
-                field: field,
-                name: 'text[' + locale.code + '][' + field.key + ']',
-                value: textValue(locale.code, field.key)
-              })) %>
-        </div>
-        <% }) %>
-      </div>
-      <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
-    </div>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.localize(field.label),
+          prefix: 'text',
+          key: field.key,
+          field: field,
+          values: textValue,
+          hint: field.hint ? it.localize(field.hint) : ''
+        })) %>
     <% }) %>
   </section>
   <% } %>

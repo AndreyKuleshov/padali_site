@@ -11,6 +11,20 @@
     })
   }
 
+  /**
+   * Токен из формы, в которой лежит узел. Способов было пять, и
+   * они отличались: один работал вне формы, остальные нет.
+   */
+  function csrfToken (node) {
+    // Список блоков лежит вне формы и носит токен атрибутом.
+    var holder = (node && node.closest) ? node.closest('[data-csrf]') : null
+    if (holder) return holder.getAttribute('data-csrf')
+
+    var form = (node && node.closest) ? node.closest('form') : null
+    var field = (form || document).querySelector('input[name="_csrf"]')
+    return field ? field.value : ''
+  }
+
   /* ── Подтверждение удаления ─────────────────────────────── */
   document.addEventListener('submit', function (event) {
     var message = event.target.getAttribute('data-confirm')
@@ -106,7 +120,7 @@
             'Content-Type': 'application/json',
             'X-CSRF-Token': list.getAttribute('data-csrf')
           },
-          body: JSON.stringify({ order: order, _csrf: list.getAttribute('data-csrf') })
+          body: JSON.stringify({ order: order, _csrf: csrfToken(list) })
         }).then(function (response) {
           if (!response.ok) window.alert(list.getAttribute('data-error'))
         })
@@ -350,18 +364,12 @@
     var strings = document.getElementById('uploadStrings')
     if (!strings) return
 
-    function csrfOf (element) {
-      var form = element.closest('form')
-      var field = form && form.querySelector('input[name="_csrf"]')
-      return field ? field.value : ''
-    }
-
     function upload (files, element, onDone) {
       var note = element.querySelector('.media-upload-note')
       var data = new FormData()
       // Токен кладём первым: сервер читает части потоком и
       // проверяет его, как только дойдёт до файла.
-      data.append('_csrf', csrfOf(element))
+      data.append('_csrf', csrfToken(element))
       for (var i = 0; i < files.length; i += 1) data.append('files', files[i])
 
       if (note) { note.hidden = false; note.textContent = strings.getAttribute('data-uploading') }
@@ -823,12 +831,6 @@
       return found
     }
 
-    function csrfOf (node) {
-      var form = node.closest('form')
-      var field = form && form.querySelector('input[name="_csrf"]')
-      return field ? field.value : ''
-    }
-
     /* Пустое языковое поле заперто: заполняется оно переводом, а
        не руками. Как только значение появилось — обычное поле.
        Запираем только здесь, где строка перевода есть: без ключа
@@ -885,7 +887,7 @@
       fetch('/admin/translate.json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ _csrf: csrfOf(button), text: text })
+        body: JSON.stringify({ _csrf: csrfToken(button), text: text })
       })
         .then(function (response) { return response.json() })
         .then(function (result) {
@@ -973,16 +975,13 @@
       var value = slug.value.trim()
       if (value === '' || !select) return
 
-      var form = select.closest('form')
-      var token = form && form.querySelector('input[name="_csrf"]')
-
       create.disabled = true
       create.classList.add('is-busy')
 
       fetch('/admin/galleries.json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ _csrf: token ? token.value : '', slug: value })
+        body: JSON.stringify({ _csrf: csrfToken(select), slug: value })
       })
         .then(function (response) { return response.json() })
         .then(function (result) {
@@ -1046,12 +1045,6 @@
         note.textContent = text
         if (state) note.setAttribute('data-state', state)
         else note.removeAttribute('data-state')
-      }
-
-      function fill (template, params) {
-        return String(template || '').replace(/\{(\w+)\}/g, function (match, key) {
-          return Object.prototype.hasOwnProperty.call(params, key) ? params[key] : match
-        })
       }
 
       var withFields = panel.hasAttribute('data-album-fields')
@@ -1170,12 +1163,6 @@
 
       panel.albumRefresh = refresh
 
-      function csrf () {
-        var form = panel.closest('form') || document.querySelector('form')
-        var field = form && form.querySelector('input[name="_csrf"]')
-        return field ? field.value : ''
-      }
-
       /** Привязать уже загруженные картинки к альбому. */
       panel.albumAdd = function (mediaIds) {
         var id = panel.albumId()
@@ -1184,7 +1171,7 @@
         return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ _csrf: csrf(), media: mediaIds })
+          body: JSON.stringify({ _csrf: csrfToken(panel), media: mediaIds })
         })
           .then(function (response) { return response.json() })
           .then(function (result) {
@@ -1203,7 +1190,7 @@
         return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items/remove.json', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ _csrf: csrf(), media: mediaIds })
+          body: JSON.stringify({ _csrf: csrfToken(panel), media: mediaIds })
         })
           .then(function (response) { return response.json() })
           .then(function (result) {
@@ -1229,7 +1216,7 @@
         if (input.files.length === 0 || !panel.albumId()) return
 
         var data = new FormData()
-        data.append('_csrf', csrf())
+        data.append('_csrf', csrfToken(panel))
         for (var k = 0; k < input.files.length; k += 1) data.append('files', input.files[k])
         input.value = ''
 
