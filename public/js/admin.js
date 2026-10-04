@@ -311,6 +311,7 @@
       var cost = document.createElement('input')
       cost.type = 'text'
       cost.className = 'chip-price'
+      // Буква перед id — соглашение itemKey, см. routes/admin/helpers.js.
       cost.name = 'price[m' + item.id + ']'
       cost.maxLength = 64
       cost.placeholder = price
@@ -1057,6 +1058,7 @@
         node.type = 'text'
         node.className = 'album-card-' + key
         // Ключ с буквой: «item[7]» qs считает индексом массива.
+        // Буква перед id — соглашение itemKey, см. routes/admin/helpers.js.
         node.name = 'item[m' + item.id + '][' + key + ']' + (locale ? '[' + locale + ']' : '')
         node.value = (locale ? (item[key] || {})[locale] : item[key]) || ''
         node.placeholder = placeholder || ''

@@ -1,10 +1,35 @@
 import { db, placeholders } from './helpers.js'
 
-/** Ширины экранов, по которым раскладываются клики на карте. */
+/**
+ * Ширины экранов, по которым раскладываются клики на карте.
+ *
+ * `preview` — размер окна, в котором страница показывается под
+ * картой. Высота взята настоящая: во фрейме во весь документ
+ * единицы svh раздули бы шапку, и страница выглядела бы не так,
+ * как у людей.
+ *
+ * Границы держим здесь одни на всех: доля мобильных считается по
+ * той же, и разъехавшись, две цифры показали бы разное про один
+ * и тот же экран.
+ */
 const DEVICE_BANDS = {
-  mobile: { label: { en: 'Phone', sr: 'Telefon' }, min: 0, max: 640 },
-  tablet: { label: { en: 'Tablet', sr: 'Tablet' }, min: 641, max: 1024 },
-  desktop: { label: { en: 'Desktop', sr: 'Računar' }, min: 1025, max: 100000 }
+  mobile: {
+    label: { en: 'Phone', sr: 'Telefon' },
+    min: 0, max: 640, preview: { width: 390, height: 844 }
+  },
+  tablet: {
+    label: { en: 'Tablet', sr: 'Tablet' },
+    min: 641, max: 1024, preview: { width: 834, height: 1112 }
+  },
+  desktop: {
+    label: { en: 'Desktop', sr: 'Računar' },
+    min: 1025, max: 100000, preview: { width: 1440, height: 900 }
+  }
+}
+
+/** Телефон ли это — по той же границе, что у карты кликов. */
+function isMobileWidth (width) {
+  return Number(width) <= DEVICE_BANDS.mobile.max
 }
 
 async function recordView (view, conn) {
@@ -154,7 +179,7 @@ async function purgeOlderThan (days, conn) {
 }
 
 export {
-  DEVICE_BANDS, recordView, recordClicks,
+  DEVICE_BANDS, isMobileWidth, recordView, recordClicks,
   viewTotals, viewsByDay, viewsByHour, topPaths, topReferrers,
   clickPoints, topTargets, trackedPaths, purgeOlderThan
 }

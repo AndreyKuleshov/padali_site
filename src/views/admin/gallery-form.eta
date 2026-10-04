@@ -47,8 +47,9 @@
   <section class="card">
     <h2><%= it.t('galleries.photosHeading') %></h2>
     <p class="hint"><%= it.t('galleries.photosHint') %></p>
-    <% ;/* Ключ цены с буквой: qs считает «price[7]» индексом
-           массива и схлопывает разрывы, теряя привязку к id. */ %>
+    <% ;/* Ключ цены с буквой — соглашение itemKey из
+           src/routes/admin/helpers.js: qs считает «price[7]»
+           индексом массива и схлопывает разрывы. */ %>
     <p class="hint"><%= it.t('galleries.priceHint') %></p>
 
     <div class="gallery-items" id="galleryItems" data-price-label="<%= it.t('galleries.price') %>">

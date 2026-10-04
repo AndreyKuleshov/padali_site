@@ -87,10 +87,7 @@ async function analyticsRoutes (app) {
         path,
         band,
         bands: Object.entries(DEVICE_BANDS).map(([key, value]) => ({ key, label: value.label })),
-        width: band === 'mobile' ? 390 : band === 'tablet' ? 834 : 1440,
-        // Высота настоящего экрана: во фрейме во весь документ единицы
-        // svh раздули бы шапку и страница выглядела бы иначе, чем у людей.
-        height: band === 'mobile' ? 844 : band === 'tablet' ? 1112 : 900,
+        ...DEVICE_BANDS[band].preview,
         points,
         targets
       }

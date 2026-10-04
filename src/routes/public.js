@@ -7,7 +7,7 @@ import { cacheKey, getCached, setCached } from '../services/cache.js'
 import { getMedia } from '../repositories/media.js'
 import { pictureSources } from '../services/media-processor.js'
 import config from '../config.js'
-import { recordView, recordClicks } from '../repositories/analytics.js'
+import { recordView, recordClicks, isMobileWidth } from '../repositories/analytics.js'
 import {
   visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp
 } from '../services/analytics.js'
@@ -85,13 +85,14 @@ async function publicRoutes (app) {
       if (!path) return reply.send()
 
       if (body.type === 'view') {
+        const width = Math.round(clamp(body.w, 200, 10000, 1024))
         await recordView({
           path,
           locale: typeof body.locale === 'string' ? body.locale.slice(0, 8) : null,
           visitorHash: visitorHash(request),
           referrerHost: referrerHost(body.referrer),
-          viewport: Math.round(clamp(body.w, 200, 10000, 1024)),
-          isMobile: Math.round(clamp(body.w, 200, 10000, 1024)) <= 640
+          viewport: width,
+          isMobile: isMobileWidth(width)
         })
       } else if (body.type === 'clicks') {
         await recordClicks(parseClicks(body.clicks, path))

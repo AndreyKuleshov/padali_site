@@ -117,6 +117,45 @@ function pageSlice (request, perPage) {
   }
 }
 
+/**
+ * Список id из формы: «3,7,7,12» или массив полей с тем же именем.
+ *
+ * Порядок сохраняем — им задаётся и порядок блоков, и порядок
+ * снимков в альбоме. Повторы убираем: qs отдаёт массив как есть,
+ * а дважды добавленный снимок сломал бы запись состава.
+ */
+function idList (raw) {
+  const values = Array.isArray(raw) ? raw : String(raw ?? '').split(',')
+  const ids = values
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isInteger(value) && value > 0)
+  return [...new Set(ids)]
+}
+
+/**
+ * Ключ строки товара в форме: `price[m7]`, `item[m7][title]`.
+ *
+ * Буква обязательна. qs разбирает «price[7]» как индекс массива и
+ * схлопывает разрывы: удалили седьмой снимок — и цена восьмого
+ * уезжает на его место.
+ *
+ * Те же ключи собирают gallery-form.eta и public/js/admin.js —
+ * менять соглашение придётся сразу во всех трёх.
+ */
+function itemKey (mediaId) {
+  return `m${mediaId}`
+}
+
+/** Обратно: `{ m7: … }` → `{ 7: … }`. */
+function stripItemKeys (fields) {
+  const out = {}
+  for (const [key, value] of Object.entries(fields ?? {})) {
+    const id = Number(String(key).replace(/^m/, ''))
+    if (id) out[id] = value
+  }
+  return out
+}
+
 /** Любая запись делает кэш публичных страниц недействительным. */
 function afterWrite () {
   invalidateCache()
@@ -124,5 +163,5 @@ function afterWrite () {
 
 export {
   renderAdmin, afterWrite, resolveAdminLocale, languageUrl,
-  NAV, LANG_COOKIE, numericId, pageSlice
+  NAV, LANG_COOKIE, numericId, pageSlice, itemKey, stripItemKeys, idList
 }

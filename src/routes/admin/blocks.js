@@ -14,27 +14,12 @@ import { listLocales } from '../../repositories/locales.js'
 import { parseBlockForm } from '../../services/block-form.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite, numericId } from './helpers.js'
+import { renderAdmin, afterWrite, numericId, stripItemKeys, idList } from './helpers.js'
 import { localize } from '../../i18n/admin.js'
 import { currentSiteLogo } from '../../services/site-logo.js'
 import { lookupVideo } from '../../services/youtube.js'
 
 const HOME = 'home'
-
-/**
- * `{ m7: {...} }` → `{ 7: {...} }`.
- *
- * Ключ в форме с буквой: qs считает «item[7]» индексом массива,
- * схлопывает разрывы и теряет привязку к снимку.
- */
-function stripPrefix (fields) {
-  const out = {}
-  for (const [key, value] of Object.entries(fields ?? {})) {
-    const id = Number(String(key).replace(/^m/, ''))
-    if (id) out[id] = value
-  }
-  return out
-}
 
 /** Пустые переводы названия не храним: иначе откат на язык по
  *  умолчанию не сработает. */
@@ -213,7 +198,7 @@ async function blockRoutes (app) {
       await saveBlockTexts(id, parsed.textsByLocale, conn)
       await saveBlockMedia(id, parsed.mediaByField, conn)
       if (albumId && itemFields) {
-        await setGalleryItemFields(albumId, cleanTitles(stripPrefix(itemFields)), conn)
+        await setGalleryItemFields(albumId, cleanTitles(stripItemKeys(itemFields)), conn)
       }
     })
 
@@ -283,10 +268,7 @@ async function blockRoutes (app) {
 
   app.post('/blocks/reorder', async (request, reply) => {
     const page = await getPageBySlug(HOME)
-    const raw = request.body?.order
-    const ids = (Array.isArray(raw) ? raw : String(raw ?? '').split(','))
-      .map((value) => Number.parseInt(value, 10))
-      .filter(Number.isInteger)
+    const ids = idList(request.body?.order)
 
     await reorderBlocks(page.id, ids)
     afterWrite()

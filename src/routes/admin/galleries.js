@@ -8,7 +8,7 @@ import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite, numericId } from './helpers.js'
+import { renderAdmin, afterWrite, numericId, itemKey, idList } from './helpers.js'
 
 function slugify (value) {
   return String(value ?? '')
@@ -203,10 +203,7 @@ async function galleryRoutes (app) {
       }
     }
 
-    const raw = request.body?.items
-    const mediaIds = (Array.isArray(raw) ? raw : String(raw ?? '').split(','))
-      .map((value) => Number.parseInt(value, 10))
-      .filter((value) => Number.isInteger(value) && value > 0)
+    const mediaIds = idList(request.body?.items)
 
     const slug = slugify(request.body?.slug) || gallery.slug
     const clash = await getGalleryBySlug(slug)
@@ -227,7 +224,7 @@ async function galleryRoutes (app) {
     const items = mediaIds.map((mediaId) => ({
       mediaId,
       title: existing.get(mediaId)?.title,
-      price: String(prices['m' + mediaId] ?? '').trim().slice(0, 64)
+      price: String(prices[itemKey(mediaId)] ?? '').trim().slice(0, 64)
     }))
 
     await transaction(async (conn) => {
