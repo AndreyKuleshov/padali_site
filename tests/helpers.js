@@ -21,6 +21,17 @@ const TABLES = [
 
 /** Чистая база и чистый каталог загрузок перед каждым тестом. */
 async function resetDatabase () {
+  /* Защита от запуска мимо `npm test`: дальше идут TRUNCATE всех
+     таблиц и rm -rf каталога загрузок по тем переменным, что
+     лежат в окружении. С боевыми переменными это вычистило бы
+     боевые данные. */
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error(
+      'resetDatabase() вызвана вне тестового окружения. Запускайте через `npm test` ' +
+      '(он передаёт --env-file=.env.test с NODE_ENV=test).'
+    )
+  }
+
   await migrate({ logger: { info () {}, warn () {} } })
   // CASCADE снимает вопрос порядка внешних ключей, RESTART IDENTITY
   // возвращает счётчики id к единице, чтобы тесты не зависели от прогона.

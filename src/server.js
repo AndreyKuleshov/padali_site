@@ -16,6 +16,7 @@ import { bootstrapAdminUser } from './services/auth.js'
 import { ensureSeeded, ensureFooterBlock } from './services/seed.js'
 import { syncManagedAssets } from './services/managed-assets.js'
 import { purgeOlderThan } from './repositories/analytics.js'
+import { purgeExpiredSessions } from './repositories/sessions.js'
 import { repairMedia } from './services/media-repair.js'
 import publicRoutes from './routes/public.js'
 import adminRoutes from './routes/admin/index.js'
@@ -109,6 +110,16 @@ async function start () {
         }
       } catch (error) {
         app.log.warn({ err: error }, 'Чистка статистики не удалась')
+      }
+
+      /* Истёкшие сессии чистятся тем же заходом. Функция была
+         написана, но её никто не звал: строка на каждый вход при
+         сроке жизни в месяц — таблица росла бы вечно. */
+      try {
+        const sessions = await purgeExpiredSessions()
+        if (sessions > 0) app.log.info(`Сессии: удалено истёкших — ${sessions}.`)
+      } catch (error) {
+        app.log.warn({ err: error }, 'Чистка сессий не удалась')
       }
     }
     await purge()

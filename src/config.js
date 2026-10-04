@@ -64,7 +64,8 @@ function readEnv (env = process.env) {
       user: env.SMTP_USER ?? '',
       password: env.SMTP_PASSWORD ?? '',
       from: env.MAIL_FROM || env.SMTP_USER || 'padali-site@localhost',
-      to: env.MAIL_TO ?? 'padaliband@gmail.com'
+      to: env.MAIL_TO ?? 'padaliband@gmail.com',
+      timeoutMs: Number(env.SMTP_TIMEOUT_MS ?? 8000)
     },
 
     sessionSecret: env.SESSION_SECRET,

@@ -1,6 +1,8 @@
 import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { resetDatabase, createTestServer, makeImage, closePool } from './helpers.js'
+import {
+  resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage, closePool
+} from './helpers.js'
 import { createPage, savePageTexts } from '../src/repositories/pages.js'
 import { createBlock, saveBlockTexts, saveBlockMedia } from '../src/repositories/blocks.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../src/repositories/galleries.js'
@@ -284,4 +286,60 @@ test('у галереи с выключенным лайтбоксом груп�
   const response = await app.inject({ method: 'GET', url: '/' })
   const withoutLightbox = response.body.split('data-lightbox-group').length - 1
   assert.equal(withoutLightbox, 1, 'группа только у галереи, где просмотр включён')
+})
+
+/* ─── Сброс кэша после записи ────────────────────────────── */
+
+/**
+ * Страницы лежат в кэше процесса и сбрасываются только вызовом
+ * afterWrite() в пишущих маршрутах. Забытый вызов в новом маршруте
+ * ничем себя не проявит: в разработке страница перерисовывается,
+ * а в проде посетитель будет видеть старую до следующей записи.
+ * Поэтому проверяем сквозняком, через настоящее сохранение.
+ */
+test('правка из админки видна на сайте сразу', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  const id = await createBlock({
+    pageId, type: 'richtext', isVisible: true, settings: defaultSettings('richtext')
+  })
+  await saveBlockTexts(id, { en: { heading: 'Было' }, sr: {} })
+
+  await createTestAdmin()
+  const session = await loginAs(app)
+
+  // Первый заход кладёт страницу в кэш.
+  assert.match((await app.inject({ method: 'GET', url: '/' })).body, /Было/)
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf, is_visible: 'on', 'text[en][heading]': 'Стало' })
+  })
+
+  const after = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(after, /Стало/, 'кэш сброшен записью, а не вручную')
+  assert.doesNotMatch(after, /Было/)
+})
+
+test('удаление блока тоже сбрасывает кэш', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  const id = await createBlock({
+    pageId, type: 'richtext', isVisible: true, settings: defaultSettings('richtext')
+  })
+  await saveBlockTexts(id, { en: { heading: 'Исчезнет' }, sr: {} })
+
+  await createTestAdmin()
+  const session = await loginAs(app)
+
+  assert.match((await app.inject({ method: 'GET', url: '/' })).body, /Исчезнет/)
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}/delete`,
+    cookies: session.cookies,
+    ...form({ _csrf: session.csrf })
+  })
+
+  assert.doesNotMatch((await app.inject({ method: 'GET', url: '/' })).body, /Исчезнет/)
 })

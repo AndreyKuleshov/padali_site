@@ -12,20 +12,32 @@
 import nodemailer from 'nodemailer'
 import config from '../config.js'
 
+/* Ключ — сами настройки: прежний кэш отдавал транспорт от первого
+   вызова, молча игнорируя параметр settings. */
 let cached = null
+let cachedKey = ''
 
 export function isMailConfigured (settings = config.mail) {
   return Boolean(settings.host && settings.to)
 }
 
 function transport (settings) {
-  if (cached) return cached
+  const key = [settings.host, settings.port, settings.user, settings.timeoutMs].join('|')
+  if (cached && cachedKey === key) return cached
+  cachedKey = key
   cached = nodemailer.createTransport({
     host: settings.host,
     port: settings.port,
     // 465 — TLS с первого байта, остальные порты поднимают STARTTLS.
     secure: settings.port === 465,
-    auth: settings.user ? { user: settings.user, pass: settings.password } : undefined
+    auth: settings.user ? { user: settings.user, pass: settings.password } : undefined,
+    /* Свои таймауты вместо умолчаний nodemailer (2 минуты на
+       соединение и 10 минут на сокет): /send ждёт отправку до
+       ответа посетителю, и при молчащем SMTP человек висел бы на
+       форме минутами. Сообщение к этому моменту уже в базе. */
+    connectionTimeout: settings.timeoutMs,
+    greetingTimeout: settings.timeoutMs,
+    socketTimeout: settings.timeoutMs
   })
   return cached
 }
@@ -33,6 +45,7 @@ function transport (settings) {
 /** Только для тестов: настройки читаются один раз на процесс. */
 export function resetTransport () {
   cached = null
+  cachedKey = ''
 }
 
 /**
