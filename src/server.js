@@ -25,7 +25,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 async function buildServer ({ logger = true } = {}) {
   const app = Fastify({
     logger,
-    trustProxy: true,
+    /* Ровно один хоп, а не «доверять всем»: при true request.ip
+       берётся из самого левого X-Forwarded-For, то есть его задаёт
+       клиент. Тогда ограничения частоты ключуются по значению,
+       которое выбирает атакующий, и перебор пароля идёт без
+       предела — проверено. Перед приложением стоит один Traefik. */
+    trustProxy: Number(process.env.TRUSTED_PROXY_HOPS ?? 1),
     bodyLimit: 1024 * 1024
   })
 
@@ -38,6 +43,18 @@ async function buildServer ({ logger = true } = {}) {
 
   await app.register(multipart, {
     limits: { fileSize: config.uploadMaxBytes, files: 20, fields: 20 }
+  })
+
+  /* Своего обработчика не было, и Fastify отдавал наружу message
+     любой ошибки — например текст Postgres с именем типа и
+     значением. Внутрь лога пишем всё, наружу — код и общее слово. */
+  app.setErrorHandler((error, request, reply) => {
+    const status = error.statusCode ?? 500
+    if (status >= 500) request.log.error({ err: error, url: request.url }, 'Необработанная ошибка')
+
+    reply.code(status)
+    // Ошибки самого Fastify (400, 413, 429…) объясняют сами себя.
+    return reply.send({ error: status >= 500 ? 'Internal Server Error' : error.message })
   })
 
   await app.register(rateLimit, { global: false, max: 300, timeWindow: '1 minute' })

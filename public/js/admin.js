@@ -179,10 +179,22 @@
 
     var slot = document.createElement('div')
     slot.className = 'media-slot'
-    slot.innerHTML =
-      '<img src="' + item.thumb + '" alt="">' +
-      '<input type="hidden" name="media[' + field.getAttribute('data-media-field') + '][]" value="' + item.id + '">' +
-      '<button type="button" class="media-remove">×</button>'
+
+    var shot = document.createElement('img')
+    shot.src = item.thumb
+    shot.alt = ''
+
+    var hidden = document.createElement('input')
+    hidden.type = 'hidden'
+    hidden.name = 'media[' + field.getAttribute('data-media-field') + '][]'
+    hidden.value = String(item.id)
+
+    var drop = document.createElement('button')
+    drop.type = 'button'
+    drop.className = 'media-remove'
+    drop.textContent = '×'
+
+    slot.replaceChildren(shot, hidden, drop)
     slots.appendChild(slot)
 
     // Подпись «сейчас на сайте стоит такой-то» больше не к месту:
@@ -211,11 +223,26 @@
         grid.firstChild.textContent = dialog.getAttribute('data-empty')
         return
       }
-      grid.innerHTML = library.map(function (item) {
-        return '<button type="button" class="picker-item" data-id="' + item.id +
-               '" data-thumb="' + item.thumb + '" title="' + item.name + '">' +
-               '<img src="' + item.thumb + '" alt="" loading="lazy"></button>'
-      }).join('')
+      /* Узлами, а не строкой: имя файла приходит из медиатеки как
+         есть, и `a" onerror="…` в нём выполнил бы код прямо в
+         админке — с сессией и CSRF-токеном со страницы. */
+      grid.innerHTML = ''
+      library.forEach(function (item) {
+        var button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'picker-item'
+        button.setAttribute('data-id', String(item.id))
+        button.setAttribute('data-thumb', item.thumb)
+        button.title = item.name
+
+        var shot = document.createElement('img')
+        shot.src = item.thumb
+        shot.alt = ''
+        shot.loading = 'lazy'
+
+        button.appendChild(shot)
+        grid.appendChild(button)
+      })
     }
 
     /* Что уже в альбоме — отмечаем в выборе: иначе один и тот же
@@ -255,12 +282,26 @@
       var chip = document.createElement('div')
       chip.className = 'gallery-chip'
       chip.setAttribute('data-id', String(item.id))
-      var holder = document.getElementById('galleryItems')
-      var price = holder.getAttribute('data-price-label') || ''
-      chip.innerHTML =
-        '<img src="' + item.thumb + '" alt="" loading="lazy">' +
-        '<button type="button" class="media-remove">×</button>' +
-        '<input type="text" class="chip-price" name="price[m' + item.id + ']" maxlength="64" placeholder="' + price + '">'
+      var price = container.getAttribute('data-price-label') || ''
+
+      var shot = document.createElement('img')
+      shot.src = item.thumb
+      shot.alt = ''
+      shot.loading = 'lazy'
+
+      var drop = document.createElement('button')
+      drop.type = 'button'
+      drop.className = 'media-remove'
+      drop.textContent = '×'
+
+      var cost = document.createElement('input')
+      cost.type = 'text'
+      cost.className = 'chip-price'
+      cost.name = 'price[m' + item.id + ']'
+      cost.maxLength = 64
+      cost.placeholder = price
+
+      chip.replaceChildren(shot, drop, cost)
       container.appendChild(chip)
       syncGalleryValue()
     }
@@ -688,10 +729,13 @@
       var timer = null
       var request = 0
 
-      function show (html, state) {
+      /* Очищаем узлами: присваивание innerHTML здесь всегда было
+         пустой строкой, но оставляло в коде готовую дыру под
+         чужую разметку. */
+      function show (state) {
         preview.hidden = false
         preview.setAttribute('data-state', state)
-        preview.innerHTML = html
+        preview.replaceChildren()
       }
 
       function message (text, state) {
@@ -718,7 +762,7 @@
           .then(function (result) {
             if (mine !== request) return
             if (!result.ok) { message(result.message || field.getAttribute('data-failed'), 'error'); return }
-            show('', 'ok')
+            show('ok')
             var image = document.createElement('img')
             image.src = result.thumbnail
             image.alt = ''

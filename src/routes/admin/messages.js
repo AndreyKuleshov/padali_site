@@ -3,7 +3,7 @@ import {
 } from '../../repositories/messages.js'
 import { isMailConfigured } from '../../services/mail.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin } from './helpers.js'
+import { renderAdmin, numericId } from './helpers.js'
 
 const PER_PAGE = 50
 
@@ -29,13 +29,17 @@ async function messageRoutes (app) {
   })
 
   app.post('/messages/:id/read', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     await markRead(id, String(request.body?.read ?? '') === 'on')
     return reply.redirect('/admin/messages', 302)
   })
 
   app.post('/messages/:id/delete', async (request, reply) => {
-    await deleteMessage(Number(request.params.id))
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
+
+    await deleteMessage(id)
     setFlash(reply, 'success', request.t('messages.deleted'))
     return reply.redirect('/admin/messages', 302)
   })

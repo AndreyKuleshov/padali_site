@@ -212,3 +212,15 @@ test('выход закрывает доступ', async () => {
   const response = await app.inject({ method: 'GET', url: '/admin', cookies: session.cookies })
   assert.equal(response.statusCode, 302)
 })
+
+/* ─── Границы входных данных ─────────────────────────────── */
+
+/** `Number('abc')` даёт NaN, драйвер шлёт его строкой — было 500
+ *  с текстом ошибки базы в теле ответа. */
+test('нечисловой id в пути даёт 404, а не ошибку базы', async () => {
+  for (const url of ['/admin/blocks/abc', '/admin/galleries/abc', '/admin/media/abc']) {
+    const response = await app.inject({ method: 'GET', url, cookies: session.cookies })
+    assert.equal(response.statusCode, 404, url)
+    assert.doesNotMatch(response.body, /invalid input syntax|NaN/, 'внутренности базы наружу не уходят')
+  }
+})

@@ -317,3 +317,19 @@ test('карта получает единый якорь: номер блока
   const points = await clickPoints({ path: '/', band: 'desktop', days: 30 })
   assert.deepEqual(points.map((p) => p.anchor).sort(), [String(galleryBlock), 'header'].sort())
 })
+
+/**
+ * Путь из статистики подставляется в src фрейма на странице карты
+ * кликов. `//host/` браузер читает как чужой сайт — админ грузил бы
+ * его внутри админки.
+ */
+test('чужой адрес и служебные пути в статистику не попадают', () => {
+  for (const path of ['//evil.example/', '/\\\\evil.example/', '/admin/secret', '/ADMIN/secret',
+    '/uploads/x.webp', '/UPLOADS/x.webp', 'evil.example', '']) {
+    assert.equal(normalizePath(path), null, JSON.stringify(path))
+  }
+
+  assert.equal(normalizePath('/'), '/')
+  assert.equal(normalizePath('/sr'), '/sr')
+  assert.equal(normalizePath('/sr?utm=1#x'), '/sr')
+})

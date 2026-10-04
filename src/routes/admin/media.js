@@ -6,7 +6,7 @@ import {
 import { listLocales } from '../../repositories/locales.js'
 import { processUpload, deleteFiles, thumbnailUrl, UploadError } from '../../services/media-processor.js'
 import { verifyCsrf, setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite } from './helpers.js'
+import { renderAdmin, afterWrite, numericId } from './helpers.js'
 
 const PER_PAGE = 60
 
@@ -132,7 +132,8 @@ async function mediaRoutes (app) {
 
   /** Сохранение alt и подписи на всех языках. */
   app.post('/media/:id', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const media = await getMedia(id)
     if (!media) return reply.callNotFound()
 
@@ -153,7 +154,8 @@ async function mediaRoutes (app) {
 
   /** Удаление запрещено, пока файл где-то используется. */
   app.post('/media/:id/delete', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const media = await getMedia(id)
     if (!media) return reply.callNotFound()
 
@@ -178,7 +180,8 @@ async function mediaRoutes (app) {
   })
 
   app.get('/media/:id/texts.json', async (request) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     return getMediaTexts(id)
   })
 }

@@ -8,7 +8,7 @@ import { getMediaByIds, listMedia } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite } from './helpers.js'
+import { renderAdmin, afterWrite, numericId } from './helpers.js'
 
 function slugify (value) {
   return String(value ?? '')
@@ -58,7 +58,8 @@ async function galleryRoutes (app) {
 
   /** Состав альбома для формы блока: что уже лежит и сколько. */
   app.get('/galleries/:id/items.json', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
@@ -89,7 +90,8 @@ async function galleryRoutes (app) {
    * и порядок, и цены.
    */
   app.post('/galleries/:id/items.json', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
@@ -109,7 +111,8 @@ async function galleryRoutes (app) {
 
   /** Убрать снимок из альбома, не уходя из формы блока. */
   app.post('/galleries/:id/items/remove.json', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
@@ -144,7 +147,8 @@ async function galleryRoutes (app) {
   })
 
   app.get('/galleries/:id', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
@@ -185,7 +189,8 @@ async function galleryRoutes (app) {
   })
 
   app.post('/galleries/:id', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
@@ -237,7 +242,8 @@ async function galleryRoutes (app) {
   })
 
   app.post('/galleries/:id/delete', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
 
     const usedIn = await query(
       "SELECT id FROM blocks WHERE settings ->> 'gallery_id' = ?",

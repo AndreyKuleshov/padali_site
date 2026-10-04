@@ -4,7 +4,7 @@ import {
 } from '../../repositories/users.js'
 import { deleteSessionsOfUser } from '../../repositories/sessions.js'
 import { hashPassword, setFlash } from '../../services/auth.js'
-import { renderAdmin } from './helpers.js'
+import { renderAdmin, numericId } from './helpers.js'
 
 /** Короткий пароль — самая частая дыра в маленьких админках. */
 const MIN_PASSWORD = 10
@@ -42,7 +42,8 @@ async function userRoutes (app) {
   })
 
   app.post('/users/:id/block', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const user = await getUser(id)
     if (!user) return reply.callNotFound()
 
@@ -67,7 +68,8 @@ async function userRoutes (app) {
   })
 
   app.post('/users/:id/password', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const user = await getUser(id)
     if (!user) return reply.callNotFound()
 
@@ -86,7 +88,8 @@ async function userRoutes (app) {
   })
 
   app.post('/users/:id/delete', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const user = await getUser(id)
     if (!user) return reply.callNotFound()
 

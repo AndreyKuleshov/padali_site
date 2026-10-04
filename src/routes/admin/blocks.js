@@ -14,7 +14,7 @@ import { listLocales } from '../../repositories/locales.js'
 import { parseBlockForm } from '../../services/block-form.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite } from './helpers.js'
+import { renderAdmin, afterWrite, numericId } from './helpers.js'
 import { localize } from '../../i18n/admin.js'
 import { currentSiteLogo } from '../../services/site-logo.js'
 import { lookupVideo } from '../../services/youtube.js'
@@ -132,7 +132,8 @@ async function blockRoutes (app) {
 
   /* ─── Форма блока ───────────────────────────────────────── */
   app.get('/blocks/:id', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const block = await getBlock(id)
     const descriptor = block && getBlockType(block.type)
     if (!block || !descriptor) return reply.callNotFound()
@@ -163,7 +164,8 @@ async function blockRoutes (app) {
 
   /* ─── Сохранение ────────────────────────────────────────── */
   app.post('/blocks/:id', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const block = await getBlock(id)
     const descriptor = block && getBlockType(block.type)
     if (!block || !descriptor) return reply.callNotFound()
@@ -233,7 +235,8 @@ async function blockRoutes (app) {
 
   /* ─── Видимость, удаление, порядок ──────────────────────── */
   app.post('/blocks/:id/toggle', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const block = await getBlock(id)
     if (!block) return reply.callNotFound()
 
@@ -243,7 +246,8 @@ async function blockRoutes (app) {
   })
 
   app.post('/blocks/:id/delete', async (request, reply) => {
-    const id = Number(request.params.id)
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
     const block = await getBlock(id)
     if (!block) return reply.callNotFound()
 

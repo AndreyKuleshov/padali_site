@@ -25,7 +25,16 @@ async function authRoutes (app) {
   })
 
   app.post('/login', {
-    config: { rateLimit: config.loginRateLimit }
+    config: {
+      rateLimit: {
+        ...config.loginRateLimit,
+        /* Ключ — адрес и почта вместе. По одному адресу перебор
+           останавливается, но за общим NAT сидят и живые люди;
+           а подбор пароля к одной учётке идёт с разных адресов. */
+        keyGenerator: (request) =>
+          `${request.ip}|${String(request.body?.email ?? '').toLowerCase().slice(0, 256)}`
+      }
+    }
   }, async (request, reply) => {
     if (!verifyCsrf(request)) {
       reply.code(403).type('text/html; charset=utf-8')

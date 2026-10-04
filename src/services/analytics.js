@@ -36,11 +36,24 @@ function referrerHost (referrer) {
   }
 }
 
-/** В статистику попадают только пути самого сайта, без параметров. */
+/**
+ * В статистику попадают только пути самого сайта, без параметров.
+ *
+ * Отдельно отбрасываются `//host` и `/\host`: браузер читает их как
+ * адрес чужого сайта, а путь отсюда попадает в src фрейма на
+ * странице статистики — админ грузил бы чужую страницу внутри
+ * админки. Служебные префиксы сверяем без учёта регистра: `/ADMIN`
+ * ведёт туда же, куда `/admin`.
+ */
 function normalizePath (value) {
   const path = String(value ?? '/').split('?')[0].split('#')[0]
-  if (!path.startsWith('/') || path.startsWith('/admin') || path.startsWith('/uploads')) return null
-  return path.length > 255 ? null : (path === '' ? '/' : path)
+  if (!path.startsWith('/')) return null
+  if (path.startsWith('//') || path.startsWith('/\\')) return null
+
+  const lower = path.toLowerCase()
+  if (lower.startsWith('/admin') || lower.startsWith('/uploads')) return null
+
+  return path.length > 255 ? null : path
 }
 
 /**

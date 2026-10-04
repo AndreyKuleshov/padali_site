@@ -84,9 +84,21 @@ async function renderAdmin (request, reply, template, data = {}) {
   return reply.send(html)
 }
 
+/**
+ * Числовой id из пути или null.
+ *
+ * Без проверки `Number('abc')` даёт NaN, драйвер отправляет его в
+ * Postgres строкой «NaN», и вместо 404 получается 500 с текстом
+ * ошибки базы в теле ответа.
+ */
+function numericId (request, key = 'id') {
+  const id = Number(request.params?.[key])
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
 /** Любая запись делает кэш публичных страниц недействительным. */
 function afterWrite () {
   invalidateCache()
 }
 
-export { renderAdmin, afterWrite, resolveAdminLocale, languageUrl, NAV, LANG_COOKIE }
+export { renderAdmin, afterWrite, resolveAdminLocale, languageUrl, NAV, LANG_COOKIE, numericId }
