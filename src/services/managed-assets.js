@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { query } from '../db/pool.js'
 import { findMediaByHash, getMediaByManagedKey, updateMediaFile } from '../repositories/media.js'
 import {
-  hashOf, writeDerivatives, deleteFiles, expectedWidths, MIME_BY_EXTENSION
+  hashOf, writeDerivatives, deleteFiles, MIME_BY_EXTENSION, needsRepair
 } from './media-processor.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -55,15 +55,14 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
     if (hash === media.hash) {
       /* Содержимое прежнее, но устареть мог и набор ширин, и сам
          мастер: раньше на диск клался присланный файл как есть,
-         включая многомегабайтные png. Чиним оба случая. */
-      const expected = expectedWidths(media.width)
-      const actual = [...(media.derivatives ?? [])].sort((a, b) => a - b)
-      const widthsOk = JSON.stringify(expected) === JSON.stringify(actual)
-      const masterOk = media.mime === 'image/webp' && media.path.endsWith('.webp')
-      if (widthsOk && masterOk) continue
+         включая многомегабайтные png. Проверка — та же, что у
+         repairMedia: своя копия здесь уже отстала, в ней не было
+         условия про ширину мастера. */
+      if (!needsRepair(media)) continue
 
       const previousPath = media.path
       const previousBytes = media.bytes
+      const previousWidths = [...(media.derivatives ?? [])].sort((a, b) => a - b)
       const rebuilt = await writeDerivatives({ buffer, mime: source.mime, hash })
       await updateMediaFile(media.id, {
         path: rebuilt.path, mime: 'image/webp',
@@ -75,7 +74,7 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
         await deleteFiles({ path: previousPath, derivatives: [] })
       }
       logger.info?.(
-        `Пересобран ${media.originalName}: [${actual}] → [${rebuilt.derivatives}], ` +
+        `Пересобран ${media.originalName}: [${previousWidths}] → [${rebuilt.derivatives}], ` +
         `${Math.round(previousBytes / 1024)} КБ → ${Math.round(rebuilt.bytes / 1024)} КБ.`
       )
       updated.push({ key: source.key, file: source.file, width: rebuilt.width, height: rebuilt.height })

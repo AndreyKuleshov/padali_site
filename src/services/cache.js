@@ -23,8 +23,4 @@ function invalidateCache () {
   store.clear()
 }
 
-function cacheSize () {
-  return store.size
-}
-
-export { cacheKey, getCached, setCached, invalidateCache, cacheSize }
+export { cacheKey, getCached, setCached, invalidateCache }

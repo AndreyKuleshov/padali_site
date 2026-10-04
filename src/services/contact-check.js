@@ -17,7 +17,14 @@
  * Потерять настоящего покупателя из-за того, что сеть моргнула,
  * хуже, чем принять заказ с опечаткой.
  */
+/* Одна проверка адреса на проект: их было три с разными
+   правилами, и адрес, принятый формой связи, мог не пройти как
+   Reply-To в письме. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/
+
+export function isEmail (value) {
+  return EMAIL.test(String(value ?? '').trim())
+}
 const TELEGRAM = /^[A-Za-z][A-Za-z0-9_]{3,31}$/
 
 export const CONTACT_KINDS = ['email', 'telegram']
@@ -41,7 +48,7 @@ export function formatContact (kind, value) {
 
 /** Форма записи. Сеть не трогаем. */
 export function looksValid (kind, value) {
-  if (kind === 'email') return EMAIL.test(String(value ?? '').trim())
+  if (kind === 'email') return isEmail(value)
   if (kind === 'telegram') return TELEGRAM.test(normalizeHandle(value))
   return false
 }

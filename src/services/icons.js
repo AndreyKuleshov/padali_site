@@ -75,8 +75,4 @@ function icon (name, { className = '', title = '' } = {}) {
   return `<svg${classAttr} viewBox="0 0 24 24"${label}>${body}</svg>`
 }
 
-function hasIcon (name) {
-  return Object.hasOwn(ICONS, name)
-}
-
-export { icon, hasIcon, ICON_NAMES }
+export { icon, ICON_NAMES }

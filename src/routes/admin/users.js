@@ -5,10 +5,10 @@ import {
 import { deleteSessionsOfUser } from '../../repositories/sessions.js'
 import { hashPassword, setFlash } from '../../services/auth.js'
 import { renderAdmin, numericId } from './helpers.js'
+import { isEmail } from '../../services/contact-check.js'
 
 /** Короткий пароль — самая частая дыра в маленьких админках. */
 const MIN_PASSWORD = 10
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 async function userRoutes (app) {
   app.get('/users', async (request, reply) => {
@@ -23,7 +23,7 @@ async function userRoutes (app) {
     const email = String(request.body?.email ?? '').trim().toLowerCase()
     const password = String(request.body?.password ?? '')
 
-    if (!EMAIL.test(email)) {
+    if (!isEmail(email)) {
       setFlash(reply, 'error', request.t('users.emailInvalid'))
       return reply.redirect('/admin/users', 302)
     }

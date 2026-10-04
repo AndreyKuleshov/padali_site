@@ -1,4 +1,5 @@
 import { db, placeholders, groupTexts, replaceTexts } from './helpers.js'
+import { getDefaultLocale } from './locales.js'
 
 async function listGalleries (conn) {
   return db(conn).all(
@@ -148,7 +149,7 @@ async function setGalleryItems (galleryId, items, conn) {
 
   for (const item of unique) {
     if (item.title === undefined) continue
-    await writeItemTexts(runner, galleryId, item.mediaId, item.title)
+    await writeItemTexts(conn, galleryId, item.mediaId, item.title)
   }
   await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
 }
@@ -239,7 +240,7 @@ async function setGalleryItemFields (galleryId, fields, conn) {
     if ((result.rowCount ?? 0) === 0) continue
 
     changed += 1
-    await writeItemTexts(runner, galleryId, mediaId, value?.title)
+    await writeItemTexts(conn, galleryId, mediaId, value?.title)
   }
 
   if (changed > 0) await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
@@ -251,7 +252,8 @@ async function setGalleryItemFields (galleryId, fields, conn) {
  * ложится в язык по умолчанию: так зовут сид и тесты, которым
  * перевод не нужен.
  */
-async function writeItemTexts (runner, galleryId, mediaId, title) {
+async function writeItemTexts (conn, galleryId, mediaId, title) {
+  const runner = db(conn)
   await runner.run(
     "DELETE FROM gallery_item_texts WHERE gallery_id = ? AND media_id = ? AND field = 'title'",
     [galleryId, mediaId]
@@ -260,10 +262,10 @@ async function writeItemTexts (runner, galleryId, mediaId, title) {
 
   let byLocale = title
   if (typeof title === 'string') {
-    const row = await runner.one(
-      'SELECT code FROM locales ORDER BY is_default DESC, position LIMIT 1'
-    )
-    byLocale = { [row?.code ?? 'en']: title }
+    // Через getDefaultLocale: свой запрос давал третий ответ на
+    // тот же вопрос — при отсутствии дефолтного брал первый по
+    // позиции, а не 'en'.
+    byLocale = { [await getDefaultLocale(conn)]: title }
   }
 
   const values = []

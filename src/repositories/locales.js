@@ -13,9 +13,4 @@ async function getDefaultLocale (conn) {
   return row?.code ?? 'en'
 }
 
-async function localeExists (code, conn) {
-  const row = await db(conn).one('SELECT code FROM locales WHERE code = ?', [code])
-  return row != null
-}
-
-export { listLocales, getDefaultLocale, localeExists }
+export { listLocales, getDefaultLocale }

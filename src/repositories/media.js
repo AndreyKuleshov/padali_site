@@ -95,10 +95,6 @@ async function textsForMedia (ids, conn) {
   return groupTexts(rows, 'media_id')
 }
 
-async function getMediaTexts (id, conn) {
-  return (await textsForMedia([id], conn)).get(id) ?? {}
-}
-
 async function saveMediaTexts (id, textsByLocale, conn) {
   await replaceTexts(conn, {
     table: 'media_texts', idColumn: 'media_id', id, textsByLocale
@@ -181,6 +177,6 @@ async function deleteMedia (id, conn) {
 export {
   findMediaByHash, getMedia, getMediaByIds, getMediaByManagedKey,
   listMedia, countMedia, insertMedia, updateMediaFile,
-  textsForMedia, getMediaTexts, saveMediaTexts,
+  textsForMedia, saveMediaTexts,
   mediaUsage, usageCounts, deleteMedia
 }

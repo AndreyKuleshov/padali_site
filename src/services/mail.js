@@ -11,6 +11,7 @@
  */
 import nodemailer from 'nodemailer'
 import config from '../config.js'
+import { isEmail } from './contact-check.js'
 
 /* Ключ — сами настройки: прежний кэш отдавал транспорт от первого
    вызова, молча игнорируя параметр settings. */
@@ -42,12 +43,6 @@ function transport (settings) {
   return cached
 }
 
-/** Только для тестов: настройки читаются один раз на процесс. */
-export function resetTransport () {
-  cached = null
-  cachedKey = ''
-}
-
 /**
  * @returns {Promise<{ok: true} | {ok: false, error: string}>}
  */
@@ -77,7 +72,7 @@ export async function sendMessage (message, {
       to: settings.to,
       /* Отвечать нужно человеку, а не самому себе. Подставляем
          только похожее на адрес: в поле связи пишут и телеграм. */
-      replyTo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(message.contact ?? '') ? message.contact : undefined,
+      replyTo: isEmail(message.contact) ? message.contact : undefined,
       subject,
       text: lines.join('\n')
     })

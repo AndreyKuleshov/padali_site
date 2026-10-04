@@ -71,11 +71,6 @@ async function query (sql, params = []) {
   return result.rows
 }
 
-async function queryOne (sql, params = []) {
-  const rows = await query(sql, params)
-  return rows[0] ?? null
-}
-
 /** Выполняет fn в транзакции, передавая соединение. */
 async function transaction (fn) {
   const client = await getPool().connect()
@@ -99,4 +94,4 @@ async function closePool () {
   }
 }
 
-export { getPool, query, queryOne, transaction, closePool, toNumberedPlaceholders }
+export { getPool, query, transaction, closePool, toNumberedPlaceholders }

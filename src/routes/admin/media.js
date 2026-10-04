@@ -1,6 +1,6 @@
 import { transaction } from '../../db/pool.js'
 import {
-  listMedia, countMedia, getMedia, getMediaTexts, saveMediaTexts,
+  listMedia, countMedia, getMedia, saveMediaTexts,
   mediaUsage, usageCounts, deleteMedia, textsForMedia
 } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
@@ -180,11 +180,6 @@ async function mediaRoutes (app) {
     return reply.redirect('/admin/media', 302)
   })
 
-  app.get('/media/:id/texts.json', async (request) => {
-    const id = numericId(request)
-    if (id === null) return reply.callNotFound()
-    return getMediaTexts(id)
-  })
 }
 
 export default mediaRoutes
