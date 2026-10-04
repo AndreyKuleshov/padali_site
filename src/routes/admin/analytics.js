@@ -32,6 +32,21 @@ function intensityStep (value, max) {
   return Math.min(4, Math.ceil((value / max) * 4))
 }
 
+/*
+ * Точка карты едет в разметку тройкой, а не объектом: их бывает
+ * пять тысяч, и имена полей весили бы больше самих чисел.
+ *
+ * Порядок читает place() в public/js/admin.js — менять можно
+ * только вместе с ней. Третий элемент — якорь: id блока строкой
+ * или служебное имя вроде header; клик отмеряется от этого блока,
+ * а не от начала страницы.
+ */
+const POINT = ['x_offset', 'y_offset', 'anchor']
+
+function toPoint (row) {
+  return POINT.map((field) => row[field])
+}
+
 async function analyticsRoutes (app) {
   app.get('/analytics', async (request, reply) => {
     const days = parsePeriod(request.query?.days)
@@ -88,7 +103,7 @@ async function analyticsRoutes (app) {
         band,
         bands: Object.entries(DEVICE_BANDS).map(([key, value]) => ({ key, label: value.label })),
         ...DEVICE_BANDS[band].preview,
-        points,
+        points: points.map(toPoint),
         targets
       }
     })

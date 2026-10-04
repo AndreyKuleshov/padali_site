@@ -611,9 +611,12 @@
      * getBoundingClientRect даёт сразу экранные координаты.
      */
     function place (point, boxes) {
+      // Порядок задаёт POINT в routes/admin/analytics.js.
+      var xOffset = point[0]
+      var yOffset = point[1]
       var box = boxes[point[2]]
       if (!box) return null
-      return { x: box.left + box.width / 2 + point[0], y: box.top + point[1] }
+      return { x: box.left + box.width / 2 + xOffset, y: box.top + yOffset }
     }
 
     function draw () {

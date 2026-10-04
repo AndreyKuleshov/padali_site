@@ -132,7 +132,7 @@
   <div class="heatmap" id="heatmap"
        data-width="<%= it.heatmap.width %>"
        data-height="<%= it.heatmap.height %>"
-       data-points='<%~ it.h.jsonScript(it.heatmap.points.map(function (p) { return [p.x_offset, p.y_offset, p.anchor] })) %>'>
+       data-points='<%~ it.h.jsonScript(it.heatmap.points) %>'>
     <div class="heatmap-stage" id="heatmapStage">
       <% ;/* scrolling="no" здесь нельзя: он запрещает и программную
              прокрутку, а карта двигает страницу ползунком. Полосу
