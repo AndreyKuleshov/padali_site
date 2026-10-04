@@ -7,7 +7,9 @@
        начинают писать сразу, не сделав лишнего шага. */ %>
 <div class="field contact-pick" data-contact-pick data-invalid="<%= it.invalidText %>">
   <span><%= it.label %></span>
-  <div class="contact-row">
+  <% ;/* Класс ставится условием, а не печатью куска разметки:
+         печать экранирует кавычки. */ %>
+  <div class="contact-row<% if (it.submitLabel) { %> contact-row--send<% } %>">
     <div class="contact-kinds">
       <label class="contact-kind">
         <input type="radio" name="contact_kind" value="email" checked>
@@ -20,6 +22,12 @@
     </div>
     <input type="text" name="contact" maxlength="256" required
            placeholder="name@example.com" autocomplete="off" data-contact-value>
+    <% ;/* Отправка встаёт вплотную к полю адреса: вместе они
+           читаются как одно действие — «куда ответить» и «отправить».
+           В окне заказа кнопка своя, внизу под всеми полями. */ %>
+    <% if (it.submitLabel) { %>
+    <button type="submit" class="button contact-send"><%= it.submitLabel %></button>
+    <% } %>
   </div>
   <p class="form-note" data-contact-error hidden></p>
 </div>

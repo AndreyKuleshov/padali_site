@@ -26,6 +26,7 @@
 
     <%~ include('/partials/contact-pick', Object.assign({}, it, {
           label: labelContact,
+          submitLabel: submit,
           invalidText: block.text.bad_contact || it.s('form.badContact')
         })) %>
 
@@ -36,7 +37,6 @@
       <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
     </div>
 
-    <button type="submit" class="button"><%= submit %></button>
     <p class="form-note" data-send-note hidden></p>
   </form>
   <% } %>

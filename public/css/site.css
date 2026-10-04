@@ -781,8 +781,11 @@ img[data-lightbox] { cursor: zoom-in; }
     );
   }
 
-  /* Отправка во всю ширину: на телефоне кнопка по содержимому
-     теряется в пустой строке, и палец ищет, куда попасть. */
+  /* На телефоне кнопка не помещается рядом с полем — возвращаем
+     её на свою строку, во всю ширину: по содержимому она теряется
+     в пустой строке, и палец ищет, куда попасть. */
+  .contact-row--send { grid-template-columns: 1fr; }
+
   .contact-form button[type="submit"] {
     justify-self: stretch;
     width: 100%;
@@ -868,7 +871,9 @@ img[data-lightbox] { cursor: zoom-in; }
 
 .contact-email a { font-size: 1.1rem; }
 
-.contact-form { display: grid; gap: 14px; max-width: 520px; margin-top: 18px; }
+/* Во всю ширину колонки: обрезанная до 520 точек форма сидела в
+   левой половине раздела, а справа оставалась пустота. */
+.contact-form { display: grid; gap: 14px; margin-top: 18px; }
 
 .contact-form .field { display: grid; gap: 6px; }
 .contact-form .field > span { color: var(--soft); font-size: .9rem; }
@@ -992,6 +997,13 @@ img[data-lightbox] { cursor: zoom-in; }
 
 .contact-pick > span { color: var(--soft); font-size: .9rem; display: block; margin-bottom: 6px; }
 .contact-pick .form-note { margin-top: 6px; }
+
+/* Отправка вплотную к полю адреса. Переключатель над ними во всю
+   ширину: в один ряд с полем «Telegram» не помещался. Кнопка
+   тянется по высоте поля — grid растягивает её сам. */
+.contact-row--send { grid-template-columns: 1fr auto; }
+.contact-row--send .contact-kinds { grid-column: 1 / -1; }
+.contact-send { margin-bottom: 0; }
 
 
 

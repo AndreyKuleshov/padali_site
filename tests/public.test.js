@@ -137,6 +137,42 @@ test('панель меню стоит вне шапки', async () => {
   assert.match(body, /<\/header>[\s\S]{0,200}id="sideMenu"/)
 })
 
+/* Поле связи и кнопка отправки — одна строка, поэтому кнопка
+   живёт внутри партиала. В окне заказа мерча тот же партиал, но
+   кнопка там своя, под всеми полями: иначе «Отправить» встало бы
+   посреди формы, выше города и сообщения. */
+test('кнопка отправки стоит в строке связи, а в окне заказа — нет', async () => {
+  const { pageId, mediaId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'contact', anchor: 'contact',
+    settings: { ...defaultSettings('contact'), email: 'padaliband@gmail.com', show_form: true }
+  })
+  const shop = await createGallery('shop')
+  await setGalleryItems(shop, [{ mediaId, price: '2500 RSD' }])
+  await createBlock({
+    pageId, type: 'merch', anchor: 'merch',
+    settings: { ...defaultSettings('merch'), gallery_id: shop }
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  // Строка связи от её начала до сообщения об ошибке под ней.
+  const rowOf = (kind) => {
+    const form = body.slice(body.indexOf(`data-kind="${kind}"`))
+    return form.slice(form.indexOf('<div class="contact-row'), form.indexOf('data-contact-error'))
+  }
+
+  const row = rowOf('contact')
+  assert.match(row, /class="contact-row contact-row--send"/)
+  assert.match(row, /<button type="submit"[^>]*class="button contact-send"/)
+
+  const order = rowOf('order')
+  assert.doesNotMatch(order, /contact-row--send/)
+  assert.doesNotMatch(order, /type="submit"/, 'в окне заказа кнопка ниже, а не в строке')
+})
+
 test('в head есть canonical и hreflang на обе версии', async () => {
   await buildPage()
   const response = await app.inject({ method: 'GET', url: '/' })
