@@ -5,7 +5,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LAYOUT } from '../src/services/renderer.js'
 
-const CSS = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'css', 'site.css')
+const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'css')
+const CSS = join(PUBLIC, 'site.css')
 
 /**
  * Атрибут sizes шаблон считает по тем же числам, что задают
@@ -39,4 +40,31 @@ test('числа раскладки в шаблонах совпадают со 
   assert.ok(strip, 'ширина кадра ленты не найдена')
   assert.equal(Number(strip[1]), LAYOUT.stripVw)
   assert.equal(Number(strip[2]), LAYOUT.stripMax)
+})
+
+/**
+ * Рядом с `repeat(auto-fit, …)` грамматика сетки допускает только
+ * дорожки с определённой шириной. Поставленное там `auto` делает
+ * недействительным всё объявление целиком — браузер молча роняет
+ * его и раскладывает сетку в одну колонку.
+ *
+ * Так и случилось со строкой повторителя: поля вставали столбиком,
+ * а выглядело это как «так задумано».
+ */
+test('auto-fit не соседствует с недопустимой дорожкой', async () => {
+  for (const file of ['site.css', 'admin.css']) {
+    const css = await readFile(join(PUBLIC, file), 'utf8')
+
+    for (const [, value] of css.matchAll(/grid-template-(?:columns|rows):([^;}]+)/g)) {
+      if (!/repeat\(\s*auto-(?:fit|fill)/.test(value)) continue
+
+      // Убираем сам repeat() вместе со вложенными скобками.
+      const rest = value.replace(/repeat\(\s*auto-(?:fit|fill)[^()]*(?:\([^()]*\)[^()]*)*\)/g, ' ')
+      const bad = rest.split(/\s+/).filter((track) => (
+        track === 'auto' || track === 'min-content' || track === 'max-content'
+      ))
+
+      assert.deepEqual(bad, [], `${file}: «${bad[0]}» рядом с auto-fit отменяет правило «${value.trim()}»`)
+    }
+  }
 })

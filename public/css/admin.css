@@ -345,7 +345,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .repeater-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto;
+  /* Последняя дорожка — обязательно с определённой шириной.
+     Рядом с repeat(auto-fit, …) грамматика допускает только
+     <fixed-size>, и «auto» делало всё правило недействительным:
+     строка молча раскладывалась в одну колонку, поля вставали
+     столбиком, а крестик растягивался во всю ширину. */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) 44px;
   gap: 8px;
   align-items: end;
   background: var(--panel-2);
@@ -355,6 +360,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 }
 
 .repeater-cell { display: grid; gap: 3px; min-width: 0; }
+
+/* Кнопка в сетке по умолчанию растягивается во всю дорожку —
+   крестик выглядел полем ввода. */
+.repeater-remove { justify-self: start; }
 .cell-label { color: var(--soft); }
 
 /* ─── Картинки в формах ──────────────────────────────────── */
@@ -653,6 +662,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 /* ─── Узкий экран ────────────────────────────────────────── */
 
 @media (max-width: 720px) {
+
+  /* Узкий экран: четыре поля в ряд не помещаются, и последнее
+     обрезалось. Возвращаем строку в столбик, крестик — направо. */
+  .repeater-row { grid-template-columns: minmax(0, 1fr); }
+  .repeater-remove { justify-self: end; }
   .locale-grid { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; align-items: stretch; }
   .block-row { flex-wrap: wrap; }
