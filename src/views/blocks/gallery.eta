@@ -4,6 +4,7 @@
   var items = gallery ? gallery.items : []
   var layout = block.settings.layout || 'grid'
   var columns = Number(block.settings.columns) || 3
+  var columnsMobile = Number(block.settings.columns_mobile) || 2
   var rows = Number(block.settings.rows) || 0
   var showCaptions = !!block.settings.show_captions
   var useLightbox = block.settings.lightbox !== false
@@ -28,11 +29,11 @@
   var content = L.wrap - L.gutter * 2
   var gaps = (columns - 1) * L.galleryGap
   var slot = Math.round((content - gaps) / columns)
-  var narrowGaps = L.galleryGap // на узком экране всегда две колонки
+  var narrowGaps = (columnsMobile - 1) * L.galleryGap
 
   var sizes = layout === 'strip'
     ? '(max-width: ' + L.narrow + 'px) ' + L.stripVw + 'vw, ' + L.stripMax + 'px'
-    : '(max-width: ' + L.narrow + 'px) calc((100vw - ' + (L.gutterNarrow * 2 + narrowGaps) + 'px) / 2), ' +
+    : '(max-width: ' + L.narrow + 'px) calc((100vw - ' + (L.gutterNarrow * 2 + narrowGaps) + 'px) / ' + columnsMobile + '), ' +
       '(max-width: ' + L.wrap + 'px) calc((100vw - ' + (L.gutter * 2 + gaps) + 'px) / ' + columns + '), ' +
       slot + 'px'
 %>
@@ -43,14 +44,18 @@
 
   <% ;/* Группа листания охватывает все экраны: полноэкранный просмотр
         ходит по всему альбому, а не по видимой странице. */ %>
+  <% ;/* Колонки объявлены на рамке, а не на самой сетке: на телефоне
+         сеткой становится .gallery-track, он страницам родитель, и
+         снизу вверх переменная не поднялась бы. */ %>
   <div class="gallery-frame<%= scrollable ? ' gallery-frame--scrollable' : '' %>"
+       style="--gallery-columns: <%= columns %>; --gallery-columns-mobile: <%= columnsMobile %>"
        <% if (useLightbox) { %>data-lightbox-group="block-<%= block.id %>"<% } %>>
 
     <% if (paged) { %>
     <div class="gallery-track" data-gallery-scroll
      >
       <% pages.forEach(function (page) { %>
-      <div class="gallery-page gallery gallery--grid" style="--gallery-columns: <%= columns %>">
+      <div class="gallery-page gallery gallery--grid">
         <% page.forEach(function (item) { %>
         <figure class="gallery-item">
           <%~ include('/partials/picture', { media: item, sizes: sizes, lightbox: useLightbox, className: 'gallery-image' }) %>
@@ -62,7 +67,7 @@
     </div>
 
     <% } else { %>
-    <div class="gallery gallery--<%= layout %>" style="--gallery-columns: <%= columns %>"
+    <div class="gallery gallery--<%= layout %>"
          <% if (layout === 'strip') { %>data-gallery-scroll<% } %>>
       <% items.forEach(function (item) { %>
       <figure class="gallery-item">

@@ -41,6 +41,18 @@ export default {
     },
     { key: 'columns',  label: { en: 'Columns (grid and masonry)', sr: 'Kolona (mreža i zidani raspored)' }, input: 'number', default: 3, min: 1, max: 5 },
     {
+      key: 'columns_mobile',
+      label: { en: 'Columns on a phone', sr: 'Kolona na telefonu' },
+      input: 'number',
+      default: 2,
+      min: 1,
+      max: 3,
+      hint: {
+        en: 'On a narrow screen the album is one continuous grid: screens and arrows are for the desktop, where a row fits whole.',
+        sr: 'Na uskom ekranu album je jedna neprekidna mreža: ekrani i strelice su za računar, gde red staje ceo.'
+      }
+    },
+    {
       key: 'rows',
       label: { en: 'Rows per screen (grid only)', sr: 'Redova po ekranu (samo mreža)' },
       input: 'number',

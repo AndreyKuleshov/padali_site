@@ -85,6 +85,22 @@ test('главная отдаёт обе языковые версии по св
   assert.match(en.body, /Social links/)
 })
 
+/* Страницы нарезаны на сервере по числу колонок для монитора. На
+   телефоне колонок меньше, остаток давал дыру в сетке, и стрелки
+   звали листать внутрь неё. Телефону отдаём своё число колонок,
+   а страницы там распускаются в одну сетку средствами CSS. */
+test('у галереи своё число колонок для телефона', async () => {
+  await buildPage()
+  const response = await app.inject({ method: 'GET', url: '/' })
+
+  assert.match(response.body, /--gallery-columns-mobile: \d+/)
+  assert.match(
+    response.body,
+    /sizes="\(max-width: 640px\) calc\(\(100vw - \d+px\) \/ 2\)/,
+    'в sizes то же число колонок, что покажет телефон'
+  )
+})
+
 test('в head есть canonical и hreflang на обе версии', async () => {
   await buildPage()
   const response = await app.inject({ method: 'GET', url: '/' })

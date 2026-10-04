@@ -391,7 +391,8 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .gallery-intro { margin-bottom: 24px; }
 
-.gallery { --gallery-gap: 10px; }
+/* Зазор объявлен и на рамке: на телефоне сеткой становится она. */
+.gallery-frame, .gallery { --gallery-gap: 10px; }
 .gallery figure { margin: 0; }
 
 .gallery-image {
@@ -660,9 +661,24 @@ img[data-lightbox] { cursor: zoom-in; }
   .hero-wordmark { width: min(46vw, 190px); margin-bottom: 8px; }
   .hero-caption p { font-size: 0.95rem; }
 
-  /* На телефоне больше двух колонок нечитаемо. */
-  .gallery--grid { grid-template-columns: repeat(2, 1fr); }
-  .gallery--masonry { column-count: 2; }
+  /* Число колонок на телефоне задаётся блоком отдельно: ширина
+     экрана не делится так же, как у монитора. */
+  .gallery--grid { grid-template-columns: repeat(var(--gallery-columns-mobile, 2), 1fr); }
+  .gallery--masonry { column-count: var(--gallery-columns-mobile, 2); }
+
+  /* Страницы нарезаны на сервере по числу колонок для монитора:
+     три кадра в две колонки давали «два и дыру», и стрелки звали
+     листать внутрь неё. На телефоне страницы распускаются в одну
+     сплошную сетку, и альбом листается вниз. Стрелки прячет сам
+     скрипт: прокручивать вбок стало нечего. */
+  .gallery-track {
+    display: grid;
+    grid-template-columns: repeat(var(--gallery-columns-mobile, 2), 1fr);
+    gap: var(--gallery-gap);
+    overflow: visible;
+  }
+
+  .gallery-page { display: contents; }
 
   /* Отправка во всю ширину: на телефоне кнопка по содержимому
      теряется в пустой строке, и палец ищет, куда попасть. */
