@@ -9,6 +9,13 @@
       <% } %>
     </a>
     <div class="topbar-right">
+      <% if (it.quicknav.length > 0) { %>
+      <% ;/* Кнопка видна только на телефоне: на мониторе разделы
+             стоят полосой под шапкой. */ %>
+      <button type="button" class="menu-toggle" data-menu-toggle
+              aria-controls="sideMenu" aria-expanded="false"
+              aria-label="<%= it.s('nav.menu') %>"><%~ it.h.icon('menu') %></button>
+      <% } %>
       <% if ((it.settings.social || []).length > 0) { %>
       <nav class="social-row" aria-label="<%= it.s('nav.social') %>">
         <% it.settings.social.forEach(function (link) { %>

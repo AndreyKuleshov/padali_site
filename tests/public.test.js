@@ -101,6 +101,42 @@ test('у галереи своё число колонок для телефон
   )
 })
 
+/* На телефоне разделы открываются кнопкой в шапке: полоса из
+   семи пунктов занимала пол-экрана ещё до содержимого. Список
+   один на обе оболочки — разойтись им нечем. */
+test('меню разделов есть и полосой, и кнопкой с панелью', async () => {
+  await buildPage()
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  assert.match(body, /class="menu-toggle"[^>]*aria-controls="sideMenu"/)
+  assert.match(body, /aria-expanded="false"/, 'закрытое меню объявлено закрытым')
+  assert.match(body, /id="sideMenu"[^>]*hidden/, 'панель скрыта до нажатия')
+  assert.match(body, /class="side-menu-close"/, 'в панели есть кнопка закрыть')
+
+  const strip = body.slice(body.indexOf('class="quicknav'))
+  const panel = body.slice(body.indexOf('side-menu-links'))
+  const links = (html) => [...html.matchAll(/<a href="#([a-z0-9-]+)"/g)].map((m) => m[1])
+
+  assert.ok(links(strip).length > 0, 'в полосе есть разделы')
+  assert.deepEqual(
+    links(panel).slice(0, links(strip).length),
+    links(strip),
+    'в панели те же разделы и в том же порядке'
+  )
+})
+
+/* Панель лежит рядом с шапкой, а не внутри: у .topbar есть
+   backdrop-filter, и он становится точкой отсчёта для fixed —
+   панель внутри обрезалась бы по высоте шапки. */
+test('панель меню стоит вне шапки', async () => {
+  await buildPage()
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  const header = body.slice(body.indexOf('<header'), body.indexOf('</header>'))
+  assert.doesNotMatch(header, /id="sideMenu"/)
+  assert.match(body, /<\/header>[\s\S]{0,200}id="sideMenu"/)
+})
+
 test('в head есть canonical и hreflang на обе версии', async () => {
   await buildPage()
   const response = await app.inject({ method: 'GET', url: '/' })

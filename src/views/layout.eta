@@ -32,6 +32,7 @@
 <body>
 
 <%~ include('/partials/topbar', it) %>
+<% if (it.quicknav.length > 0) { %><%~ include('/partials/side-menu', it) %><% } %>
 
 <main id="top">
 <% it.blocks.forEach(function (block, index) {

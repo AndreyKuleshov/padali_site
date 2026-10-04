@@ -479,6 +479,60 @@
     })
   }
 
+  /* ── Меню телефона ───────────────────────────────────────── */
+
+  /**
+   * Боковое меню: кнопка в шапке открывает, крестик, подложка,
+   * Escape и переход по ссылке закрывают.
+   *
+   * Прокрутку страницы под открытым меню запираем: иначе палец
+   * на подложке уводит содержимое, а меню остаётся на месте.
+   */
+  function initSideMenu () {
+    var toggle = document.querySelector('[data-menu-toggle]')
+    var menu = document.getElementById('sideMenu')
+    if (!toggle || !menu) return
+
+    var closeButton = menu.querySelector('[data-menu-close]')
+    var backdrop = menu.querySelector('[data-menu-backdrop]')
+
+    function open () {
+      menu.hidden = false
+      toggle.setAttribute('aria-expanded', 'true')
+      document.body.classList.add('no-scroll')
+      if (closeButton) closeButton.focus()
+    }
+
+    /* Возвращаем фокус на кнопку, только если меню закрыл человек:
+       при расширении окна он смотрит в другое место, и прыжок
+       фокуса был бы неожиданным. */
+    function close (returnFocus) {
+      if (menu.hidden) return
+      menu.hidden = true
+      toggle.setAttribute('aria-expanded', 'false')
+      document.body.classList.remove('no-scroll')
+      if (returnFocus) toggle.focus()
+    }
+
+    toggle.addEventListener('click', function () { open() })
+    if (closeButton) closeButton.addEventListener('click', function () { close(true) })
+    if (backdrop) backdrop.addEventListener('click', function () { close(true) })
+
+    // Переход к разделу — это тот же жест, что «закрыть».
+    menu.addEventListener('click', function (event) {
+      if (event.target.closest('a')) close(false)
+    })
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') close(true)
+    })
+
+    // Экран расширили — полоса разделов вернулась, меню лишнее.
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 640) close(false)
+    })
+  }
+
   /* Страница лежит в кэше сервера до первой правки в админке, и
      после Нового года год в подвале мог бы остаться прошлым. */
   function initYear () {
@@ -494,5 +548,6 @@
   initSendForms()
   initContactPick()
   initOrderDialog()
+  initSideMenu()
   initYear()
 })()

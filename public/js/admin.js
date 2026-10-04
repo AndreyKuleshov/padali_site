@@ -615,7 +615,9 @@
       var xOffset = point[0]
       var yOffset = point[1]
       var box = boxes[point[2]]
-      if (!box) return null
+      // Нулевой размер — блок на этой ширине скрыт (боковое меню
+      // на мониторе). Его точки иначе сбивались бы в левый угол.
+      if (!box || box.width === 0) return null
       return { x: box.left + box.width / 2 + xOffset, y: box.top + yOffset }
     }
 

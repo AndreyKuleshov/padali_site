@@ -1,5 +1,5 @@
+<% ;/* Полоса разделов под шапкой. На телефоне она скрыта: там те
+       же пункты открываются кнопкой в шапке. */ %>
 <nav class="quicknav wrap" aria-label="<%= it.s('nav.sections') %>">
-  <% it.quicknav.forEach(function (item) { %>
-  <a href="#<%= item.anchor %>"><%= item.label %></a>
-  <% }) %>
+  <%~ include('/partials/nav-items', it) %>
 </nav>

@@ -20,6 +20,7 @@ const DICTIONARY = {
 
     'nav.social': 'Social links',
     'nav.sections': 'Sections',
+    'nav.menu': 'Menu',
 
     'form.submit': 'Send',
     'form.badContact': 'That address does not look right',
@@ -54,6 +55,7 @@ const DICTIONARY = {
 
     'nav.social': 'Društvene mreže',
     'nav.sections': 'Sadržaj',
+    'nav.menu': 'Meni',
 
     'form.submit': 'Pošalji',
     'form.badContact': 'Netačna adresa',

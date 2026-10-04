@@ -205,6 +205,87 @@ ul { list-style: none; margin: 0; padding: 0; }
 }
 
 .quicknav a:last-child { border-right: none; }
+
+/* ─── Меню телефона ──────────────────────────────────────── */
+
+/* Кнопка живёт в шапке, но видна только на узком экране: на
+   мониторе разделы и так стоят полосой под шапкой. */
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.menu-toggle svg { width: 22px; height: 22px; }
+.menu-toggle:hover { color: var(--neon); border-color: var(--neon); }
+
+/* Панель лежит над страницей и ничего не сдвигает: fixed поверх
+   всего, содержимое под ней остаётся на своих местах. */
+.side-menu { position: fixed; inset: 0; z-index: 60; }
+
+.side-menu-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .66);
+}
+
+.side-menu-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(80vw, 300px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.side-menu-head { display: flex; justify-content: flex-end; padding: 10px; }
+
+.side-menu-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.side-menu-close svg { width: 22px; height: 22px; }
+.side-menu-close:hover { color: var(--neon); border-color: var(--neon); }
+
+.side-menu-links { display: flex; flex-direction: column; }
+
+.side-menu-links a {
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.side-menu-links a:hover { color: var(--neon); }
+
+/* Пока меню открыто, страница под ним не прокручивается. */
+body.no-scroll { overflow: hidden; }
 .quicknav a:hover { color: var(--neon); }
 
 /* ─── Релиз ──────────────────────────────────────────────── */
@@ -644,17 +725,11 @@ img[data-lightbox] { cursor: zoom-in; }
 
   .release-grid { grid-template-columns: 128px 1fr; gap: 18px; }
   .release-date { font-size: 1.6rem; }
-  /* Семь пунктов в ряд не помещаются и переносились как «шесть
-     и один» — обрывок второй строки читался как сбой. Столбиком:
-     разделитель переезжает с правой стороны на нижнюю. */
-  .quicknav { flex-direction: column; }
-  .quicknav a {
-    font-size: 0.74rem;
-    padding: 13px 12px;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-  }
-  .quicknav a:last-child { border-bottom: none; }
+  /* Полосу разделов заменяет кнопка в шапке: семь пунктов в ряд
+     не помещались, а столбиком занимали пол-экрана ещё до того,
+     как человек увидел содержимое. */
+  .quicknav { display: none; }
+  .menu-toggle { display: inline-flex; }
   .concert-grid { grid-template-columns: 1fr; }
 
   .hero-caption { padding-bottom: 18px; }
@@ -682,7 +757,11 @@ img[data-lightbox] { cursor: zoom-in; }
 
   /* Отправка во всю ширину: на телефоне кнопка по содержимому
      теряется в пустой строке, и палец ищет, куда попасть. */
-  .contact-form button[type="submit"] { justify-self: stretch; width: 100%; }
+  .contact-form button[type="submit"] {
+    justify-self: stretch;
+    width: 100%;
+    justify-content: center;
+  }
 
   .gallery-arrow--prev { left: 2px; }
   .gallery-arrow--next { right: 2px; }

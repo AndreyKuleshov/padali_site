@@ -65,6 +65,12 @@ const LINK_ICONS = {
 /* Стрелки листания: одни и те же в галерее и в просмотрщике — до
    этого каждая была выписана в разметке по два раза. */
 const UI_ICONS = {
+  menu:
+    '<path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round"/>',
+  close:
+    '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round"/>',
   'arrow-left':
     '<path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round"/>',
