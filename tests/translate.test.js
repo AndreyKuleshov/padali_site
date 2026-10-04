@@ -356,8 +356,8 @@ test('в запросе описано, что считать бессмысли
   )
 
   const prompt = seen.body.messages[1].content
-  assert.match(prompt, /gibberish/)
-  assert.match(prompt, /is not gibberish/, 'оговорка про короткие слова на месте')
+  assert.match(prompt, /"source": "gibberish"/)
+  assert.match(prompt, /is NOT\s+gibberish/, 'оговорка про настоящие слова на месте')
 })
 
 /* ─── Запертые поля и сохранение ─────────────────────────── */
