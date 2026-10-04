@@ -15,7 +15,15 @@ export default {
   pinned: 'bottom',
 
   texts: [
-    { key: 'note', label: { en: 'Text on the right', sr: 'Tekst desno' }, input: 'text' }
+    {
+      key: 'note',
+      label: { en: 'Text on the right', sr: 'Tekst desno' },
+      input: 'text',
+      hint: {
+        en: 'The year is added by the site itself, next to «©» — do not type it in.',
+        sr: 'Godinu sajt dodaje sam, pored «©» — nemojte je kucati.'
+      }
+    }
   ],
 
   media: [

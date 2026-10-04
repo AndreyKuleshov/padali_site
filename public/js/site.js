@@ -469,6 +469,14 @@
     })
   }
 
+  /* Страница лежит в кэше сервера до первой правки в админке, и
+     после Нового года год в подвале мог бы остаться прошлым. */
+  function initYear () {
+    var now = String(new Date().getFullYear())
+    var nodes = document.querySelectorAll('[data-year]')
+    for (var i = 0; i < nodes.length; i += 1) nodes[i].textContent = now
+  }
+
   initCountdowns()
   initLightbox()
   initGalleryScrollers()
@@ -476,4 +484,5 @@
   initSendForms()
   initContactPick()
   initOrderDialog()
+  initYear()
 })()

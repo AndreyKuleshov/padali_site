@@ -1,8 +1,10 @@
 import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { resetDatabase, closePool } from './helpers.js'
+import { resetDatabase, createTestServer, closePool } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
-import { createBlock, listBlocks, deleteBlock, getBlockTexts } from '../src/repositories/blocks.js'
+import {
+  createBlock, listBlocks, deleteBlock, getBlockTexts, saveBlockTexts
+} from '../src/repositories/blocks.js'
 import { getSetting, setSetting } from '../src/repositories/settings.js'
 import { defaultSettings } from '../src/blocks/index.js'
 import { ensureFooterBlock } from '../src/services/seed.js'
@@ -67,4 +69,44 @@ test('строка из настроек переезжает в блок', asyn
 
 test('без страницы ничего не делает', async () => {
   assert.equal(await ensureFooterBlock({ logger: silent }), false)
+})
+
+/* ─── Год в копирайте ────────────────────────────────────── */
+
+/** Вписанный руками год молча устаревает каждый январь. */
+test('год в подвале подставляется сам', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  const id = await createBlock({
+    pageId, type: 'footer', isVisible: true, settings: defaultSettings('footer')
+  })
+  await saveBlockTexts(id, { en: { note: 'padali.band' }, sr: {} })
+
+  const app = await createTestServer()
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const year = String(new Date().getFullYear())
+
+  assert.match(body, new RegExp(`© <span data-year>${year}</span>`))
+  assert.match(body, /padali\.band/)
+})
+
+/** Страницы лежат в кэше до первой правки — скрипт правит год. */
+test('год помечен для правки на стороне браузера', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  await createBlock({
+    pageId, type: 'footer', isVisible: true, settings: defaultSettings('footer')
+  })
+
+  const app = await createTestServer()
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  assert.match(body, /data-year/)
+})
+
+test('без блока подвала копирайт тоже есть', async () => {
+  await createPage({ slug: 'home' })
+
+  const app = await createTestServer()
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  assert.match(body, new RegExp(`© <span data-year>${new Date().getFullYear()}</span>`))
 })

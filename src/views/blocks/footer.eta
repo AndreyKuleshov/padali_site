@@ -21,4 +21,7 @@
   <% } %>
 
   <% if (block.text.note) { %><span><%= block.text.note %></span><% } %>
+  <% ;/* Год не вписывают руками: вписанный однажды, он молча
+         устаревает каждый январь. */ %>
+  <span class="site-footer-copy">© <span data-year><%= it.h.year() %></span></span>
 </footer>

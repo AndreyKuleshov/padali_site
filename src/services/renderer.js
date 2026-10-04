@@ -55,6 +55,10 @@ const helpers = {
   formatDate,
   localeUrl,
   publicUrl: config.publicUrl,
+  /* Год для копирайта. Страницы лежат в кэше до первой правки в
+     админке, поэтому после Нового года значение здесь может
+     устареть — скрипт на странице его поправит. */
+  year: () => new Date().getFullYear(),
   /** Безопасный JSON для вставки в <script type="application/json">. */
   jsonScript: (value) => JSON.stringify(value ?? null).replace(/</g, '\\u003c')
 }

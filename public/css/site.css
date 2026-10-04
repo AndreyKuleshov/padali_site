@@ -912,3 +912,6 @@ img[data-lightbox] { cursor: zoom-in; }
 }
 
 .contact-kind input:focus-visible + span { outline: 2px solid var(--neon); outline-offset: 2px; }
+
+/* Копирайт в подвале: год подставляется сам. */
+.site-footer-copy { color: var(--soft); white-space: nowrap; }
