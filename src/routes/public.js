@@ -14,6 +14,7 @@ import {
 import { createMessage, markMailed } from '../repositories/messages.js'
 import { sendMessage } from '../services/mail.js'
 import { checkContact } from '../services/contact-check.js'
+import { siteTranslator } from '../i18n/site.js'
 
 function etagOf (html) {
   return `"${createHash('sha1').update(html).digest('base64url')}"`
@@ -51,7 +52,9 @@ function sendHtml (request, reply, rendered) {
 async function notFound (request, reply) {
   const defaultLocale = await getDefaultLocale()
   reply.code(404).type('text/html; charset=utf-8')
-  return reply.send(render('not-found', { locale: defaultLocale, homeUrl: '/' }))
+  return reply.send(render('not-found', {
+    locale: defaultLocale, homeUrl: '/', s: siteTranslator(defaultLocale)
+  }))
 }
 
 async function publicRoutes (app) {

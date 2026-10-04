@@ -77,6 +77,12 @@ test('главная отдаёт обе языковые версии по св
   assert.equal(sr.statusCode, 200)
   assert.match(sr.body, /<html lang="sr">/)
   assert.match(sr.body, /Glasno, iskreno, upravo sada\./)
+
+  /* Обвязка — подписи стрелок, кнопок, ответов форм — приходит не
+     из блоков, а из словаря сайта, и язык у неё тот же. */
+  assert.match(sr.body, /Društvene mreže/, 'aria-подпись переведена')
+  assert.doesNotMatch(sr.body, /Social links/)
+  assert.match(en.body, /Social links/)
 })
 
 test('в head есть canonical и hreflang на обе версии', async () => {

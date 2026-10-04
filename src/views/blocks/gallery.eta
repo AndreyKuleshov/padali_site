@@ -7,7 +7,6 @@
   var rows = Number(block.settings.rows) || 0
   var showCaptions = !!block.settings.show_captions
   var useLightbox = block.settings.lightbox !== false
-  var sr = it.locale === 'sr'
 
   // Сетка делится на экраны по columns × rows, если фотографий больше.
   var perPage = columns * rows
@@ -79,12 +78,12 @@
 
     <% if (scrollable) { %>
     <button class="gallery-arrow gallery-arrow--prev" type="button" hidden
-            aria-label="<%= sr ? 'Nazad' : 'Previous' %>">
+            aria-label="<%= it.s('gallery.previous') %>">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="gallery-arrow gallery-arrow--next" type="button" hidden
-            aria-label="<%= sr ? 'Napred' : 'Next' %>">
+            aria-label="<%= it.s('gallery.next') %>">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -93,8 +92,8 @@
 
   <% if (gallery.totalCount > items.length) { %>
   <p class="gallery-more note">
-    <%= sr ? 'Prikazano' : 'Showing' %> <%= items.length %>
-    <%= sr ? 'od' : 'of' %> <%= gallery.totalCount %>
+    <%= it.s('gallery.showing') %> <%= items.length %>
+    <%= it.s('gallery.of') %> <%= gallery.totalCount %>
   </p>
   <% } %>
 </section>

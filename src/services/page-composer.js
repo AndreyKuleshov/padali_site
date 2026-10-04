@@ -8,6 +8,7 @@ import { getMediaByIds, textsForMedia } from '../repositories/media.js'
 import { listLocales, getDefaultLocale } from '../repositories/locales.js'
 import { getAllSettings } from '../repositories/settings.js'
 import { pictureSources } from './media-processor.js'
+import { siteTranslator } from '../i18n/site.js'
 
 /** Значение на нужном языке, иначе на языке по умолчанию, иначе пустая строка. */
 function pick (textsByLocale, locale, defaultLocale, field) {
@@ -181,6 +182,8 @@ async function composePage ({ slug = 'home', locale }) {
   return {
     page,
     locale: activeLocale,
+    /** Обвязка сайта: подписи стрелок, кнопок и ответов форм. */
+    s: siteTranslator(activeLocale),
     defaultLocale,
     locales,
     settings,

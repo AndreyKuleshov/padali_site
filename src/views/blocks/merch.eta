@@ -3,16 +3,15 @@
   var gallery = block.gallery
   var items = gallery ? gallery.items : []
   var columns = Number(block.settings.columns) || 3
-  var sr = it.locale === 'sr'
-  var order = block.text.order || (sr ? 'Poruči' : 'Order')
-  var formTitle = block.text.form_title || (sr ? 'Porudžbina' : 'Order')
-  var labelCity = block.text.label_city || (sr ? 'Grad' : 'City')
+  var order = block.text.order || it.s('merch.order')
+  var formTitle = block.text.form_title || it.s('merch.formTitle')
+  var labelCity = block.text.label_city || it.s('merch.city')
   /* Вид связи теперь выбирают списком, перечислять их в
      подписи незачем. */
-  var labelContact = block.text.label_contact || (sr ? 'Kako da vas nađemo' : 'How we reach you')
-  var labelMessage = block.text.label_message || (sr ? 'Poruka (nije obavezno)' : 'Message (optional)')
-  var submit = block.text.submit || (sr ? 'Pošalji' : 'Send')
-  var close = sr ? 'Zatvori' : 'Close'
+  var labelContact = block.text.label_contact || it.s('merch.contact')
+  var labelMessage = block.text.label_message || it.s('merch.message')
+  var submit = block.text.submit || it.s('form.submit')
+  var close = it.s('common.close')
 %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
@@ -50,8 +49,8 @@
 
   <dialog class="order-dialog" data-order-dialog>
     <form class="contact-form" data-send-form data-kind="order"
-          data-sent="<%= block.text.sent || (sr ? 'Hvala, javićemo se.' : 'Thanks, we will get back to you.') %>"
-          data-failed="<%= block.text.failed || (sr ? 'Nije poslato. Pokušajte ponovo.' : 'Not sent. Please try again.') %>">
+          data-sent="<%= block.text.sent || it.s('merch.sent') %>"
+          data-failed="<%= block.text.failed || it.s('merch.failed') %>">
       <header class="order-head">
         <strong><%= formTitle %></strong>
         <button type="button" class="button button--ghost button--small" data-order-close><%= close %></button>
@@ -71,7 +70,7 @@
              что туда писать. */ %>
       <%~ include('/partials/contact-pick', Object.assign({}, it, {
             label: labelContact,
-            invalidText: block.text.bad_contact || (sr ? 'Netačna adresa' : 'That address does not look right')
+            invalidText: block.text.bad_contact || it.s('form.badContact')
           })) %>
 
       <label class="field">

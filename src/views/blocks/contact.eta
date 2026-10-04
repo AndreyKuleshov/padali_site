@@ -1,12 +1,11 @@
 <%
   var block = it.block
-  var sr = it.locale === 'sr'
   var email = String(block.settings.email || '').trim()
-  var labelMessage = block.text.label_message || (sr ? 'Poruka' : 'Message')
+  var labelMessage = block.text.label_message || it.s('contact.message')
   /* Вид связи выбирают переключателем, перечислять их в подписи
      незачем. */
-  var labelContact = block.text.label_contact || (sr ? 'Kako da vam odgovorimo' : 'How we reach you')
-  var submit = block.text.submit || (sr ? 'Pošalji' : 'Send')
+  var labelContact = block.text.label_contact || it.s('contact.contact')
+  var submit = block.text.submit || it.s('form.submit')
 %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
@@ -18,8 +17,8 @@
 
   <% if (block.settings.show_form) { %>
   <form class="contact-form" data-send-form data-kind="contact"
-        data-sent="<%= block.text.sent || (sr ? 'Hvala, poruka je poslata.' : 'Thanks, your message is on its way.') %>"
-        data-failed="<%= block.text.failed || (sr ? 'Nije poslato. Pišite nam na mejl iznad.' : 'Not sent. Please write to the address above.') %>">
+        data-sent="<%= block.text.sent || it.s('contact.sent') %>"
+        data-failed="<%= block.text.failed || it.s('contact.failed') %>">
     <label class="field">
       <span><%= labelMessage %></span>
       <textarea name="message" rows="5" required maxlength="4000"></textarea>
@@ -27,7 +26,7 @@
 
     <%~ include('/partials/contact-pick', Object.assign({}, it, {
           label: labelContact,
-          invalidText: block.text.bad_contact || (sr ? 'Netačna adresa' : 'That address does not look right')
+          invalidText: block.text.bad_contact || it.s('form.badContact')
         })) %>
 
     <% ;/* Приманка для роботов: человек её не видит, а заполненная

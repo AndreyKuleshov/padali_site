@@ -1,8 +1,7 @@
 <%
   var block = it.block
   var id = it.h.youtube.id(block.settings.url)
-  var sr = it.locale === 'sr'
-  var play = sr ? 'Pusti video' : 'Play the video'
+  var play = it.s('youtube.play')
 %>
 <section class="section wrap video-section<%= block.settings.full_width ? ' video-section--wide' : '' %>"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.title) { %><h2><%= block.text.title %></h2><% } %>
@@ -18,7 +17,7 @@
     </button>
   </div>
   <noscript>
-    <p><a href="<%= it.h.youtube.watch(id) %>" target="_blank" rel="noopener"><%= sr ? 'Pogledaj na YouTube-u' : 'Watch on YouTube' %></a></p>
+    <p><a href="<%= it.h.youtube.watch(id) %>" target="_blank" rel="noopener"><%= it.s('youtube.watch') %></a></p>
   </noscript>
   <% } %>
 
