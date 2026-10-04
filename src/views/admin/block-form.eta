@@ -110,45 +110,12 @@
     <% descriptor.settings.forEach(function (field) { %>
 
     <% if (field.input === 'repeater') { %>
-    <% var rows = Array.isArray(block.settings[field.key]) ? block.settings[field.key] : [] %>
-    <div class="field repeater" data-repeater="<%= field.key %>">
-      <label><%= it.localize(field.label) %></label>
-      <div class="repeater-rows">
-        <% rows.forEach(function (row, index) { %>
-        <div class="repeater-row" data-index="<%= index %>">
-          <% field.fields.forEach(function (sub) { %>
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.localize(sub.label) %></span>
-            <%~ include('/admin/fields/input', Object.assign({}, it, {
-                  field: sub,
-                  name: 'settings[' + field.key + '][' + index + '][' + sub.key + ']',
-                  value: row[sub.key]
-                })) %>
-          </div>
-          <% }) %>
-          <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
-        </div>
-        <% }) %>
-      </div>
-
-      <template data-repeater-template>
-        <div class="repeater-row" data-index="__INDEX__">
-          <% field.fields.forEach(function (sub) { %>
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.localize(sub.label) %></span>
-            <%~ include('/admin/fields/input', Object.assign({}, it, {
-                  field: sub,
-                  name: 'settings[' + field.key + '][__INDEX__][' + sub.key + ']',
-                  value: sub.default
-                })) %>
-          </div>
-          <% }) %>
-          <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
-        </div>
-      </template>
-
-      <button type="button" class="btn btn--small repeater-add"><%= field.addLabel ? it.localize(field.addLabel) : it.t('blockForm.addRow') %></button>
-    </div>
+    <%~ include('/admin/partials/repeater', Object.assign({}, it, {
+          field: field,
+          rows: Array.isArray(block.settings[field.key]) ? block.settings[field.key] : [],
+          prefix: 'settings[' + field.key + ']',
+          addLabel: field.addLabel ? it.localize(field.addLabel) : it.t('blockForm.addRow')
+        })) %>
 
     <% } else if (field.input === 'checkbox') { %>
     <div class="field">

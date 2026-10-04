@@ -1,0 +1,21 @@
+<%
+  ;/* Повторяющиеся строки: ссылки блока, иконки соцсетей в
+     настройках. Ждёт field (key, fields, необязательный label),
+     rows, prefix — начало имени поля, и addLabel. */
+  var field = it.field
+  var rows = Array.isArray(it.rows) ? it.rows : []
+%>
+<div class="field repeater" data-repeater="<%= field.key %>">
+  <% if (field.label) { %><label><%= it.localize(field.label) %></label><% } %>
+  <div class="repeater-rows">
+    <% rows.forEach(function (row, index) { %>
+    <%~ include('/admin/partials/repeater-row', Object.assign({}, it, { index: index, row: row })) %>
+    <% }) %>
+  </div>
+
+  <template data-repeater-template>
+    <%~ include('/admin/partials/repeater-row', Object.assign({}, it, { index: '__INDEX__', row: null })) %>
+  </template>
+
+  <button type="button" class="btn btn--small repeater-add"><%= it.addLabel %></button>
+</div>

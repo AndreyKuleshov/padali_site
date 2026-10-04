@@ -6,6 +6,7 @@ import {
 import { createPage } from '../src/repositories/pages.js'
 import { listBlocks, getBlockTexts, getBlock } from '../src/repositories/blocks.js'
 import { createGallery } from '../src/repositories/galleries.js'
+import { setSetting } from '../src/repositories/settings.js'
 
 let app
 let session
@@ -30,6 +31,22 @@ test('без сессии админка отправляет на страни�
     assert.equal(response.statusCode, 302, url)
     assert.equal(response.headers.location, '/admin/login')
   }
+})
+
+/* Строку повторителя рисуют дважды: сохранённую и пустую внутрь
+   <template>. Копии расходились, и добавленная строка отличалась
+   от пришедшей с сервера — теперь обе из одного партиала. */
+test('повторитель соцсетей показывает строку и шаблон для новой', async () => {
+  await setSetting('social', [{ icon: 'telegram', label: 'Telegram', url: 'https://t.me/padali' }])
+
+  const response = await app.inject({
+    method: 'GET', url: '/admin/settings', cookies: session.cookies
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.match(response.body, /name="social\[0\]\[url\]" value="https:\/\/t\.me\/padali"/)
+  assert.match(response.body, /<option value="telegram" selected>/)
+  assert.match(response.body, /name="social\[__INDEX__\]\[url\]"/, 'шаблон новой строки на месте')
 })
 
 test('неверный пароль не пускает', async () => {

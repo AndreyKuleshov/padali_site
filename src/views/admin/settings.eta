@@ -72,55 +72,12 @@
 
   <section class="card">
     <h2><%= it.t('settings.social') %></h2>
-    <div class="field repeater" data-repeater="social">
-      <div class="repeater-rows">
-        <% social.forEach(function (row, index) { %>
-        <div class="repeater-row" data-index="<%= index %>">
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.t('settings.icon') %></span>
-            <select name="social[<%= index %>][icon]">
-              <% it.iconNames.forEach(function (name) { %>
-              <option value="<%= name %>"<%= row.icon === name ? ' selected' : '' %>><%= name %></option>
-              <% }) %>
-            </select>
-          </div>
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.t('settings.label') %></span>
-            <input type="text" name="social[<%= index %>][label]" value="<%= row.label || '' %>">
-          </div>
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.t('settings.url') %></span>
-            <input type="url" name="social[<%= index %>][url]" value="<%= row.url || '' %>">
-          </div>
-          <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
-        </div>
-        <% }) %>
-      </div>
-
-      <template data-repeater-template>
-        <div class="repeater-row" data-index="__INDEX__">
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.t('settings.icon') %></span>
-            <select name="social[__INDEX__][icon]">
-              <% it.iconNames.forEach(function (name) { %>
-              <option value="<%= name %>"><%= name %></option>
-              <% }) %>
-            </select>
-          </div>
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.t('settings.label') %></span>
-            <input type="text" name="social[__INDEX__][label]" value="">
-          </div>
-          <div class="repeater-cell">
-            <span class="cell-label"><%= it.t('settings.url') %></span>
-            <input type="url" name="social[__INDEX__][url]" value="">
-          </div>
-          <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
-        </div>
-      </template>
-
-      <button type="button" class="btn btn--small repeater-add"><%= it.t('settings.addIcon') %></button>
-    </div>
+    <%~ include('/admin/partials/repeater', Object.assign({}, it, {
+          field: it.socialField,
+          rows: social,
+          prefix: 'social',
+          addLabel: it.t('settings.addIcon')
+        })) %>
   </section>
 
   <section class="card">

@@ -1,0 +1,23 @@
+<%
+  ;/* Одна строка повторителя. Отдельным файлом, потому что её
+     рисуют дважды: для уже сохранённых строк и внутрь <template>,
+     по которому браузер добавляет новую. Две копии подряд в одном
+     файле расходились — добавленная строка отличалась от той, что
+     пришла с сервера. */
+  var field = it.field
+  var index = it.index
+  var row = it.row
+%>
+<div class="repeater-row" data-index="<%= index %>">
+  <% field.fields.forEach(function (sub) { %>
+  <div class="repeater-cell">
+    <span class="cell-label"><%= it.localize(sub.label) %></span>
+    <%~ include('/admin/fields/input', Object.assign({}, it, {
+          field: sub,
+          name: it.prefix + '[' + index + '][' + sub.key + ']',
+          value: row ? row[sub.key] : sub.default
+        })) %>
+  </div>
+  <% }) %>
+  <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
+</div>

@@ -20,8 +20,21 @@ async function settingsRoutes (app) {
     // хотя в шапке логотип стоит.
     const logo = await logoFromSettings(settings)
 
+    /* Иконки соцсетей — такой же повторитель, как ссылки в блоке,
+       и рисуются тем же партиалом. Описание строки живёт здесь:
+       у настроек нет дескриптора, из которого его взять. */
+    const socialField = {
+      key: 'social',
+      fields: [
+        { key: 'icon', label: request.t('settings.icon'), input: 'select', options: ICON_NAMES },
+        { key: 'label', label: request.t('settings.label'), input: 'text' },
+        { key: 'url', label: request.t('settings.url'), input: 'url' }
+      ]
+    }
+
     return renderAdmin(request, reply, 'admin/settings', {
       logo,
+      socialField,
       builtInLogo: builtInLogo(),
       settings,
       pageTexts,
