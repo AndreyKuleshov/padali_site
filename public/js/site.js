@@ -185,45 +185,18 @@
      Сама прокрутка нативная: контейнер со scroll-snap листается
      свайпом на телефоне и колесом на трекпаде. Стрелки нужны мыши.
 
-     Текущий экран храним числом, а не вычисляем из scrollLeft при
-     каждом нажатии. Так было раньше, и это ломалось дважды: событие
-     scroll после программной прокрутки приходит не всегда, из-за
-     чего кнопка залипала выключенной, а быстрые нажатия читали
-     ещё не обновившуюся позицию и промахивались мимо экрана.
-     Состояния «выключена» у стрелок больше нет — листание зациклено,
-     как и в полноэкранном просмотре. */
+     Состояния «выключена» у стрелок нет — листание зациклено, как и
+     в полноэкранном просмотре. Позицию не запоминаем и из scrollLeft
+     не вычисляем: когда-то так было, и ломалось дважды — событие
+     scroll после программной прокрутки приходит не всегда, кнопка
+     залипала выключенной, а быстрые нажатия читали ещё не
+     обновившуюся позицию. */
   function initGalleryScrollers () {
     document.querySelectorAll('.gallery-frame--scrollable').forEach(function (frame) {
       var scroller = frame.querySelector('[data-gallery-scroll]')
       var prev = frame.querySelector('.gallery-arrow--prev')
       var next = frame.querySelector('.gallery-arrow--next')
       if (!scroller) return
-
-      var pages = Array.prototype.slice.call(scroller.querySelectorAll('.gallery-page'))
-      var index = 0
-
-      /**
-       * Позиции экранов относительно начала ленты. Считаем по самим
-       * элементам: между экранами бывает промежуток, и прокрутка
-       * «на ширину контейнера» промахивалась бы на него.
-       */
-      function offsets () {
-        if (pages.length === 0) return []
-        var base = pages[0].offsetLeft
-        return pages.map(function (page) { return page.offsetLeft - base })
-      }
-
-      function nearestIndex () {
-        var positions = offsets()
-        if (positions.length === 0) return 0
-        var nearest = 0
-        var shortest = Infinity
-        positions.forEach(function (position, candidate) {
-          var distance = Math.abs(position - scroller.scrollLeft)
-          if (distance < shortest) { shortest = distance; nearest = candidate }
-        })
-        return nearest
-      }
 
       function scrollable () {
         return scroller.scrollWidth - scroller.clientWidth > 2
@@ -236,47 +209,24 @@
       }
 
       /**
-       * Лента может оказаться не там, где мы её запомнили: пользователь
-       * листает свайпом, а событие scroll приходит не всегда. Если
-       * позиция явно не совпадает с запомненным экраном — верим экрану.
-       * Своя прокрутка сюда не попадает: scrollLeft после неё
-       * обновляется сразу, и расхождения нет.
+       * Шаг — ровно видимая ширина, в конце заворачиваем к началу.
+       *
+       * Раньше экраны были отдельными узлами и шаг считался по их
+       * положению. Теперь экран складывает CSS из колонок: при
+       * разной ширине экрана их число разное, и считать не по чему.
+       * Промахнуться некуда — у ленты примагничивание, и браузер
+       * сам доводит до ближайшей колонки.
        */
-      function syncFromPosition () {
-        var positions = offsets()
-        if (positions.length === 0) return
-        if (Math.abs(positions[index] - scroller.scrollLeft) > 4) index = nearestIndex()
-      }
-
       function step (direction) {
-        syncFromPosition()
-
-        if (pages.length === 0) {
-          // Лента: экранов нет, двигаем на видимую ширину и заворачиваем.
-          var limit = scroller.scrollWidth - scroller.clientWidth
-          var target = scroller.scrollLeft + direction * scroller.clientWidth
-          if (target > limit + 2) target = 0
-          else if (target < -2) target = limit
-          scroller.scrollTo({ left: Math.max(0, Math.min(target, limit)) })
-          return
-        }
-
-        var positions = offsets()
-        var count = positions.length
-        index = ((index + direction) % count + count) % count
-        scroller.scrollTo({ left: positions[index] })
+        var limit = scroller.scrollWidth - scroller.clientWidth
+        var target = scroller.scrollLeft + direction * scroller.clientWidth
+        if (target > limit + 2) target = 0
+        else if (target < -2) target = limit
+        scroller.scrollTo({ left: Math.max(0, Math.min(target, limit)) })
       }
 
       if (prev) prev.addEventListener('click', function () { step(-1) })
       if (next) next.addEventListener('click', function () { step(1) })
-
-      // Пользователь листает сам — подхватываем его позицию, когда он
-      // остановился, чтобы следующая стрелка шла от того, что на экране.
-      var settle = null
-      scroller.addEventListener('scroll', function () {
-        clearTimeout(settle)
-        settle = setTimeout(function () { index = nearestIndex() }, 120)
-      }, { passive: true })
 
       // Высота и ширина меняются, пока догружаются картинки и шрифты.
       if (typeof ResizeObserver !== 'undefined') {

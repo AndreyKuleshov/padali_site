@@ -9,15 +9,13 @@
   var showCaptions = !!block.settings.show_captions
   var useLightbox = block.settings.lightbox !== false
 
-  // Сетка делится на экраны по columns × rows, если фотографий больше.
+  /* Сетка делится на экраны по columns × rows — но делит их CSS,
+     а не этот шаблон. Колонок у монитора и телефона разное число,
+     и нарезанные здесь страницы на одном из них оказывались бы
+     неполными: два кадра и дыра, а стрелка зовёт листать внутрь
+     неё. Тут решается только одно — нужно ли листать вообще. */
   var perPage = columns * rows
   var paged = layout === 'grid' && perPage > 0 && items.length > perPage
-  var pages = []
-  if (paged) {
-    for (var start = 0; start < items.length; start += perPage) {
-      pages.push(items.slice(start, start + perPage))
-    }
-  }
 
   var scrollable = paged || layout === 'strip'
 
@@ -44,25 +42,19 @@
 
   <% ;/* Группа листания охватывает все экраны: полноэкранный просмотр
         ходит по всему альбому, а не по видимой странице. */ %>
-  <% ;/* Колонки объявлены на рамке, а не на самой сетке: на телефоне
-         сеткой становится .gallery-track, он страницам родитель, и
-         снизу вверх переменная не поднялась бы. */ %>
+  <% ;/* Колонки объявлены на рамке: их читает и сетка без листания,
+         и лента экранов — у них разные обёртки. */ %>
   <div class="gallery-frame<%= scrollable ? ' gallery-frame--scrollable' : '' %>"
-       style="--gallery-columns: <%= columns %>; --gallery-columns-mobile: <%= columnsMobile %>"
+       style="--gallery-columns: <%= columns %>; --gallery-columns-mobile: <%= columnsMobile %>; --gallery-rows: <%= rows || 1 %>"
        <% if (useLightbox) { %>data-lightbox-group="block-<%= block.id %>"<% } %>>
 
     <% if (paged) { %>
-    <div class="gallery-track" data-gallery-scroll
-     >
-      <% pages.forEach(function (page) { %>
-      <div class="gallery-page gallery gallery--grid">
-        <% page.forEach(function (item) { %>
-        <figure class="gallery-item">
-          <%~ include('/partials/picture', { media: item, sizes: sizes, lightbox: useLightbox, className: 'gallery-image' }) %>
-          <% if (showCaptions && item.caption) { %><figcaption><%= item.caption %></figcaption><% } %>
-        </figure>
-        <% }) %>
-      </div>
+    <div class="gallery-track gallery" data-gallery-scroll>
+      <% items.forEach(function (item) { %>
+      <figure class="gallery-item">
+        <%~ include('/partials/picture', { media: item, sizes: sizes, lightbox: useLightbox, className: 'gallery-image' }) %>
+        <% if (showCaptions && item.caption) { %><figcaption><%= item.caption %></figcaption><% } %>
+      </figure>
       <% }) %>
     </div>
 

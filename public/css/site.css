@@ -498,8 +498,11 @@ body.no-scroll { overflow: hidden; }
   gap: var(--gallery-gap);
 }
 
-.gallery--grid .gallery-item { aspect-ratio: 1 / 1; display: flex; flex-direction: column; }
-.gallery--grid .gallery-image { flex: 1 1 auto; min-height: 0; }
+.gallery--grid .gallery-item,
+.gallery-track .gallery-item { aspect-ratio: 1 / 1; display: flex; flex-direction: column; }
+
+.gallery--grid .gallery-image,
+.gallery-track .gallery-image { flex: 1 1 auto; min-height: 0; }
 
 /* Рамка со стрелками: общая для ленты и для сетки, разбитой на экраны. */
 .gallery-frame { position: relative; }
@@ -529,25 +532,32 @@ body.no-scroll { overflow: hidden; }
 .gallery-arrow--prev { left: -8px; }
 .gallery-arrow--next { right: -8px; }
 
-/* Экраны сетки лежат в ряд и примагничиваются при прокрутке,
-   поэтому на телефоне листание работает обычным свайпом. */
-/* Прокрутку по стрелкам делаем мгновенной: программная плавная
+/* Экран сетки складывает CSS, а не сервер: число колонок у
+   монитора и телефона разное, и нарезанные заранее страницы на
+   одном из них выходили неполными. Поток идёт по колонкам —
+   сверху вниз столько рядов, сколько задано, дальше вправо, —
+   поэтому неполной может оказаться только последняя колонка, то
+   есть конец альбома. Высота при этом не растёт: хоть девяносто
+   девять кадров, страница остаётся в заданные ряды.
+
+   Прокрутку по стрелкам делаем мгновенной: программная плавная
    прокрутка в контейнере со scroll-snap отменяется частью браузеров
    на полпути. Свайп на тач-экранах остаётся нативным и плавным. */
 .gallery-track {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--gallery-rows, 1), auto);
+  grid-auto-columns: calc(
+    (100% - (var(--gallery-columns, 3) - 1) * var(--gallery-gap)) / var(--gallery-columns, 3)
+  );
+  gap: var(--gallery-gap);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  gap: 0;
 }
 
 .gallery-track::-webkit-scrollbar { display: none; }
-
-.gallery-page {
-  flex: 0 0 100%;
-  scroll-snap-align: start;
-}
+.gallery-track > .gallery-item { scroll-snap-align: start; }
 
 /* Лента: горизонтальная прокрутка с примагничиванием. */
 .gallery--strip {
@@ -741,19 +751,15 @@ img[data-lightbox] { cursor: zoom-in; }
   .gallery--grid { grid-template-columns: repeat(var(--gallery-columns-mobile, 2), 1fr); }
   .gallery--masonry { column-count: var(--gallery-columns-mobile, 2); }
 
-  /* Страницы нарезаны на сервере по числу колонок для монитора:
-     три кадра в две колонки давали «два и дыру», и стрелки звали
-     листать внутрь неё. На телефоне страницы распускаются в одну
-     сплошную сетку, и альбом листается вниз. Стрелки прячет сам
-     скрипт: прокручивать вбок стало нечего. */
+  /* Своё число колонок и в ленте экранов: ширина делится не так,
+     как у монитора, а рядов столько же — альбом листается вбок и
+     вниз не растёт. */
   .gallery-track {
-    display: grid;
-    grid-template-columns: repeat(var(--gallery-columns-mobile, 2), 1fr);
-    gap: var(--gallery-gap);
-    overflow: visible;
+    grid-auto-columns: calc(
+      (100% - (var(--gallery-columns-mobile, 2) - 1) * var(--gallery-gap)) /
+      var(--gallery-columns-mobile, 2)
+    );
   }
-
-  .gallery-page { display: contents; }
 
   /* Отправка во всю ширину: на телефоне кнопка по содержимому
      теряется в пустой строке, и палец ищет, куда попасть. */

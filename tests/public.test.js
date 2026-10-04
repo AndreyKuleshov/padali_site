@@ -242,8 +242,11 @@ test('страница ссылается на статику с отпечат�
 })
 
 /**
- * Альбом крупнее экрана делится на страницы columns × rows: листать
- * их можно стрелками и свайпом, не открывая фотографию.
+ * Альбом крупнее экрана листается вбок стрелками и свайпом, не
+ * открывая фотографию. Экран складывает CSS из колонок: columns ×
+ * rows на мониторе, columns_mobile × rows на телефоне. Шаблон
+ * отдаёт сплошной список и числа, по которым его делить, — поделить
+ * его здесь значило бы выбрать одну ширину экрана из двух.
  */
 test('альбом крупнее экрана делится на страницы со стрелками', async () => {
   const { pageId } = await buildPage()
@@ -269,8 +272,11 @@ test('альбом крупнее экрана делится на страни�
   const response = await app.inject({ method: 'GET', url: '/' })
   const section = /<section class="section wrap" id="many">[\s\S]*?<\/section>/.exec(response.body)[0]
 
-  // Семь фотографий по шесть на экран — два экрана.
-  assert.equal((section.match(/class="gallery-page/g) || []).length, 2)
+  // Семь фотографий одним списком, а экран — три колонки на два ряда.
+  assert.equal((section.match(/class="gallery-item"/g) || []).length, 7)
+  assert.match(section, /--gallery-columns: 3/)
+  assert.match(section, /--gallery-rows: 2/)
+  assert.doesNotMatch(section, /gallery-page/, 'страницы не нарезаются в разметке')
   assert.match(section, /gallery-frame--scrollable/)
   assert.match(section, /gallery-arrow--prev/)
   assert.match(section, /gallery-arrow--next/)
