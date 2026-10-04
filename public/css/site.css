@@ -643,7 +643,17 @@ img[data-lightbox] { cursor: zoom-in; }
 
   .release-grid { grid-template-columns: 128px 1fr; gap: 18px; }
   .release-date { font-size: 1.6rem; }
-  .quicknav a { font-size: 0.74rem; padding: 13px 12px; }
+  /* Семь пунктов в ряд не помещаются и переносились как «шесть
+     и один» — обрывок второй строки читался как сбой. Столбиком:
+     разделитель переезжает с правой стороны на нижнюю. */
+  .quicknav { flex-direction: column; }
+  .quicknav a {
+    font-size: 0.74rem;
+    padding: 13px 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .quicknav a:last-child { border-bottom: none; }
   .concert-grid { grid-template-columns: 1fr; }
 
   .hero-caption { padding-bottom: 18px; }
@@ -653,6 +663,10 @@ img[data-lightbox] { cursor: zoom-in; }
   /* На телефоне больше двух колонок нечитаемо. */
   .gallery--grid { grid-template-columns: repeat(2, 1fr); }
   .gallery--masonry { column-count: 2; }
+
+  /* Отправка во всю ширину: на телефоне кнопка по содержимому
+     теряется в пустой строке, и палец ищет, куда попасть. */
+  .contact-form button[type="submit"] { justify-self: stretch; width: 100%; }
 
   .gallery-arrow--prev { left: 2px; }
   .gallery-arrow--next { right: 2px; }
