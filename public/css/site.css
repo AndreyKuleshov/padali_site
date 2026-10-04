@@ -781,11 +781,11 @@ img[data-lightbox] { cursor: zoom-in; }
     );
   }
 
-  /* На телефоне кнопка не помещается рядом с полем — возвращаем
-     её на свою строку, во всю ширину: по содержимому она теряется
-     в пустой строке, и палец ищет, куда попасть. */
-  .contact-row--send { grid-template-columns: 1fr; }
-
+  /* На телефоне кнопка стоит на своей строке во всю ширину: по
+     содержимому она теряется в пустой строке, и палец ищет, куда
+     попасть. Одну колонку строке задавать не нужно — это её
+     обычный вид, в ряд её ставит только запрос для широкого
+     экрана ниже. */
   .contact-form button[type="submit"] {
     justify-self: stretch;
     width: 100%;
@@ -998,12 +998,20 @@ img[data-lightbox] { cursor: zoom-in; }
 .contact-pick > span { color: var(--soft); font-size: .9rem; display: block; margin-bottom: 6px; }
 .contact-pick .form-note { margin-top: 6px; }
 
-/* Отправка вплотную к полю адреса. Переключатель над ними во всю
-   ширину: в один ряд с полем «Telegram» не помещался. Кнопка
-   тянется по высоте поля — grid растягивает её сам. */
-.contact-row--send { grid-template-columns: 1fr auto; }
-.contact-row--send .contact-kinds { grid-column: 1 / -1; }
 .contact-send { margin-bottom: 0; }
+
+/* Отправка вплотную к полю адреса — только на широком экране.
+   Запрос именно min-width, а не правка внутри max-width: при
+   равной силе побеждает то правило, что ниже в файле, и ряд из
+   двух колонок пересилил бы столбик на телефоне независимо от
+   ширины окна. Так и случилось однажды.
+
+   Переключатель над ними во всю ширину: в один ряд с полем
+   «Telegram» не помещался. Высоту кнопке задаёт сама строка. */
+@media (min-width: 641px) {
+  .contact-row--send { grid-template-columns: 1fr auto; }
+  .contact-row--send .contact-kinds { grid-column: 1 / -1; }
+}
 
 
 
