@@ -377,19 +377,29 @@
      Поле ввода оживает после выбора вида связи: до него человек
      не знает, что туда писать, и пишет как попало. Адрес
      проверяется у поля, а не после «отправлено». */
+  /* Подсказку в поле выравниваем по выбранному виду связи.
+     Отдельной функцией, потому что form.reset() возвращает радио
+     к почте, но события не шлёт — и подсказка оставалась от
+     телеграма. */
+  function syncContactHint (box, focus) {
+    var radio = box.querySelector('input[name="contact_kind"]:checked')
+    var value = box.querySelector('[data-contact-value]')
+    var note = box.querySelector('[data-contact-error]')
+    if (!value) return
+
+    value.placeholder = (radio && radio.value === 'telegram') ? '@username' : 'name@example.com'
+    if (note) note.hidden = true
+    if (focus) value.focus()
+  }
+
   function initContactPick () {
     document.addEventListener('change', function (event) {
       var radio = event.target
       if (!radio.matches || !radio.matches('[data-contact-pick] input[name="contact_kind"]')) return
 
       var box = radio.closest('[data-contact-pick]')
-      var value = box.querySelector('[data-contact-value]')
-      var note = box.querySelector('[data-contact-error]')
-
-      value.value = ''
-      note.hidden = true
-      value.placeholder = radio.value === 'email' ? 'name@example.com' : '@username'
-      value.focus()
+      box.querySelector('[data-contact-value]').value = ''
+      syncContactHint(box, true)
     })
 
     // Проверяем, когда человек ушёл из поля: подсказка вовремя,
@@ -451,8 +461,8 @@
           for (var i = 0; i < hidden.length; i += 1) hidden[i].hidden = false
           var note = form.querySelector('[data-send-note]')
           if (note) { note.hidden = true; note.textContent = '' }
-          var bad = form.querySelector('[data-contact-error]')
-          if (bad) bad.hidden = true
+          var pick = form.querySelector('[data-contact-pick]')
+          if (pick) syncContactHint(pick, false)
           if (field) field.value = item
         }
 

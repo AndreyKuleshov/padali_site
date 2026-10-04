@@ -1,0 +1,25 @@
+<% ;/* Поле связи: вид и адрес. Одно и то же в заказе мерча и в
+       форме связи, поэтому вынесено отдельно — иначе две копии
+       разъехались бы при первой же правке.
+
+       Переключатель, а не список: два варианта с иконками
+       читаются быстрее выпадайки, а почта выбрана заранее — так
+       начинают писать сразу, не сделав лишнего шага. */ %>
+<div class="field contact-pick" data-contact-pick data-invalid="<%= it.invalidText %>">
+  <span><%= it.label %></span>
+  <div class="contact-row">
+    <div class="contact-kinds">
+      <label class="contact-kind">
+        <input type="radio" name="contact_kind" value="email" checked>
+        <span><%~ it.h.icon('email') %>E-mail</span>
+      </label>
+      <label class="contact-kind">
+        <input type="radio" name="contact_kind" value="telegram">
+        <span><%~ it.h.icon('telegram') %>Telegram</span>
+      </label>
+    </div>
+    <input type="text" name="contact" maxlength="256" required
+           placeholder="name@example.com" autocomplete="off" data-contact-value>
+  </div>
+  <p class="form-note" data-contact-error hidden></p>
+</div>

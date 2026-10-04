@@ -53,7 +53,10 @@ async function photo (seed) {
 /* ─── Приём сообщений ────────────────────────────────────── */
 
 test('сообщение из формы связи сохраняется', async () => {
-  const response = await send({ kind: 'contact', message: 'Привет, хотим вас на фестиваль', contact: 'a@b.rs' })
+  const response = await send({
+    kind: 'contact', message: 'Привет, хотим вас на фестиваль',
+    contact_kind: 'email', contact: 'a@b.rs'
+  })
 
   assert.equal(response.statusCode, 200)
   assert.deepEqual(response.json(), { ok: true })
@@ -86,7 +89,7 @@ test('заказ сохраняет город, связь и товар', async
 test('без настроенной почты сообщение всё равно в базе', async () => {
   assert.equal(isMailConfigured(), false, 'в тестах SMTP не задан')
 
-  await send({ kind: 'contact', message: 'Проверка' })
+  await send({ kind: 'contact', message: 'Проверка', contact_kind: 'email', contact: 'a@b.rs' })
 
   const [saved] = await listMessages()
   assert.equal(saved.body, 'Проверка')
@@ -95,14 +98,18 @@ test('без настроенной почты сообщение всё рав�
 })
 
 test('письмо без текста и заказ без связи отклоняются', async () => {
-  assert.equal((await send({ kind: 'contact', message: '   ' })).statusCode, 400)
+  assert.equal((await send({
+    kind: 'contact', message: '   ', contact_kind: 'email', contact: 'a@b.rs'
+  })).statusCode, 400)
   assert.equal((await send({ kind: 'order', city: 'Niš', contact_kind: 'email', contact: '' })).statusCode, 400)
   assert.equal((await listMessages()).length, 0)
 })
 
 /** Робот заполняет все поля подряд, человек приманку не видит. */
 test('заполненная приманка отбрасывает отправку молча', async () => {
-  const response = await send({ kind: 'contact', message: 'спам', website: 'http://spam' })
+  const response = await send({
+    kind: 'contact', message: 'спам', contact_kind: 'email', contact: 'a@b.rs', website: 'http://spam'
+  })
 
   assert.equal(response.statusCode, 200, 'роботу отвечаем как при успехе')
   assert.deepEqual(response.json(), { ok: true })
@@ -110,11 +117,39 @@ test('заполненная приманка отбрасывает отпра�
 })
 
 test('слишком длинный текст обрезается до размера колонки', async () => {
-  await send({ kind: 'contact', message: 'я'.repeat(5000), contact: 'x'.repeat(400) })
+  await send({
+    kind: 'contact', message: 'я'.repeat(5000),
+    contact_kind: 'email', contact: 'a@b.rs'
+  })
 
   const [saved] = await listMessages()
   assert.equal(saved.body.length, 4000)
-  assert.equal(saved.contact.length, 256)
+})
+
+/** Ответить некуда — письмо бесполезно, как и заказ без связи. */
+test('письмо без адреса не принимается', async () => {
+  const response = await send({ kind: 'contact', message: 'Позовите играть' })
+
+  assert.equal(response.statusCode, 400)
+  assert.equal(response.json().reason, 'contact')
+  assert.equal((await listMessages()).length, 0)
+})
+
+test('в блоке контактов тот же выбор связи, что и в заказе', async () => {
+  await createBlock({
+    pageId, type: 'contact', isVisible: true, settings: defaultSettings('contact')
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+
+  assert.match(body, /value="email" checked/)
+  assert.match(body, /name="contact_kind" value="telegram"/)
+  assert.match(body, /data-contact-pick/)
+
+  const contact = /<input type="text" name="contact"[^>]*>/.exec(body)[0]
+  const message = /<textarea name="message"[^>]*>/.exec(body)[0]
+  assert.match(contact, /required/)
+  assert.match(message, /required/)
 })
 
 test('без настроек письмо не отправляется и не падает', async () => {
@@ -248,7 +283,10 @@ test('цена сохраняется из формы альбома', async () 
 /* ─── Админка ────────────────────────────────────────────── */
 
 test('сообщения видны в админке и помечаются прочитанными', async () => {
-  await send({ kind: 'contact', message: 'Позовите нас играть', contact: 'club@ns.rs' })
+  await send({
+    kind: 'contact', message: 'Позовите нас играть',
+    contact_kind: 'email', contact: 'club@ns.rs'
+  })
   const [saved] = await listMessages()
 
   const page = await app.inject({ method: 'GET', url: '/admin/messages', cookies: auth.cookies })
@@ -267,7 +305,7 @@ test('сообщения видны в админке и помечаются п
 })
 
 test('сообщение удаляется', async () => {
-  await send({ kind: 'contact', message: 'тест' })
+  await send({ kind: 'contact', message: 'тест', contact_kind: 'email', contact: 'a@b.rs' })
   const [saved] = await listMessages()
 
   await app.inject({

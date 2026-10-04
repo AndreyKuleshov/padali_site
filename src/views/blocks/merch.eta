@@ -69,28 +69,10 @@
              люди заполняют как попало, и заказ упирается в тупик.
              Поле ввода оживает после выбора — до него непонятно,
              что туда писать. */ %>
-      <div class="field contact-pick" data-contact-pick
-           data-invalid="<%= block.text.bad_contact || (sr ? 'Netačna adresa' : 'That address does not look right') %>">
-        <span><%= labelContact %></span>
-        <% ;/* Переключатель, а не список: два варианта с иконками
-               читаются быстрее выпадайки, а почта выбрана заранее —
-               так начинают писать сразу, не сделав лишнего шага. */ %>
-        <div class="contact-row">
-          <div class="contact-kinds">
-            <label class="contact-kind">
-              <input type="radio" name="contact_kind" value="email" checked>
-              <span><%~ it.h.icon('email') %>E-mail</span>
-            </label>
-            <label class="contact-kind">
-              <input type="radio" name="contact_kind" value="telegram">
-              <span><%~ it.h.icon('telegram') %>Telegram</span>
-            </label>
-          </div>
-          <input type="text" name="contact" maxlength="256" required
-                 placeholder="name@example.com" autocomplete="off" data-contact-value>
-        </div>
-        <p class="form-note" data-contact-error hidden></p>
-      </div>
+      <%~ include('/partials/contact-pick', Object.assign({}, it, {
+            label: labelContact,
+            invalidText: block.text.bad_contact || (sr ? 'Netačna adresa' : 'That address does not look right')
+          })) %>
 
       <label class="field">
         <span><%= labelMessage %></span>

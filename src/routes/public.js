@@ -127,18 +127,17 @@ async function publicRoutes (app) {
       locale: trim(body.locale, 8) || null
     }
 
-    /* Вид связи приходит только с заказом. Проверяем здесь ещё
-       раз: проверке из браузера верить нельзя, а неверный адрес
-       превращает заказ в тупик. */
-    if (kind === 'order') {
-      const checked = await checkContact(trim(body.contact_kind, 16), message.contact)
-      if (!checked.ok) return reply.code(400).send({ ok: false, reason: 'contact' })
-      message.contact = checked.contact
+    // Письмо без текста бесполезно так же, как заказ без связи.
+    if (kind === 'contact' && message.body === '') {
+      return reply.code(400).send({ ok: false, reason: 'empty' })
     }
 
-    // Заказ без связи бесполезен, письмо без текста — тем более.
-    const empty = kind === 'order' ? message.contact === '' : message.body === ''
-    if (empty) return reply.code(400).send({ ok: false, reason: 'empty' })
+    /* Адрес проверяем здесь ещё раз: проверке из браузера верить
+       нельзя, а неверный адрес превращает и заказ, и письмо в
+       тупик — ответить будет некуда. */
+    const checked = await checkContact(trim(body.contact_kind, 16), message.contact)
+    if (!checked.ok) return reply.code(400).send({ ok: false, reason: 'contact' })
+    message.contact = checked.contact
 
     let id
     try {

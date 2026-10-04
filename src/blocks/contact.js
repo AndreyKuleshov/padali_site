@@ -12,7 +12,23 @@ export default {
     { key: 'heading', label: { en: 'Heading', sr: 'Naslov' }, input: 'text', general: true },
     { key: 'intro', label: { en: 'Text above the form', sr: 'Tekst iznad forme' }, input: 'textarea', rows: 2 },
     { key: 'label_message', label: { en: 'Message field label', sr: 'Naziv polja za poruku' }, input: 'text' },
-    { key: 'label_contact', label: { en: 'Reply-to field label', sr: 'Naziv polja za odgovor' }, input: 'text' },
+    {
+      key: 'label_contact',
+      label: {
+        en: 'Reply-to — field label',
+        sr: 'Odgovor — naziv polja'
+      },
+      input: 'text',
+      hint: {
+        en: 'Above the pair «kind of contact + address». The kinds — e-mail and Telegram — are fixed; both are checked before the message is accepted.',
+        sr: 'Iznad para «vrsta kontakta + adresa». Vrste — e-mail i Telegram — su fiksne; obe se proveravaju pre prijema poruke.'
+      }
+    },
+    {
+      key: 'bad_contact',
+      label: { en: 'Wrong address message', sr: 'Poruka o netačnoj adresi' },
+      input: 'text'
+    },
     { key: 'submit', label: { en: 'Button', sr: 'Dugme' }, input: 'text' },
     { key: 'sent', label: { en: 'Thank-you message', sr: 'Poruka zahvalnosti' }, input: 'text' },
     { key: 'failed', label: { en: 'Error message', sr: 'Poruka o grešci' }, input: 'text' }

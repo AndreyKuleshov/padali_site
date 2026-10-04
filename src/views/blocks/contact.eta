@@ -3,7 +3,9 @@
   var sr = it.locale === 'sr'
   var email = String(block.settings.email || '').trim()
   var labelMessage = block.text.label_message || (sr ? 'Poruka' : 'Message')
-  var labelContact = block.text.label_contact || (sr ? 'Kako da vam odgovorimo' : 'How to reach you')
+  /* Вид связи выбирают переключателем, перечислять их в подписи
+     незачем. */
+  var labelContact = block.text.label_contact || (sr ? 'Kako da vam odgovorimo' : 'How we reach you')
   var submit = block.text.submit || (sr ? 'Pošalji' : 'Send')
 %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
@@ -23,10 +25,10 @@
       <textarea name="message" rows="5" required maxlength="4000"></textarea>
     </label>
 
-    <label class="field">
-      <span><%= labelContact %></span>
-      <input type="text" name="contact" maxlength="256" autocomplete="email">
-    </label>
+    <%~ include('/partials/contact-pick', Object.assign({}, it, {
+          label: labelContact,
+          invalidText: block.text.bad_contact || (sr ? 'Netačna adresa' : 'That address does not look right')
+        })) %>
 
     <% ;/* Приманка для роботов: человек её не видит, а заполненная
            она отбрасывает отправку. Прячем стилем, а не hidden:
