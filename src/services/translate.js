@@ -88,7 +88,18 @@ const SYSTEM = [
   'You translate short strings for the website of PADALI, a Serbian rapcore band.',
   'The text is a heading, a menu label, a caption or a short paragraph on that site.',
   'Rules:',
-  '- Translate meaning, not words. Keep the register of a band site: direct, informal, no corporate wording.',
+  '- Translate closely and literally. Keep the register of a band site: direct, informal,',
+  '  no corporate wording, no polishing.',
+  /* Сайт рэпкор-группы: брань там часть языка, а не случайность.
+     Смягчённый перевод — неверный перевод, и редактор всё равно
+     перепишет его руками. */
+  '- Slang and profanity are translated as they are: the same meaning and the same strength.',
+  '  Never soften, censor, asterisk out or replace a rude word with a polite one.',
+  '  This is the band writing about itself; the rough wording is deliberate.',
+  /* Без этого модель переписывала русский мат латиницей:
+     «Zaebis majica» вместо сербского «Jebeno dobra majica». */
+  '- Swear in the target language, do not transliterate the source. A Serbian reader must',
+  '  see Serbian swearing (jebeno, kurac, sranje), an English one English swearing.',
   '- Keep the length close to the source. These strings sit in a layout.',
   '- Keep placeholders such as {days} exactly as they are.',
   '- Keep HTML tags, markdown and line breaks exactly as they are.',
@@ -150,9 +161,10 @@ export async function translate ({ text, locales }, {
               '- text written in Serbian -> {"source": "sr", "en": "…"}\n' +
               '- text written in English -> {"source": "en", "sr": "…"}\n' +
               '- text in any other language -> {"source": "other", "en": "…", "sr": "…"}\n\n' +
-              'If the text is not language at all — random letters, a keyboard mash, ' +
-              'a jumble with no words in it — answer exactly {"source": "gibberish"} ' +
-              'and nothing else. A real word or a name, however short, is not gibberish.\n\n' +
+              'Only if the text is not language at all — a keyboard mash with no words in ' +
+              'it, like "йщлокйдцлтадй" or "asdkjhasd" — answer exactly ' +
+              '{"source": "gibberish"} and nothing else. Any text made of real words is NOT ' +
+              'gibberish, however short, slangy, rude or offensive it is: translate it.\n\n' +
               `Text:\n${source}`
           }
         ]

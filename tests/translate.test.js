@@ -406,3 +406,50 @@ test('существующий перевод не стирается, пока 
   const texts = await getBlockTexts(id)
   assert.equal(texts.sr.heading, 'Fotografije')
 })
+
+/* ─── Регистр и брань ────────────────────────────────────── */
+
+/**
+ * Сайт рэпкор-группы: брань там часть языка, а не случайность.
+ * Смягчённый перевод — неверный, и редактор всё равно перепишет
+ * его руками, так что модель об этом предупреждена прямо.
+ */
+test('в запросе сказано переводить брань как есть', async () => {
+  const seen = {}
+  await translate(
+    { text: 'Фото', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+  )
+
+  const system = seen.body.messages[0].content
+  assert.match(system, /Translate closely and literally/)
+  assert.match(system, /Never soften, censor, asterisk out/)
+  assert.match(system, /do not transliterate the source/)
+})
+
+/** Модель прикрывалась «бессмыслицей», чтобы не переводить мат. */
+test('бессмыслица описана как набор букв, а не как грубость', async () => {
+  const seen = {}
+  await translate(
+    { text: 'Фото', locales: LOCALES },
+    { fetchImpl: reply(200, '{"source":"other","en":"Photos","sr":"Fotografije"}', seen), settings: SETTINGS }
+  )
+
+  const prompt = seen.body.messages[1].content
+  assert.match(prompt, /keyboard mash with no words/)
+  assert.match(prompt, /rude or offensive it is: translate it/)
+})
+
+test('грубое слово переводится, а не отвергается', async () => {
+  const result = await translate(
+    { text: 'Нахуй всё', locales: LOCALES },
+    {
+      fetchImpl: reply(200, '{"source":"other","en":"Fuck everything","sr":"Jebi sve"}'),
+      settings: SETTINGS
+    }
+  )
+
+  assert.equal(result.ok, true)
+  assert.equal(result.translations.en, 'Fuck everything')
+  assert.equal(result.translations.sr, 'Jebi sve')
+})
