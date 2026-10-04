@@ -24,7 +24,11 @@
     <h2><%= it.t('blockForm.general') %></h2>
     <div class="field">
       <label for="slug"><%= it.t('galleries.shortName') %></label>
-      <input type="text" id="slug" name="slug" value="<%= it.gallery.slug %>" pattern="[a-z0-9-]+" required>
+      <% ;/* Без pattern: сервер сам приводит имя к короткому виду и
+             принимает кириллицу. Браузерная проверка была строже и
+             не давала сохранить галерею с уже сохранённым именем —
+             даже если правили в ней только фотографии. */ %>
+      <input type="text" id="slug" name="slug" value="<%= it.gallery.slug %>" maxlength="128" required>
     </div>
 
     <%~ include('/admin/partials/locale-field', Object.assign({}, it, {

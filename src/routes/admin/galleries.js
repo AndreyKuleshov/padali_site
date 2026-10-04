@@ -4,7 +4,7 @@ import {
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
   getGalleryItems, setGalleryItems, itemFieldsForGalleries, appendGalleryItems, removeGalleryItems
 } from '../../repositories/galleries.js'
-import { getMediaByIds, listMedia } from '../../repositories/media.js'
+import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
@@ -153,7 +153,7 @@ async function galleryRoutes (app) {
     if (!gallery) return reply.callNotFound()
 
     const [texts, itemIds, locales, library] = await Promise.all([
-      getGalleryTexts(id), getGalleryItems(id), listLocales(), listMedia({ limit: 500 })
+      getGalleryTexts(id), getGalleryItems(id), listLocales(), listMediaForPicker()
     ])
 
     const [mediaById, fieldsByGallery] = await Promise.all([

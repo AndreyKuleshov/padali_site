@@ -38,14 +38,25 @@ async function getMediaByIds (ids, conn) {
   return new Map(rows.map((row) => [row.id, hydrate(row)]))
 }
 
+/** Потолок выборки: с ним страница списка не утащит всю таблицу. */
+const MEDIA_LIMIT_MAX = 500
+
 async function listMedia ({ limit = 200, offset = 0 } = {}, conn) {
-  // LIMIT/OFFSET не биндятся в подготовленных выражениях — приводим к целым сами.
-  const take = Math.min(Math.max(Number.parseInt(limit, 10) || 0, 1), 500)
+  const take = Math.min(Math.max(Number.parseInt(limit, 10) || 0, 1), MEDIA_LIMIT_MAX)
   const skip = Math.max(Number.parseInt(offset, 10) || 0, 0)
   const rows = await db(conn).all(
-    `SELECT ${COLUMNS} FROM media ORDER BY created_at DESC, id DESC LIMIT ${take} OFFSET ${skip}`
+    `SELECT ${COLUMNS} FROM media ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+    [take, skip]
   )
   return rows.map(hydrate)
+}
+
+/**
+ * Вся медиатека для окна выбора: оно рисуется разом, без страниц.
+ * Предел тот же, что у списка, — выше него выборка не поднимется.
+ */
+async function listMediaForPicker (conn) {
+  return listMedia({ limit: MEDIA_LIMIT_MAX }, conn)
 }
 
 async function countMedia (conn) {
@@ -186,6 +197,6 @@ async function countBlockUsesByManagedKey (key, conn) {
 export {
   findMediaByHash, getMedia, getMediaByIds, getMediaByManagedKey,
   listMedia, countMedia, insertMedia, updateMediaFile,
-  textsForMedia, saveMediaTexts, countBlockUsesByManagedKey,
+  textsForMedia, saveMediaTexts, countBlockUsesByManagedKey, listMediaForPicker,
   mediaUsage, usageCounts, deleteMedia
 }

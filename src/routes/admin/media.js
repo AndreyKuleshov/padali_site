@@ -6,15 +6,15 @@ import {
 import { listLocales } from '../../repositories/locales.js'
 import { processUpload, deleteFiles, thumbnailUrl, UploadError } from '../../services/media-processor.js'
 import { verifyCsrf, setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite, numericId } from './helpers.js'
+import { renderAdmin, afterWrite, numericId, pageSlice } from './helpers.js'
 
 const PER_PAGE = 60
 
 async function mediaRoutes (app) {
   app.get('/media', async (request, reply) => {
-    const pageNumber = Math.max(Number.parseInt(request.query?.page ?? '1', 10) || 1, 1)
+    const slice = pageSlice(request, PER_PAGE)
     const [items, total, locales] = await Promise.all([
-      listMedia({ limit: PER_PAGE, offset: (pageNumber - 1) * PER_PAGE }),
+      listMedia(slice.range),
       countMedia(),
       listLocales()
     ])
@@ -29,9 +29,7 @@ async function mediaRoutes (app) {
         uses: uses.get(item.id) ?? 0,
         texts: texts.get(item.id) ?? {}
       })),
-      total,
-      pageNumber,
-      pageCount: Math.max(Math.ceil(total / PER_PAGE), 1),
+      ...slice.pager(total),
       locales
     })
   })

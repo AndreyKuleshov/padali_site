@@ -1,0 +1,9 @@
+<% ;/* Номера страниц: один вид для медиатеки и писем. Ждёт
+       pageCount, pageNumber и base — путь без строки запроса. */ %>
+<% if (it.pageCount > 1) { %>
+<nav class="pager">
+  <% for (var page = 1; page <= it.pageCount; page += 1) { %>
+  <a href="<%= it.base %>?page=<%= page %>"<%= page === it.pageNumber ? ' class="active"' : '' %>><%= page %></a>
+  <% } %>
+</nav>
+<% } %>

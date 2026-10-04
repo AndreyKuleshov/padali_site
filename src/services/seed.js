@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { basename, dirname, extname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { basename, extname, join } from 'node:path'
 import { query, transaction } from '../db/pool.js'
 import { db } from '../repositories/helpers.js'
 import { createPage, getPageBySlug, savePageTexts } from '../repositories/pages.js'
@@ -9,19 +8,9 @@ import { listLocales } from '../repositories/locales.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../repositories/galleries.js'
 import { saveMediaTexts } from '../repositories/media.js'
 import { getSetting, setSetting } from '../repositories/settings.js'
-import { processUpload } from './media-processor.js'
+import { processUpload, MIME_BY_EXTENSION } from './media-processor.js'
+import { MANAGED_DIR } from './managed-assets.js'
 import { defaultSettings } from '../blocks/index.js'
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const SEED_ASSETS = join(ROOT, 'seed-assets')
-
-const MIME_BY_EXT = {
-  '.webp': 'image/webp',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.avif': 'image/avif'
-}
 
 /**
  * Кладёт файл репозитория в медиатеку и помечает его ключом: по нему
@@ -34,7 +23,7 @@ async function importAsset (directory, filename, texts, logger) {
     const { media } = await processUpload({
       buffer,
       originalName: filename,
-      mime: MIME_BY_EXT[extname(filename).toLowerCase()] ?? 'image/webp',
+      mime: MIME_BY_EXTENSION[extname(filename).toLowerCase()] ?? 'image/webp',
       managedKey: basename(filename, extname(filename))
     })
     if (texts) await saveMediaTexts(media.id, texts)
@@ -76,17 +65,17 @@ async function ensureSeeded ({ logger = console } = {}) {
   })
 
   /* ─── Медиатека ───────────────────────────────────────── */
-  const bandPhotoId = await importAsset(SEED_ASSETS, 'band-photo.png', {
+  const bandPhotoId = await importAsset(MANAGED_DIR, 'band-photo.png', {
     en: { alt: 'PADALI band' }, sr: { alt: 'Bend PADALI' }
   }, logger)
-  const coverId = await importAsset(SEED_ASSETS, 'single-cover.webp', {
+  const coverId = await importAsset(MANAGED_DIR, 'single-cover.webp', {
     en: { alt: 'POČETAK single cover' }, sr: { alt: 'Omot singla POČETAK' }
   }, logger)
-  const posterId = await importAsset(SEED_ASSETS, 'concert-poster.webp', {
+  const posterId = await importAsset(MANAGED_DIR, 'concert-poster.webp', {
     en: { alt: 'PADALI live at SKC NS Fabrika, 16.10.2026' },
     sr: { alt: 'PADALI uživo u SKC NS Fabrika, 16.10.2026.' }
   }, logger)
-  const markId = await importAsset(SEED_ASSETS, 'padali-mark.webp', {
+  const markId = await importAsset(MANAGED_DIR, 'padali-mark.webp', {
     en: { alt: 'PADALI mark' }, sr: { alt: 'Znak PADALI' }
   }, logger)
 

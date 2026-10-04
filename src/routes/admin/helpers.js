@@ -96,9 +96,33 @@ function numericId (request, key = 'id') {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
+/**
+ * Страница списка: что спросить у базы и что отдать шаблону.
+ *
+ * Арифметика одна и та же у медиатеки и писем, а ошибиться в ней
+ * легко — `Math.ceil(0 / 50)` даёт ноль, и пагинатор исчезает
+ * вместе с первой страницей.
+ */
+function pageSlice (request, perPage) {
+  const pageNumber = Math.max(Number.parseInt(request.query?.page ?? '1', 10) || 1, 1)
+  return {
+    pageNumber,
+    // Отдельным объектом: репозиторию незачем видеть остальное.
+    range: { limit: perPage, offset: (pageNumber - 1) * perPage },
+    pager: (total) => ({
+      total,
+      pageNumber,
+      pageCount: Math.max(Math.ceil(total / perPage), 1)
+    })
+  }
+}
+
 /** Любая запись делает кэш публичных страниц недействительным. */
 function afterWrite () {
   invalidateCache()
 }
 
-export { renderAdmin, afterWrite, resolveAdminLocale, languageUrl, NAV, LANG_COOKIE, numericId }
+export {
+  renderAdmin, afterWrite, resolveAdminLocale, languageUrl,
+  NAV, LANG_COOKIE, numericId, pageSlice
+}

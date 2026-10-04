@@ -8,7 +8,7 @@ import {
   deleteBlock, reorderBlocks, getBlockTexts, textsForBlocks,
   getBlockMedia, saveBlockMedia, saveBlockTexts
 } from '../../repositories/blocks.js'
-import { getMediaByIds, listMedia } from '../../repositories/media.js'
+import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listGalleries, setGalleryItemFields } from '../../repositories/galleries.js'
 import { listLocales } from '../../repositories/locales.js'
 import { parseBlockForm } from '../../services/block-form.js'
@@ -295,7 +295,7 @@ async function blockRoutes (app) {
 
   /* ─── Медиатека для модального выбора картинки ──────────── */
   app.get('/media.json', async () => {
-    const media = await listMedia({ limit: 500 })
+    const media = await listMediaForPicker()
     return media.map((item) => ({
       id: item.id,
       thumb: thumbnailUrl(item),

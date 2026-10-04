@@ -1,7 +1,7 @@
 import { getAllSettings, setSetting } from '../../repositories/settings.js'
 import { getPageBySlug, getPageTexts, savePageTexts } from '../../repositories/pages.js'
 import { listLocales } from '../../repositories/locales.js'
-import { listMedia } from '../../repositories/media.js'
+import { listMediaForPicker } from '../../repositories/media.js'
 import { ICON_NAMES } from '../../services/icons.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { asUrl, asString } from '../../services/block-form.js'
@@ -12,7 +12,7 @@ import { logoFromSettings, builtInLogo } from '../../services/site-logo.js'
 async function settingsRoutes (app) {
   app.get('/settings', async (request, reply) => {
     const [settings, locales, page, library] = await Promise.all([
-      getAllSettings(), listLocales(), getPageBySlug('home'), listMedia({ limit: 500 })
+      getAllSettings(), listLocales(), getPageBySlug('home'), listMediaForPicker()
     ])
     const pageTexts = page ? await getPageTexts(page.id) : {}
     // Логотип разрешаем той же цепочкой, что и сайт: свой из

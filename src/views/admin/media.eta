@@ -76,13 +76,7 @@
   <% }) %>
 </div>
 
-<% if (it.pageCount > 1) { %>
-<nav class="pager">
-  <% for (var p = 1; p <= it.pageCount; p++) { %>
-  <a href="/admin/media?page=<%= p %>"<%= p === it.pageNumber ? ' class="active"' : '' %>><%= p %></a>
-  <% } %>
-</nav>
-<% } %>
+<%~ include('/admin/partials/pager', Object.assign({}, it, { base: '/admin/media' })) %>
 <% } %>
 
 <%~ include('/admin/partials/foot', it) %>
