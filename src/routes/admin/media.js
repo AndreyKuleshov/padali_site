@@ -163,7 +163,8 @@ async function mediaRoutes (app) {
     if (usage.isUsed) {
       const where = [
         usage.blocks.length > 0 ? request.t('media.inBlocks', { count: usage.blocks.length }) : null,
-        usage.galleries.length > 0 ? request.t('media.inAlbums', { count: usage.galleries.length }) : null
+        usage.galleries.length > 0 ? request.t('media.inAlbums', { count: usage.galleries.length }) : null,
+        usage.settings.length > 0 ? request.t('media.inSettings') : null
       ].filter(Boolean).join(', ')
       setFlash(reply, 'error', request.t('media.stillUsed', { where }))
       return reply.redirect('/admin/media', 302)

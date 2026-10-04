@@ -9,7 +9,8 @@ import {
 import { createPage } from '../src/repositories/pages.js'
 import { createBlock, saveBlockMedia } from '../src/repositories/blocks.js'
 import { createGallery, setGalleryItems } from '../src/repositories/galleries.js'
-import { mediaUsage, countMedia, deleteMedia } from '../src/repositories/media.js'
+import { mediaUsage, usageCounts, countMedia, deleteMedia } from '../src/repositories/media.js'
+import { setSetting } from '../src/repositories/settings.js'
 import { defaultSettings } from '../src/blocks/index.js'
 
 beforeEach(async () => { await resetDatabase() })
@@ -200,4 +201,38 @@ test('полноэкранный показ берёт дериватив, а н
   const sources = pictureSources(media)
   assert.match(sources.original, /-1800\.webp$/, 'открывается самый крупный дериватив')
   assert.notEqual(sources.original, '/uploads/' + media.path, 'мастер-копия наружу не отдаётся')
+})
+
+/**
+ * Логотип и og:image лежат не в блоках и не в альбомах, а в
+ * настройках. Без этой проверки медиатека подписывала логотип
+ * «не используется» и давала удалить его вместе с файлами —
+ * восстановить было бы нечем.
+ */
+test('файл из настроек сайта считается используемым', async () => {
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 400, height: 120, seed: 71 }),
+    originalName: 'logo.png',
+    mime: 'image/png'
+  })
+
+  assert.equal((await mediaUsage(media.id)).isUsed, false, 'пока нигде не выбран')
+
+  await setSetting('logo_id', media.id)
+
+  const usage = await mediaUsage(media.id)
+  assert.equal(usage.isUsed, true)
+  assert.deepEqual(usage.settings, ['logo_id'])
+  assert.equal((await usageCounts([media.id])).get(media.id), 1)
+})
+
+test('og:image тоже держит файл', async () => {
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 600, height: 400, seed: 72 }),
+    originalName: 'og.png',
+    mime: 'image/png'
+  })
+
+  await setSetting('og_image_id', media.id)
+  assert.deepEqual((await mediaUsage(media.id)).settings, ['og_image_id'])
 })

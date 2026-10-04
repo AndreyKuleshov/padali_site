@@ -119,7 +119,38 @@ async function mediaUsage (id, conn) {
     'SELECT DISTINCT g.id, g.slug FROM gallery_items gi JOIN galleries g ON g.id = gi.gallery_id WHERE gi.media_id = ?',
     [id]
   )
-  return { blocks: inBlocks, galleries: inGalleries, isUsed: inBlocks.length + inGalleries.length > 0 }
+  const inSettings = await settingsUsing([id], runner)
+  return {
+    blocks: inBlocks,
+    galleries: inGalleries,
+    settings: inSettings.get(id) ?? [],
+    isUsed: inBlocks.length + inGalleries.length + (inSettings.get(id)?.length ?? 0) > 0
+  }
+}
+
+/**
+ * Где файл выбран в настройках сайта: Map<media_id, [ключ]>.
+ *
+ * Логотип и og:image лежат не в блоках и не в альбомах, а в
+ * settings. Без этой проверки медиатека подписывала логотип
+ * «не используется» и давала удалить его вместе с файлами.
+ */
+const MEDIA_SETTINGS = ['logo_id', 'og_image_id']
+
+async function settingsUsing (ids, runner) {
+  const rows = await runner.all(
+    `SELECT key, value_json FROM settings WHERE key IN (${placeholders(MEDIA_SETTINGS.length)})`,
+    MEDIA_SETTINGS
+  )
+
+  const used = new Map()
+  for (const row of rows) {
+    const mediaId = Number(row.value_json)
+    if (!Number.isInteger(mediaId) || !ids.includes(mediaId)) continue
+    if (!used.has(mediaId)) used.set(mediaId, [])
+    used.get(mediaId).push(row.key)
+  }
+  return used
 }
 
 /** Количество использований сразу для списка файлов — для медиатеки. */
@@ -134,7 +165,13 @@ async function usageCounts (ids, conn) {
      ) AS combined GROUP BY media_id`,
     [...ids, ...ids]
   )
-  return new Map(rows.map((row) => [row.media_id, Number(row.uses)]))
+  const counts = new Map(rows.map((row) => [row.media_id, Number(row.uses)]))
+
+  const inSettings = await settingsUsing(ids, db(conn))
+  for (const [mediaId, keys] of inSettings) {
+    counts.set(mediaId, (counts.get(mediaId) ?? 0) + keys.length)
+  }
+  return counts
 }
 
 async function deleteMedia (id, conn) {

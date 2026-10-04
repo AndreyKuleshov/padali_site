@@ -11,7 +11,9 @@ import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage, closePool
 } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
-import { createBlock, saveBlockTexts, getBlock } from '../src/repositories/blocks.js'
+import {
+  createBlock, saveBlockTexts, getBlock, getBlockTexts
+} from '../src/repositories/blocks.js'
 import {
   createGallery, setGalleryItems, getGalleryItems, itemFieldsForGalleries
 } from '../src/repositories/galleries.js'
@@ -792,6 +794,7 @@ test('название и цена сохраняются формой блок�
       _csrf: auth.csrf,
       'settings[gallery_id]': String(album),
       'settings[columns]': '3',
+      item_album: String(album),
       [`item[m${first}][title][en]`]: 'Shirt',
       [`item[m${first}][title][sr]`]: 'Majica',
       [`item[m${first}][price]`]: '2500 RSD',
@@ -829,6 +832,7 @@ test('правка не трогает чужие альбомы', async () => {
       _csrf: auth.csrf,
       'settings[gallery_id]': String(album),
       'settings[columns]': '3',
+      item_album: String(album),
       [`item[m${alien}][title][en]`]: 'Подмена',
       [`item[m${alien}][price]`]: '999 RSD'
     })
@@ -930,4 +934,72 @@ test('вид связи показан иконками, почта выбран
 
   assert.match(body, /value="email" checked/)
   assert.equal((kinds.match(/<svg/g) || []).length, 2, 'по иконке на каждый вид')
+})
+
+/**
+ * Карточки рисует браузер, и при смене альбома в выпадайке они
+ * обновляются не мгновенно. Сохранение в этот промежуток унесло бы
+ * строки прошлого альбома в новый и затёрло бы там одноимённые
+ * снимки — форма присылает, для какого альбома она их нарисовала.
+ */
+test('поля товаров не пишутся в альбом, для которого не нарисованы', async () => {
+  const shared = await photo(91)
+  const shirts = await createGallery('shirts')
+  const caps = await createGallery('caps')
+  await setGalleryItems(shirts, [{ mediaId: shared, title: { en: 'Shirt' }, price: '2500 RSD' }])
+  await setGalleryItems(caps, [{ mediaId: shared, title: { en: 'Cap' }, price: '1200 RSD' }])
+
+  const id = await createBlock({
+    pageId, type: 'merch', settings: { ...defaultSettings('merch'), gallery_id: shirts }
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({
+      _csrf: auth.csrf,
+      'settings[gallery_id]': String(caps),
+      'settings[columns]': '3',
+      // Карточки нарисованы для «shirts», а выбран уже «caps».
+      item_album: String(shirts),
+      [`item[m${shared}][title][en]`]: 'Shirt',
+      [`item[m${shared}][price]`]: '2500 RSD'
+    })
+  })
+
+  const capFields = (await itemFieldsForGalleries([caps])).get(caps)
+  assert.deepEqual(capFields.get(shared).title, { en: 'Cap' }, 'чужой альбом не тронут')
+  assert.equal(capFields.get(shared).price, '1200 RSD')
+})
+
+/** Длинная форма не должна пропадать из-за одной незаполненной строки. */
+test('незаполненное обязательное поле гасит показ, но не теряет форму', async () => {
+  const id = await createBlock({
+    pageId, type: 'merch', isVisible: false, settings: defaultSettings('merch')
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({
+      _csrf: auth.csrf,
+      is_visible: 'on',
+      'settings[gallery_id]': '',
+      'settings[columns]': '4',
+      'text[en][heading]': 'Наш мерч',
+      'text[sr][heading]': 'Naš merch'
+    })
+  })
+
+  assert.equal(response.statusCode, 302)
+
+  const saved = await getBlock(id)
+  assert.equal(saved.isVisible, false, 'включить без альбома нельзя')
+  assert.equal(saved.settings.columns, 4, 'настройки сохранены')
+
+  const texts = await getBlockTexts(id)
+  assert.equal(texts.en.heading, 'Наш мерч', 'тексты не потеряны')
+  assert.equal(texts.sr.heading, 'Naš merch')
 })

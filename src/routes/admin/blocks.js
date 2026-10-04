@@ -173,14 +173,14 @@ async function blockRoutes (app) {
     const locales = (await listLocales()).map((row) => row.code)
     const parsed = parseBlockForm(descriptor, request.body, locales)
 
-    // Обязательные поля проверяем до записи, чтобы не оставить блок наполовину сохранённым.
+    /* Незаполненное обязательное поле гасит показ, но не отменяет
+       запись. Раньше здесь стоял редирект, и длинная форма —
+       тексты на двух языках, картинки, цены товаров — пропадала
+       целиком ради одной незаполненной строки. */
     const missing = (descriptor.settings ?? [])
       .filter((field) => field.required && !parsed.settings[field.key])
       .map((field) => localize(field.label, request.adminLocale))
-    if (missing.length > 0 && parsed.isVisible) {
-      setFlash(reply, 'error', request.t('blocks.cannotShow', { fields: missing.join(', ') }))
-      return reply.redirect(`/admin/blocks/${id}`, 302)
-    }
+    if (missing.length > 0) parsed.isVisible = false
 
     /* Якорь при сохранении только сохраняем, а не принимаем из
        формы. Заодно доназначаем тем блокам, что заводились до
@@ -198,7 +198,15 @@ async function blockRoutes (app) {
        в выбранный альбом. */
     const picker = (descriptor.settings ?? []).find((field) => field.itemFields)
     const albumId = picker ? Number(parsed.settings[picker.key]) : 0
-    const itemFields = request.body?.item
+
+    /* Карточки рисует браузер по ответу items.json, и при смене
+       альбома в выпадайке они обновляются не мгновенно. Если
+       сохранить в этот промежуток, строки предыдущего альбома
+       ушли бы в новый и затёрли бы там одноимённые снимки.
+       Поэтому форма присылает, для какого альбома она их
+       нарисовала, и расхождение означает «не писать». */
+    const drawnFor = Number(request.body?.item_album)
+    const itemFields = drawnFor === albumId ? request.body?.item : null
 
     await transaction(async (conn) => {
       await updateBlock(id, { ...parsed, anchor }, conn)
@@ -210,7 +218,11 @@ async function blockRoutes (app) {
     })
 
     afterWrite()
-    setFlash(reply, 'success', request.t('blocks.saved'))
+    if (missing.length > 0) {
+      setFlash(reply, 'error', request.t('blocks.savedNotShown', { fields: missing.join(', ') }))
+    } else {
+      setFlash(reply, 'success', request.t('blocks.saved'))
+    }
     return reply.redirect(`/admin/blocks/${id}`, 302)
   })
 

@@ -1144,11 +1144,19 @@
 
         // Выбор из медиатеки отмечает по этому списку уже добавленные.
         panel.albumMediaIds = items.map(function (item) { return item.id })
+
+        // Отметка «карточки нарисованы для этого альбома».
+        var stamp = panel.querySelector('[data-album-stamp]')
+        if (stamp) stamp.value = String(result.id)
         if (window.padaliMarkPicked) window.padaliMarkPicked()
       }
 
       function refresh () {
         var id = panel.albumId()
+        var stamp = panel.querySelector('[data-album-stamp]')
+        // Пока состав не пришёл, отметки нет: сохранение в этот
+        // промежуток не должно записать строки прошлого альбома.
+        if (stamp) stamp.value = ''
         if (!id) { panel.hidden = true; return }
         panel.hidden = false
 
