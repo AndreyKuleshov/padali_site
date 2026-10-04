@@ -39,9 +39,19 @@
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Enter') return
 
-    var form = event.target.form
-    if (!form || !form.matches('.block-form, .stack, form')) return
-    if (event.target.tagName === 'TEXTAREA' && !(event.metaKey || event.ctrlKey)) return
+    var field = event.target
+    var form = field.form
+    if (!form) return
+
+    // Перевод — по полю, а не по форме: строка перевода есть и в
+    // длинных формах блока, и в коротких карточках медиатеки.
+    if (field.matches('[data-translate-source]')) {
+      var holder = field.closest('[data-translate]')
+      var run = holder && holder.querySelector('[data-translate-run]')
+      event.preventDefault()
+      if (run && !run.hidden) run.click()
+      return
+    }
 
     if (event.metaKey || event.ctrlKey) {
       var save = form.querySelector('button[type="submit"]')
@@ -51,15 +61,13 @@
       return
     }
 
-    if (event.target.matches('[data-translate-source]')) {
-      var run = event.target.closest('[data-translate]').querySelector('[data-translate-run]')
-      event.preventDefault()
-      if (run && !run.hidden) run.click()
-      return
-    }
+    if (field.tagName === 'TEXTAREA') return
 
-    // Обычное поле: Enter больше не отправляет форму целиком.
-    if (event.target.matches('input')) event.preventDefault()
+    /* Отправку с полуслова придерживаем только у длинных форм —
+       у блока, альбома и настроек. Прежний отбор ловил и короткие
+       `.stack`, а среди них форма входа: Enter в поле пароля не
+       делал ничего, и это читалось как «сайт не работает». */
+    if (form.matches('.block-form') && field.matches('input')) event.preventDefault()
   })
 
   /* ── Ожидание на отправке формы ──────────────────────────

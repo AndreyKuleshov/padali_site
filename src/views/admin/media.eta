@@ -70,7 +70,9 @@
 
     <form method="post" action="/admin/media/<%= item.id %>/delete" data-confirm="<%= it.t('media.confirmDelete') %>">
       <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-      <button type="submit" class="btn btn--danger btn--small"<%= item.uses > 0 ? ' disabled title="' + it.t('media.inUseTitle') + '"' : '' %>><%= it.t('common.delete') %></button>
+      <% ;/* Атрибуты условием, а не печатью куска разметки: печать
+             экранирует кавычки, и подсказка приезжала обрывком. */ %>
+      <button type="submit" class="btn btn--danger btn--small"<% if (item.uses > 0) { %> disabled title="<%= it.t('media.inUseTitle') %>"<% } %>><%= it.t('common.delete') %></button>
     </form>
   </article>
   <% }) %>

@@ -24,7 +24,7 @@
     data-error="<%= it.t('blocks.reorderFailed') %>">
   <% it.blocks.forEach(function (block) { %>
   <li class="block-row<%= block.isVisible ? '' : ' block-row--hidden' %><%= block.pinned ? ' block-row--pinned' : '' %>"
-      data-id="<%= block.id %>"<%= block.pinned ? ' data-pinned="' + block.pinned + '"' : '' %>>
+      data-id="<%= block.id %>">
     <% if (block.pinned) { %>
     <span class="drag-handle drag-handle--locked" aria-hidden="true">⌁</span>
     <% } else { %>

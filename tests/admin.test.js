@@ -4,7 +4,7 @@ import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, closePool
 } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
-import { listBlocks, getBlockTexts, getBlock } from '../src/repositories/blocks.js'
+import { listBlocks, getBlockTexts, getBlock, saveBlockTexts } from '../src/repositories/blocks.js'
 import { createGallery } from '../src/repositories/galleries.js'
 import { setSetting } from '../src/repositories/settings.js'
 
@@ -78,6 +78,33 @@ test('время письма показывается днём вперёд', a
   assert.match(formatDateTime(when, 'sr'), /^4\.\s*10\.\s*2026/)
   assert.equal(formatDateTime(null, 'en'), '')
   assert.equal(formatDateTime('не дата', 'en'), 'не дата', 'мусор отдаём как есть')
+})
+
+/* Исключение для загрузки файлов делалось по типу тела, а не по
+   адресу, и доставалось каждому POST админки: чужая форма с
+   enctype=multipart проходила охрану без токена. Тело при этом
+   никто не разбирал, разбор формы подставлял пустое — блок
+   оставался без текстов, картинок и настроек. */
+test('multipart не проносит запрос мимо проверки токена', async () => {
+  await app.inject({
+    method: 'POST', url: '/admin/blocks',
+    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'gallery' })
+  })
+  const [block] = await listBlocks(pageId)
+  await saveBlockTexts(block.id, { en: { heading: 'Было' } })
+
+  const boundary = '----padali'
+  const response = await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${block.id}`,
+    cookies: session.cookies,
+    headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+    payload: `--${boundary}--\r\n`
+  })
+
+  assert.equal(response.statusCode, 403, 'без токена не проходит')
+  assert.deepEqual(await getBlockTexts(block.id), { en: { heading: 'Было' } },
+    'тексты на месте')
 })
 
 test('неверный пароль не пускает', async () => {
@@ -278,7 +305,12 @@ test('выход закрывает доступ', async () => {
 /** `Number('abc')` даёт NaN, драйвер шлёт его строкой — было 500
  *  с текстом ошибки базы в теле ответа. */
 test('нечисловой id в пути даёт 404, а не ошибку базы', async () => {
-  for (const url of ['/admin/blocks/abc', '/admin/galleries/abc', '/admin/media/abc']) {
+  /* 1e20 — целое число, но в колонку INTEGER не влезает: Postgres
+     отвечает «out of range», и выходила пятисотка вместо 404. */
+  for (const url of [
+    '/admin/blocks/abc', '/admin/galleries/abc', '/admin/media/abc',
+    '/admin/blocks/99999999999999999999'
+  ]) {
     const response = await app.inject({ method: 'GET', url, cookies: session.cookies })
     assert.equal(response.statusCode, 404, url)
     assert.doesNotMatch(response.body, /invalid input syntax|NaN/, 'внутренности базы наружу не уходят')

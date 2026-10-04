@@ -10,10 +10,21 @@ import analyticsRoutes from './analytics.js'
 import translateRoutes from './translate.js'
 import messageRoutes from './messages.js'
 
+/*
+ * Загрузка файлов — единственное, что проверяет токен само: тело там
+ * поток частей, и до токена надо дочитать. Список адресов, а не тип
+ * тела.
+ *
+ * Пока исключение делалось по заголовку, его получал КАЖДЫЙ POST
+ * админки: достаточно было поставить чужой форме multipart. Тело у
+ * остальных маршрутов никто не разбирает, оно остаётся пустым, и
+ * разбор формы подставляет пустое — один запрос без токена стирал
+ * у блока тексты, картинки и настройки.
+ */
+const SELF_CHECKED = new Set(['/admin/media/upload', '/admin/media/upload.json'])
+
 /**
  * Охрана админки: сессия обязательна, POST обязан нести CSRF-токен.
- * Исключение — multipart: тело на этом этапе ещё не разобрано,
- * токен проверяется внутри обработчика загрузки.
  */
 async function guard (request, reply) {
   const user = await currentUser(request)
@@ -23,7 +34,7 @@ async function guard (request, reply) {
   request.adminUser = user
 
   if (request.method !== 'POST') return
-  if (String(request.headers['content-type'] ?? '').startsWith('multipart/form-data')) return
+  if (SELF_CHECKED.has(request.url.split('?')[0])) return
 
   if (!verifyCsrf(request)) {
     request.log.warn({ url: request.url }, 'Запрос без действительного CSRF-токена')

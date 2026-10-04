@@ -21,6 +21,7 @@ const DICTIONARY = {
     'nav.social': 'Social links',
     'nav.sections': 'Sections',
     'nav.menu': 'Menu',
+    'notFound.text': 'Page not found.',
 
     'form.submit': 'Send',
     'form.badContact': 'That address does not look right',
@@ -56,6 +57,7 @@ const DICTIONARY = {
     'nav.social': 'Društvene mreže',
     'nav.sections': 'Sadržaj',
     'nav.menu': 'Meni',
+    'notFound.text': 'Stranica nije pronađena.',
 
     'form.submit': 'Pošalji',
     'form.badContact': 'Netačna adresa',

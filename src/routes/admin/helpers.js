@@ -91,9 +91,12 @@ async function renderAdmin (request, reply, template, data = {}) {
  * Postgres строкой «NaN», и вместо 404 получается 500 с текстом
  * ошибки базы в теле ответа.
  */
+/** Потолок INTEGER в Postgres: выше — «out of range» и пятисотка. */
+const MAX_ID = 2147483647
+
 function numericId (request, key = 'id') {
   const id = Number(request.params?.[key])
-  return Number.isInteger(id) && id > 0 ? id : null
+  return Number.isInteger(id) && id > 0 && id <= MAX_ID ? id : null
 }
 
 /**
