@@ -76,13 +76,11 @@
     <% if (scrollable) { %>
     <button class="gallery-arrow gallery-arrow--prev" type="button" hidden
             aria-label="<%= it.s('gallery.previous') %>">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <%~ it.h.icon('arrow-left') %>
     </button>
     <button class="gallery-arrow gallery-arrow--next" type="button" hidden
             aria-label="<%= it.s('gallery.next') %>">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <%~ it.h.icon('arrow-right') %>
     </button>
     <% } %>
   </div>

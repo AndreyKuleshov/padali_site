@@ -1040,6 +1040,8 @@
      и во втором шаге окна создания. Альбом она спрашивает у
      хозяина: в форме это выпадайка, в окне — только что
      созданный. */
+  var STRIP_MAX = 48
+
   function initAlbumPanels () {
     var panels = document.querySelectorAll('[data-album-panel]')
     if (panels.length === 0) return
@@ -1121,7 +1123,9 @@
         }
 
         strip.innerHTML = ''
-        items.slice(0, 48).forEach(function (item) {
+        // Полоска — напоминание о составе, а не галерея: в альбоме
+        // бывает триста снимков, и рисовать их все незачем.
+        items.slice(0, STRIP_MAX).forEach(function (item) {
           var shot = document.createElement('img')
           shot.src = item.thumb
           shot.alt = ''

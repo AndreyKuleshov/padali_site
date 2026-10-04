@@ -45,3 +45,9 @@ function assetUrl (publicPath) {
 }
 
 export { assetUrl, fingerprint, PUBLIC_DIR }
+
+/**
+ * Логотип, вшитый в репозиторий: шапка, hero и подвал откатываются
+ * на него, когда своего файла нет ни у блока, ни в настройках.
+ */
+export const BUILT_IN_LOGO = '/brand/padali-wordmark.webp'

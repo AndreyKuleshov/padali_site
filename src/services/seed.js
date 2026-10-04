@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { query, transaction } from '../db/pool.js'
 import { db } from '../repositories/helpers.js'
-import { createPage, getPageBySlug, savePageTexts } from '../repositories/pages.js'
+import { createPage, getPageBySlug, savePageTexts, HOME_SLUG } from '../repositories/pages.js'
 import { createBlock, listBlocks, saveBlockTexts, saveBlockMedia } from '../repositories/blocks.js'
 import { listLocales } from '../repositories/locales.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../repositories/galleries.js'
@@ -52,7 +52,7 @@ async function ensureSeeded ({ logger = console } = {}) {
     await db(conn).run(insertLocale, ['sr', 'Srpski', false, 1])
   })
 
-  const pageId = await createPage({ slug: 'home' })
+  const pageId = await createPage({ slug: HOME_SLUG })
   await savePageTexts(pageId, {
     en: {
       title: 'PADALI',
@@ -217,7 +217,7 @@ async function ensureSeeded ({ logger = console } = {}) {
 async function ensureFooterBlock ({ logger = console } = {}) {
   if (await getSetting('footer_block_created', false)) return false
 
-  const page = await getPageBySlug('home')
+  const page = await getPageBySlug(HOME_SLUG)
   if (!page) return false
 
   const blocks = await listBlocks(page.id)

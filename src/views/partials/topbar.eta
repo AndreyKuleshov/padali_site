@@ -5,7 +5,7 @@
       <% if (it.siteLogo) { %>
       <%~ include('/partials/picture', { media: it.siteLogo, sizes: '160px', eager: true }) %>
       <% } else { %>
-      <img src="<%= it.h.asset('/brand/padali-wordmark.webp') %>" alt="PADALI" width="160" height="22">
+      <img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="PADALI" width="160" height="22">
       <% } %>
     </a>
     <div class="topbar-right">

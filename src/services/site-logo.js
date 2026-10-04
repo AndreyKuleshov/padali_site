@@ -9,9 +9,7 @@
 import { getAllSettings } from '../repositories/settings.js'
 import { getMedia } from '../repositories/media.js'
 import { thumbnailUrl } from './media-processor.js'
-import { assetUrl } from './assets.js'
-
-export const BUILT_IN_LOGO = '/brand/padali-wordmark.webp'
+import { assetUrl, BUILT_IN_LOGO } from './assets.js'
 
 /** @returns {Promise<{thumb: string, builtIn: boolean, name: string|null}>} */
 export async function currentSiteLogo () {

@@ -8,6 +8,7 @@
   --ink: #F2F0EA;
   --soft: #9B9790;
   --line: #2A2A2A;
+  /* Тот же неон, что в admin.css: сборки нет, менять придётся в обоих. */
   --neon: #D6FF2E;
   --display: 'Oswald', 'Arial Narrow', sans-serif;
   --sans: 'Archivo', Arial, sans-serif;

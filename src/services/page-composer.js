@@ -1,5 +1,5 @@
 import { getBlockType, sortBlocks } from '../blocks/index.js'
-import { getPageBySlug, getPageTexts } from '../repositories/pages.js'
+import { getPageBySlug, getPageTexts, HOME_SLUG } from '../repositories/pages.js'
 import { listBlocks, textsForBlocks, mediaForBlocks } from '../repositories/blocks.js'
 import {
   itemsForGalleries, itemFieldsForGalleries, textsForGalleries
@@ -60,7 +60,7 @@ function resolveRepeater (field, rawRows, blockTexts, locale, defaultLocale) {
  * Собирает дерево страницы за фиксированное число запросов,
  * независимо от количества блоков и фотографий.
  */
-async function composePage ({ slug = 'home', locale }) {
+async function composePage ({ slug = HOME_SLUG, locale }) {
   const locales = await listLocales()
   const defaultLocale = await getDefaultLocale()
   const activeLocale = locales.some((row) => row.code === locale) ? locale : defaultLocale

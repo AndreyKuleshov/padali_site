@@ -5,6 +5,7 @@ import { listLocales, getDefaultLocale } from '../repositories/locales.js'
 import { getSetting } from '../repositories/settings.js'
 import { cacheKey, getCached, setCached } from '../services/cache.js'
 import { getMedia } from '../repositories/media.js'
+import { HOME_SLUG } from '../repositories/pages.js'
 import { pictureSources } from '../services/media-processor.js'
 import config from '../config.js'
 import { recordView, recordClicks, isMobileWidth } from '../repositories/analytics.js'
@@ -194,7 +195,7 @@ async function publicRoutes (app) {
 
   app.get('/', async (request, reply) => {
     const locale = await getDefaultLocale()
-    const rendered = await renderLocalisedPage('home', locale)
+    const rendered = await renderLocalisedPage(HOME_SLUG, locale)
     if (!rendered) return notFound(request, reply)
     return sendHtml(request, reply, rendered)
   })
@@ -211,7 +212,7 @@ async function publicRoutes (app) {
     const defaultLocale = await getDefaultLocale()
     if (known.code === defaultLocale) return reply.redirect('/', 301)
 
-    const rendered = await renderLocalisedPage('home', known.code)
+    const rendered = await renderLocalisedPage(HOME_SLUG, known.code)
     if (!rendered) return notFound(request, reply)
     return sendHtml(request, reply, rendered)
   })

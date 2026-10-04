@@ -17,7 +17,10 @@
     return window.innerWidth || document.documentElement.clientWidth || 0
   }
 
-  /** Короткая подпись цели клика: по ней видно, куда жмут. */
+  /* Короткая подпись цели клика: по ней видно, куда жмут. Подпись
+     уходит в базу как есть и показывается в админке, поэтому она
+     по-английски: админка знает английский и сербский, русского в
+     ней нет. Записанное раньше так и останется русским. */
   function describe (element) {
     var link = element.closest('a[href]')
     if (link) {
@@ -27,13 +30,13 @@
     }
     var button = element.closest('button')
     if (button) {
-      return 'кнопка: ' + ((button.getAttribute('aria-label') ||
+      return 'button: ' + ((button.getAttribute('aria-label') ||
         (button.textContent || '').trim()).replace(/\s+/g, ' ').slice(0, 60) || '—')
     }
     var image = element.closest('img')
-    if (image) return 'фото: ' + (image.alt || '—').slice(0, 60)
+    if (image) return 'photo: ' + (image.alt || '—').slice(0, 60)
     var section = element.closest('section[id]')
-    return section ? 'раздел: ' + section.id : null
+    return section ? 'section: ' + section.id : null
   }
 
   function send (payload, beacon) {

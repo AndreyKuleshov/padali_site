@@ -2,7 +2,7 @@
   <% if (it.siteLogo) { %>
   <span class="site-footer-logo"><%~ include('/partials/picture', { media: it.siteLogo, sizes: '120px' }) %></span>
   <% } else { %>
-  <img src="<%= it.h.asset('/brand/padali-wordmark.webp') %>" alt="PADALI" width="120" height="16">
+  <img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="PADALI" width="120" height="16">
   <% } %>
   <span><%= it.settings.footer_note || 'padali.band' %></span>
   <span class="site-footer-copy">© <span data-year><%= it.h.year() %></span></span>

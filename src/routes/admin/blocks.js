@@ -2,7 +2,7 @@ import { transaction } from '../../db/pool.js'
 import {
   getBlockType, listBlockTypes, hasBlockType, defaultSettings, sortBlocks, pinOf, nextAnchor
 } from '../../blocks/index.js'
-import { getPageBySlug } from '../../repositories/pages.js'
+import { getPageBySlug, HOME_SLUG } from '../../repositories/pages.js'
 import {
   listBlocks, getBlock, createBlock, updateBlock, setBlockVisibility,
   deleteBlock, reorderBlocks, getBlockTexts, textsForBlocks,
@@ -19,8 +19,6 @@ import { localize } from '../../i18n/admin.js'
 import { currentSiteLogo } from '../../services/site-logo.js'
 import { lookupVideo } from '../../services/youtube.js'
 
-const HOME = 'home'
-
 /** Пустые переводы названия не храним: иначе откат на язык по
  *  умолчанию не сработает. */
 function cleanTitles (fields) {
@@ -36,7 +34,7 @@ function cleanTitles (fields) {
 async function blockRoutes (app) {
   /* ─── Список блоков главной ─────────────────────────────── */
   app.get('/', async (request, reply) => {
-    const page = await getPageBySlug(HOME)
+    const page = await getPageBySlug(HOME_SLUG)
     const blocks = page ? await listBlocks(page.id) : []
     const locales = await listLocales()
 
@@ -71,7 +69,7 @@ async function blockRoutes (app) {
       return reply.redirect('/admin', 302)
     }
 
-    const page = await getPageBySlug(HOME)
+    const page = await getPageBySlug(HOME_SLUG)
 
     // Из выпадайки такой тип уже убран, но запрос мог прийти и
     // мимо неё — со старой открытой вкладки или вручную.
@@ -267,7 +265,10 @@ async function blockRoutes (app) {
   })
 
   app.post('/blocks/reorder', async (request, reply) => {
-    const page = await getPageBySlug(HOME)
+    const page = await getPageBySlug(HOME_SLUG)
+    // Страницы нет только до первого запуска сидирования; порядок
+    // блоков в этот момент сохранять нечему.
+    if (!page) return reply.callNotFound()
     const ids = idList(request.body?.order)
 
     await reorderBlocks(page.id, ids)

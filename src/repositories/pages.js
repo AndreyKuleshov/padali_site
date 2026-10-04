@@ -1,5 +1,11 @@
 import { db, groupTexts, replaceTexts } from './helpers.js'
 
+/**
+ * Страница сайта пока одна. Слаг назван здесь, чтобы «home» не
+ * пришлось искать строкой по шести файлам, когда страниц станет две.
+ */
+const HOME_SLUG = 'home'
+
 async function getPageBySlug (slug, conn) {
   return db(conn).one(
     'SELECT id, slug, is_published, position FROM pages WHERE slug = ?',
@@ -29,4 +35,4 @@ async function savePageTexts (pageId, textsByLocale, conn) {
   })
 }
 
-export { getPageBySlug, createPage, getPageTexts, savePageTexts }
+export { getPageBySlug, createPage, getPageTexts, savePageTexts, HOME_SLUG }

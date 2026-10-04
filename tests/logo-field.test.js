@@ -16,7 +16,8 @@ import { createBlock, saveBlockMedia } from '../src/repositories/blocks.js'
 import { setSetting } from '../src/repositories/settings.js'
 import { defaultSettings } from '../src/blocks/index.js'
 import { processUpload } from '../src/services/media-processor.js'
-import { BUILT_IN_LOGO, currentSiteLogo } from '../src/services/site-logo.js'
+import { currentSiteLogo } from '../src/services/site-logo.js'
+import { BUILT_IN_LOGO } from '../src/services/assets.js'
 
 let app
 let auth

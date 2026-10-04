@@ -4,7 +4,7 @@ import { Eta } from 'eta'
 import sanitizeHtml from 'sanitize-html'
 import config from '../config.js'
 import { icon, ICON_NAMES } from './icons.js'
-import { assetUrl } from './assets.js'
+import { assetUrl, BUILT_IN_LOGO } from './assets.js'
 import { parseVideoId, thumbnailFor, embedUrl, watchUrl } from './youtube.js'
 
 const VIEWS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'views')
@@ -68,6 +68,8 @@ const LAYOUT = {
 const helpers = {
   icon,
   layout: LAYOUT,
+  /** Встроенный логотип — когда своего нет ни у блока, ни в настройках. */
+  builtInLogo: BUILT_IN_LOGO,
   asset: assetUrl,
   // Разбор ссылки один на админку и на сайт: иначе шаблон знал бы
   // про форматы адресов YouTube отдельно от того, кто их проверяет.

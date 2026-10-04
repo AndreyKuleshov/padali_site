@@ -2,8 +2,11 @@
  * Набор SVG-иконок. В исходном лендинге они были скопированы в разметку
  * по два-три раза; здесь каждая описана один раз и вставляется по имени.
  * Все иконки наследуют currentColor и viewBox 0 0 24 24.
+ *
+ * LINK_ICONS предлагаются редактору в поле ссылки, UI_ICONS — нет:
+ * стрелку листания в соцсети не поставишь.
  */
-const ICONS = {
+const LINK_ICONS = {
   instagram:
     '<rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
     '<circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
@@ -59,7 +62,21 @@ const ICONS = {
     '<path d="M14 7v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.5"/>'
 }
 
-const ICON_NAMES = Object.keys(ICONS)
+/* Стрелки листания: одни и те же в галерее и в просмотрщике — до
+   этого каждая была выписана в разметке по два раза. */
+const UI_ICONS = {
+  'arrow-left':
+    '<path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/>',
+  'arrow-right':
+    '<path d="m9 4 8 8-8 8" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/>'
+}
+
+const ICONS = { ...LINK_ICONS, ...UI_ICONS }
+
+/** Имена, которые можно выбрать в ссылке: служебных среди них нет. */
+const ICON_NAMES = Object.keys(LINK_ICONS)
 
 /**
  * SVG по имени. Неизвестное имя даёт пустую строку, а не падение рендера:
