@@ -11,7 +11,7 @@ import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage, closePool
 } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
-import { createBlock, saveBlockTexts } from '../src/repositories/blocks.js'
+import { createBlock, saveBlockTexts, getBlock } from '../src/repositories/blocks.js'
 import {
   createGallery, setGalleryItems, getGalleryItems, itemFieldsForGalleries
 } from '../src/repositories/galleries.js'
@@ -704,4 +704,126 @@ test('письмо из формы связи тоже на английском
 test('телеграм в сообщении подписан видом связи', () => {
   assert.equal(formatContact('telegram', 'https://t.me/padali_fan'), 'Telegram: @padali_fan')
   assert.equal(formatContact('email', '  fan@mail.rs '), 'fan@mail.rs')
+})
+
+/* ─── Цены и названия в форме блока ──────────────────────── */
+
+/** Гонять редактора на страницу альбома ради двух строк незачем. */
+test('название и цена сохраняются формой блока мерча', async () => {
+  const first = await photo(71)
+  const second = await photo(72)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [first, second])
+
+  const id = await createBlock({
+    pageId, type: 'merch',
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({
+      _csrf: auth.csrf,
+      'settings[gallery_id]': String(album),
+      'settings[columns]': '3',
+      [`item[m${first}][title]`]: 'Футболка',
+      [`item[m${first}][price]`]: '2500 RSD',
+      [`item[m${second}][title]`]: 'Нашивка',
+      [`item[m${second}][price]`]: '600 RSD'
+    })
+  })
+
+  const fields = (await itemFieldsForGalleries([album])).get(album)
+  assert.equal(fields.get(first).title, 'Футболка')
+  assert.equal(fields.get(first).price, '2500 RSD')
+  assert.equal(fields.get(second).title, 'Нашивка')
+})
+
+/** Чужой media_id ни во что не попадёт: правим только свой альбом. */
+test('правка не трогает чужие альбомы', async () => {
+  const mine = await photo(73)
+  const alien = await photo(74)
+  const album = await createGallery('merch')
+  const other = await createGallery('other')
+  await setGalleryItems(album, [mine])
+  await setGalleryItems(other, [{ mediaId: alien, title: 'Чужое', price: '1 RSD' }])
+
+  const id = await createBlock({
+    pageId, type: 'merch',
+    settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({
+      _csrf: auth.csrf,
+      'settings[gallery_id]': String(album),
+      'settings[columns]': '3',
+      [`item[m${alien}][title]`]: 'Подмена',
+      [`item[m${alien}][price]`]: '999 RSD'
+    })
+  })
+
+  const fields = (await itemFieldsForGalleries([other])).get(other)
+  assert.equal(fields.get(alien).title, 'Чужое')
+  assert.equal(fields.get(alien).price, '1 RSD')
+})
+
+test('состав альбома отдаёт название и цену для полей', async () => {
+  const id = await photo(75)
+  const album = await createGallery('merch')
+  await setGalleryItems(album, [{ mediaId: id, title: 'Кепка', price: '1500 RSD' }])
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/galleries/${album}/items.json`, cookies: auth.cookies
+  })).json()
+
+  assert.equal(body.items[0].title, 'Кепка')
+  assert.equal(body.items[0].price, '1500 RSD')
+})
+
+test('поля товара включены у мерча и выключены у галереи', async () => {
+  const album = await createGallery('merch')
+  const merch = await createBlock({
+    pageId, type: 'merch', settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+  const gallery = await createBlock({
+    pageId, type: 'gallery', settings: { ...defaultSettings('gallery'), gallery_id: album }
+  })
+
+  const merchBody = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${merch}`, cookies: auth.cookies
+  })).body
+  const galleryBody = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${gallery}`, cookies: auth.cookies
+  })).body
+
+  assert.match(merchBody, /data-album-fields/)
+  assert.doesNotMatch(galleryBody, /data-album-fields/)
+})
+
+/** Одна колонка — нормальный макет, и браузер не должен мешать. */
+test('одна колонка разрешена', async () => {
+  const album = await createGallery('merch')
+  const id = await createBlock({
+    pageId, type: 'merch', settings: { ...defaultSettings('merch'), gallery_id: album }
+  })
+
+  const body = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${id}`, cookies: auth.cookies
+  })).body
+  assert.match(body, /min=1/)
+
+  await app.inject({
+    method: 'POST',
+    url: `/admin/blocks/${id}`,
+    cookies: auth.cookies,
+    ...form({ _csrf: auth.csrf, 'settings[gallery_id]': String(album), 'settings[columns]': '1' })
+  })
+
+  assert.equal((await getBlock(id)).settings.columns, 1)
 })

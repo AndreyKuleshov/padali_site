@@ -9,7 +9,7 @@ import {
   getBlockMedia, saveBlockMedia, saveBlockTexts
 } from '../../repositories/blocks.js'
 import { getMediaByIds, listMedia } from '../../repositories/media.js'
-import { listGalleries } from '../../repositories/galleries.js'
+import { listGalleries, setGalleryItemFields } from '../../repositories/galleries.js'
 import { listLocales } from '../../repositories/locales.js'
 import { parseBlockForm } from '../../services/block-form.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
@@ -20,6 +20,21 @@ import { currentSiteLogo } from '../../services/site-logo.js'
 import { lookupVideo } from '../../services/youtube.js'
 
 const HOME = 'home'
+
+/**
+ * `{ m7: {...} }` → `{ 7: {...} }`.
+ *
+ * Ключ в форме с буквой: qs считает «item[7]» индексом массива,
+ * схлопывает разрывы и теряет привязку к снимку.
+ */
+function stripPrefix (fields) {
+  const out = {}
+  for (const [key, value] of Object.entries(fields ?? {})) {
+    const id = Number(String(key).replace(/^m/, ''))
+    if (id) out[id] = value
+  }
+  return out
+}
 
 async function blockRoutes (app) {
   /* ─── Список блоков главной ─────────────────────────────── */
@@ -163,10 +178,21 @@ async function blockRoutes (app) {
       blocks.map((other) => other.anchor)
     )
 
+    /* Названия и цены товаров живут в альбоме, но правятся здесь:
+       уходить за ними на страницу альбома из формы блока —
+       лишний круг. Пишем только те, что прислала форма, и только
+       в выбранный альбом. */
+    const picker = (descriptor.settings ?? []).find((field) => field.itemFields)
+    const albumId = picker ? Number(parsed.settings[picker.key]) : 0
+    const itemFields = request.body?.item
+
     await transaction(async (conn) => {
       await updateBlock(id, { ...parsed, anchor }, conn)
       await saveBlockTexts(id, parsed.textsByLocale, conn)
       await saveBlockMedia(id, parsed.mediaByField, conn)
+      if (albumId && itemFields) {
+        await setGalleryItemFields(albumId, stripPrefix(itemFields), conn)
+      }
     })
 
     afterWrite()

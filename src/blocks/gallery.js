@@ -39,7 +39,7 @@ export default {
       },
       default: 'grid'
     },
-    { key: 'columns',  label: { en: 'Columns (grid and masonry)', sr: 'Kolona (mreža i zidani raspored)' }, input: 'number', default: 3, min: 2, max: 5 },
+    { key: 'columns',  label: { en: 'Columns (grid and masonry)', sr: 'Kolona (mreža i zidani raspored)' }, input: 'number', default: 3, min: 1, max: 5 },
     {
       key: 'rows',
       label: { en: 'Rows per screen (grid only)', sr: 'Redova po ekranu (samo mreža)' },

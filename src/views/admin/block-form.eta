@@ -200,14 +200,14 @@
       <% ;/* Состав альбома, загрузка и выбор — здесь же: иначе
              наполнять его приходилось бы на отдельной странице,
              уходя с незаписанной формы. */ %>
-      <%~ include('/admin/partials/album-panel', it) %>
+      <%~ include('/admin/partials/album-panel', Object.assign({}, it, { itemFields: field.itemFields })) %>
 
       <div class="media-actions">
         <button type="button" class="btn btn--small" data-new-album><%= it.t('galleries.create') %></button>
         <a class="btn btn--small" href="/admin/galleries" target="_blank" rel="noopener"><%= it.t('blockForm.manageAlbums') %></a>
       </div>
       <p class="hint"><%= it.t('blockForm.galleryHint') %></p>
-      <p class="hint"><%= it.t('galleries.pricesElsewhere') %></p>
+      <p class="hint"><%= it.t(field.itemFields ? 'galleries.itemFieldsHint' : 'galleries.pricesElsewhere') %></p>
       <% } %>
     </div>
     <% } %>

@@ -2,8 +2,8 @@ export default {
   type: 'merch',
   title: { en: 'Merch', sr: 'Merch' },
   description: {
-    en: 'An album where each photo carries a price and an order button. Prices are set on the album page.',
-    sr: 'Album u kome svaka fotografija ima cenu i dugme za porudžbinu. Cene se unose na strani albuma.'
+    en: 'An album where each photo carries a name, a price and an order button — all three right here.',
+    sr: 'Album u kome svaka fotografija ima naziv, cenu i dugme za porudžbinu — sve troje odmah ovde.'
   },
 
   defaults: { anchor: 'merch', navLabel: { en: 'Merch', sr: 'Merch' } },
@@ -43,16 +43,19 @@ export default {
       label: { en: 'Album', sr: 'Album' },
       input: 'gallery-picker',
       required: true,
+      // Название и цена товара правятся прямо здесь, под снимками.
+      itemFields: true,
       hint: {
-        en: 'Each photo in the album can be given a price right there — only photos with a price get an order button.',
-        sr: 'Svakoj fotografiji u albumu cena se zadaje tamo — dugme dobijaju samo one sa cenom.'
+        en: 'Photos of the album appear below with a name and a price next to each.',
+        sr: 'Fotografije albuma su ispod, uz svaku naziv i cena.'
       }
     },
     {
       key: 'columns',
       label: { en: 'Columns', sr: 'Kolone' },
       input: 'number',
-      min: 2,
+      // Одна колонка — нормальный макет: крупная карточка в ряд.
+      min: 1,
       max: 5,
       default: 3
     }

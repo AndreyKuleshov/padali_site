@@ -63,11 +63,20 @@ async function galleryRoutes (app) {
     if (!gallery) return reply.callNotFound()
 
     const itemIds = await getGalleryItems(id)
-    const mediaById = await getMediaByIds(itemIds)
+    const [mediaById, fieldsByGallery] = await Promise.all([
+      getMediaByIds(itemIds), itemFieldsForGalleries([id])
+    ])
+    const fields = fieldsByGallery.get(id) ?? new Map()
     const items = itemIds
       .map((mediaId) => mediaById.get(mediaId))
       .filter(Boolean)
-      .map((media) => ({ id: media.id, thumb: thumbnailUrl(media), name: media.originalName }))
+      .map((media) => ({
+        id: media.id,
+        thumb: thumbnailUrl(media),
+        name: media.originalName,
+        title: fields.get(media.id)?.title ?? '',
+        price: fields.get(media.id)?.price ?? ''
+      }))
 
     return reply.send({ ok: true, id, slug: gallery.slug, count: items.length, items })
   })

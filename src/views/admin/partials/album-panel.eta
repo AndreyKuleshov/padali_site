@@ -1,7 +1,7 @@
 <% ;/* Панель альбома: что внутри, загрузка файлов и выбор из
        медиатеки. Одна и та же под выбором альбома в форме блока
        и во втором шаге окна создания. */ %>
-<div class="album-panel" data-album-panel<%= it.inDialog ? ' data-album-id=""' : '' %> hidden>
+<div class="album-panel" data-album-panel<%= it.inDialog ? ' data-album-id=""' : '' %><%= it.itemFields ? ' data-album-fields' : '' %> hidden>
   <div class="album-strip" data-album-strip></div>
   <p class="hint" data-album-count></p>
   <div class="media-actions">

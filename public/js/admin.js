@@ -952,6 +952,22 @@
         })
       }
 
+      var withFields = panel.hasAttribute('data-album-fields')
+
+      /* Имя не «input»: так уже называется файловое поле в этой
+         же области, и объявление переменной затирало бы функцию. */
+      function fieldInput (key, item, placeholder, limit) {
+        var node = document.createElement('input')
+        node.type = 'text'
+        node.className = 'album-card-' + key
+        // Ключ с буквой: «item[7]» qs считает индексом массива.
+        node.name = 'item[m' + item.id + '][' + key + ']'
+        node.value = item[key] || ''
+        node.placeholder = placeholder || ''
+        node.maxLength = limit
+        return node
+      }
+
       function render (result) {
         var items = result.items
 
@@ -963,12 +979,23 @@
         }
 
         strip.innerHTML = ''
-        items.slice(0, 24).forEach(function (item) {
+        items.slice(0, 48).forEach(function (item) {
           var shot = document.createElement('img')
           shot.src = item.thumb
           shot.alt = ''
           shot.title = item.name
-          strip.appendChild(shot)
+
+          if (!withFields) { strip.appendChild(shot); return }
+
+          /* Название и цена правятся здесь же и уходят с формой
+             блока: ради двух строк гонять редактора на страницу
+             альбома незачем. */
+          var card = document.createElement('div')
+          card.className = 'album-card'
+          card.appendChild(shot)
+          card.appendChild(fieldInput('title', item, strings.getAttribute('data-item-title'), 160))
+          card.appendChild(fieldInput('price', item, strings.getAttribute('data-item-price'), 64))
+          strip.appendChild(card)
         })
         count.textContent = items.length === 0
           ? strings.getAttribute('data-empty')
@@ -983,7 +1010,9 @@
         fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json')
           .then(function (response) { return response.json() })
           .then(function (result) { if (result.ok) render(result) })
-          .catch(function () {})
+          // Ошибку видно в консоли: молчаливый catch однажды
+          // спрятал опечатку в имени, и полоса просто пустовала.
+          .catch(function (error) { console.error('Состав альбома:', error) })
       }
 
       panel.albumRefresh = refresh

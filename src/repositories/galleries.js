@@ -167,8 +167,39 @@ async function appendGalleryItems (galleryId, mediaIds, conn) {
   return fresh.length
 }
 
+/**
+ * Название и цена у уже лежащих в альбоме снимков.
+ *
+ * Только UPDATE: состав альбома эта правка не меняет, а чужой
+ * media_id просто ни во что не попадёт.
+ *
+ * @param {Record<string|number, {title?: string, price?: string}>} fields
+ */
+async function setGalleryItemFields (galleryId, fields, conn) {
+  const runner = db(conn)
+  let changed = 0
+
+  for (const [key, value] of Object.entries(fields ?? {})) {
+    const mediaId = Number(key)
+    if (!mediaId) continue
+    const result = await runner.run(
+      'UPDATE gallery_items SET title = ?, price = ? WHERE gallery_id = ? AND media_id = ?',
+      [
+        String(value?.title ?? '').trim().slice(0, 160),
+        String(value?.price ?? '').trim().slice(0, 64),
+        galleryId,
+        mediaId
+      ]
+    )
+    changed += result.rowCount ?? 0
+  }
+
+  if (changed > 0) await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
+  return changed
+}
+
 export {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery, deleteGallery,
   textsForGalleries, getGalleryTexts, saveGalleryTexts,
-  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems
+  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems, setGalleryItemFields
 }
