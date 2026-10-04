@@ -49,6 +49,37 @@ test('повторитель соцсетей показывает строку 
   assert.match(response.body, /name="social\[__INDEX__\]\[url\]"/, 'шаблон новой строки на месте')
 })
 
+/* Печать экранирует кавычки: пустой data-album-id приезжал как
+   значение из двух &quot;, панель принимала его за имя альбома и
+   на каждой форме блока ходила за составом несуществующего. */
+test('пустой id альбома в окне — действительно пустой', async () => {
+  await app.inject({
+    method: 'POST', url: '/admin/blocks',
+    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'gallery' })
+  })
+  const [block] = await listBlocks(pageId)
+
+  const response = await app.inject({
+    method: 'GET', url: `/admin/blocks/${block.id}`, cookies: session.cookies
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.doesNotMatch(response.body, /data-album-id=&(quot|#34);/, 'кавычки не экранированы в значение')
+  assert.match(response.body, /data-album-id=""/, 'атрибут на месте и пуст')
+})
+
+/* «en» в toLocaleString — это американское 10/4/2026, где 4 —
+   день. Рядом с сайтом, где всюду 16.10.2026, читается неверно. */
+test('время письма показывается днём вперёд', async () => {
+  const { formatDateTime } = await import('../src/services/renderer.js')
+  const when = '2026-10-04T12:17:10Z'
+
+  assert.match(formatDateTime(when, 'en'), /^04\/10\/2026/)
+  assert.match(formatDateTime(when, 'sr'), /^4\.\s*10\.\s*2026/)
+  assert.equal(formatDateTime(null, 'en'), '')
+  assert.equal(formatDateTime('не дата', 'en'), 'не дата', 'мусор отдаём как есть')
+})
+
 test('неверный пароль не пускает', async () => {
   const page = await app.inject({ method: 'GET', url: '/admin/login' })
   const csrf = /name="_csrf" value="([a-f0-9]{64})"/.exec(page.body)[1]

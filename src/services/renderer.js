@@ -38,6 +38,20 @@ function formatDate (value) {
   return match ? `${match[3]}.${match[2]}.${match[1]}` : String(value)
 }
 
+/**
+ * Дата со временем — для списков в админке.
+ *
+ * Язык берём от интерфейса, но порядок частей задаём сами:
+ * «en» — это американское 10/4/2026, где 4 — день, и рядом с
+ * сайтом, где везде 16.10.2026, это читается неверно.
+ */
+function formatDateTime (value, locale) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString(locale === 'sr' ? 'sr-Latn-RS' : 'en-GB')
+}
+
 /** Язык по умолчанию живёт в корне, остальные — в своём префиксе. */
 function localeUrl (code, defaultLocale, path = '') {
   const prefix = code === defaultLocale ? '' : `/${code}`
@@ -77,6 +91,7 @@ const helpers = {
   iconNames: ICON_NAMES,
   sanitize,
   formatDate,
+  formatDateTime,
   localeUrl,
   publicUrl: config.publicUrl,
   /* Год для копирайта. Страницы лежат в кэше до первой правки в
@@ -93,4 +108,6 @@ function render (template, data = {}) {
   return html
 }
 
-export { render, helpers, sanitize, formatDate, localeUrl, eta, LAYOUT, VIEWS_DIR }
+export {
+  render, helpers, sanitize, formatDate, formatDateTime, localeUrl, eta, LAYOUT, VIEWS_DIR
+}
