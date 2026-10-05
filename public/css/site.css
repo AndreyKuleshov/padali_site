@@ -410,15 +410,27 @@ body.no-scroll { overflow: hidden; }
 
 .concert-venue { font-size: 1.02rem; margin-bottom: 10px; }
 
+/* Билеты и цена одной строкой. На узком экране переносятся:
+   «Tickets at the door» рядом с ценой в 320 точек не помещается. */
+.concert-tickets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 14px;
+}
+
+.concert-tickets .button,
+.concert-tickets .concert-door { margin-bottom: 0; }
+
 /* Цена заметнее прочего в карточке: её ищут глазами. */
 .concert-price {
   font-family: var(--display);
   font-size: 1.1rem;
   color: var(--neon);
-  margin-bottom: 10px;
 }
 
-/* Билеты на входе: строка, а не кнопка — жать не на что. */
+/* Билеты на входе: рамка, а не кнопка — жать не на что. */
 .concert-door {
   display: inline-flex;
   align-items: center;
@@ -430,7 +442,6 @@ body.no-scroll { overflow: hidden; }
   color: var(--ink);
   border: 1px solid var(--line);
   padding: 10px 18px;
-  margin-bottom: 14px;
 }
 
 .concert-door svg { width: 16px; height: 16px; }

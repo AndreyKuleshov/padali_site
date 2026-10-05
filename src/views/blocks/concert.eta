@@ -19,18 +19,22 @@
       <% } %>
       <% if (block.text.venue) { %><p class="concert-venue"><%= block.text.venue %></p><% } %>
       <% if (block.text.note) { %><p class="note"><%= block.text.note %></p><% } %>
-      <% ;/* Цена нужна в обоих случаях: и когда билеты продают по
-             ссылке, и когда их берут на входе. */ %>
-      <% if (block.settings.price) { %>
-      <p class="concert-price"><%= block.settings.price %></p>
-      <% } %>
-
-      <% if (atDoor) { %>
-      <p class="concert-door"><%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.atDoor') %></p>
-      <% } else if (block.settings.ticket_url) { %>
-      <a class="button" href="<%= block.settings.ticket_url %>" target="_blank" rel="noopener">
-        <%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.tickets') %>
-      </a>
+      <% ;/* Билеты и цена — одной строкой: вместе они отвечают на
+             один вопрос, «как попасть и почём». Цена нужна в обоих
+             случаях — и при продаже по ссылке, и при оплате на входе. */ %>
+      <% if (atDoor || block.settings.ticket_url || block.settings.price) { %>
+      <div class="concert-tickets">
+        <% if (atDoor) { %>
+        <p class="concert-door"><%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.atDoor') %></p>
+        <% } else if (block.settings.ticket_url) { %>
+        <a class="button" href="<%= block.settings.ticket_url %>" target="_blank" rel="noopener">
+          <%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.tickets') %>
+        </a>
+        <% } %>
+        <% if (block.settings.price) { %>
+        <span class="concert-price"><%= block.settings.price %></span>
+        <% } %>
+      </div>
       <% } %>
       <% if (block.text.tag) { %><p><span class="concert-tag"><%= block.text.tag %></span></p><% } %>
     </div>
