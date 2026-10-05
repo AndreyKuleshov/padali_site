@@ -6,8 +6,8 @@
   var order = block.text.order || it.s('merch.order')
   var formTitle = block.text.form_title || it.s('merch.formTitle')
   var labelCity = block.text.label_city || it.s('merch.city')
-  /* Вид связи теперь выбирают списком, перечислять их в
-     подписи незачем. */
+  /* Вид связи выбирают переключателем, перечислять их в подписи
+     незачем. */
   var labelContact = block.text.label_contact || it.s('merch.contact')
   var labelMessage = block.text.label_message || it.s('merch.message')
   var submit = block.text.submit || it.s('form.submit')
@@ -30,7 +30,7 @@
     <% var label = name ? name + ' — ' + item.price : item.price %>
     <li class="merch-card">
       <div class="merch-shot">
-        <%~ include('/partials/picture', { media: item, sizes: '(max-width: 640px) 50vw, 320px' }) %>
+        <%~ include('/partials/picture', { media: item, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 50vw, 320px' }) %>
       </div>
       <div class="merch-body">
         <% if (name) { %><span class="merch-name"><%= name %></span><% } %>
@@ -65,9 +65,7 @@
       </label>
 
       <% ;/* Сначала вид связи, потом адрес: «контакт» без уточнения
-             люди заполняют как попало, и заказ упирается в тупик.
-             Поле ввода оживает после выбора — до него непонятно,
-             что туда писать. */ %>
+             люди заполняют как попало, и заказ упирается в тупик. */ %>
       <%~ include('/partials/contact-pick', Object.assign({}, it, {
             label: labelContact,
             invalidText: block.text.bad_contact || it.s('form.badContact')

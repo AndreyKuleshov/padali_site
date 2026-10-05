@@ -7,7 +7,7 @@
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <div class="release-grid">
     <div class="cover-box">
-      <%~ include('/partials/picture', { media: cover, sizes: '(max-width: 640px) 128px, 200px', lightbox: true }) %>
+      <%~ include('/partials/picture', { media: cover, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 128px, 200px', lightbox: true }) %>
       <% if (sticker) { %>
       <span class="cover-sticker"><%~ include('/partials/picture', { media: sticker, sizes: '56px' }) %></span>
       <% } %>

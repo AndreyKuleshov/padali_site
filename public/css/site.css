@@ -977,25 +977,6 @@ img[data-lightbox] { cursor: zoom-in; }
    помещался и уезжал под поле ввода. */
 .contact-row { display: grid; gap: 8px; }
 
-.contact-row select {
-  width: 100%;
-  background: var(--panel, #171717);
-  color: inherit;
-  border: 1px solid var(--line, #2E2E2E);
-  border-radius: 4px;
-  padding: 10px 12px;
-  font: inherit;
-}
-
-.contact-row select:focus { border-color: var(--neon); outline: none; }
-
-/* Пока вид связи не выбран, поле выключено: по виду должно быть
-   понятно, что начинать надо слева. */
-.contact-row input:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
 .contact-pick > span { color: var(--soft); font-size: .9rem; display: block; margin-bottom: 6px; }
 .contact-pick .form-note { margin-top: 6px; }
 

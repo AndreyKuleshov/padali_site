@@ -713,7 +713,7 @@ test('заказ с негодным адресом не принимается'
   assert.equal((await listMessages()).length, 0)
 })
 
-test('в окне заказа есть выбор вида связи и выключенное поле', async () => {
+test('в окне заказа есть выбор вида связи с почтой по умолчанию', async () => {
   const album = await createGallery('merch')
   const id = await photo(61)
   await setGalleryItems(album, [{ mediaId: id, title: 'Футболка', price: '2500 RSD' }])

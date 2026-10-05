@@ -10,7 +10,7 @@
   <div class="hero-caption wrap">
     <% if (block.settings.show_wordmark) { %>
       <% if (logo) { %>
-      <span class="hero-wordmark hero-wordmark--own"><%~ include('/partials/picture', { media: logo, sizes: '(max-width: 640px) 46vw, 420px', eager: true }) %></span>
+      <span class="hero-wordmark hero-wordmark--own"><%~ include('/partials/picture', { media: logo, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 46vw, 420px', eager: true }) %></span>
       <% } else { %>
       <img class="hero-wordmark" src="<%= it.h.asset(it.h.builtInLogo) %>" alt="PADALI" width="420" height="56">
       <% } %>

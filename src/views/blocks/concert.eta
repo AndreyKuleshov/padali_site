@@ -7,7 +7,7 @@
   <div class="concert-grid<%= poster ? '' : ' concert-grid--no-poster' %>">
     <% if (poster) { %>
     <div class="poster-box">
-      <%~ include('/partials/picture', { media: poster, sizes: '(max-width: 640px) 100vw, 200px', lightbox: true }) %>
+      <%~ include('/partials/picture', { media: poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', lightbox: true }) %>
     </div>
     <% } %>
     <div class="concert-card">

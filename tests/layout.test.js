@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LAYOUT } from '../src/services/renderer.js'
@@ -51,6 +51,24 @@ test('числа раскладки в шаблонах совпадают со 
  * Так и случилось со строкой повторителя: поля вставали столбиком,
  * а выглядело это как «так задумано».
  */
+/* Граница узкого экрана жила числом в четырёх шаблонах и в
+   браузерном коде: сдвинув её в стилях, остальные молча остались
+   бы на старой и отдавали бы версию снимка не той ширины. */
+test('граница узкого экрана берётся из одного места', async () => {
+  const views = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'views')
+  const files = await readdir(join(views, 'blocks'))
+
+  for (const file of files) {
+    const body = await readFile(join(views, 'blocks', file), 'utf8')
+    const sizes = [...body.matchAll(/sizes[^\n]*max-width: (\d+)px/g)].map((m) => m[1])
+    assert.deepEqual(sizes, [], `${file}: граница в sizes написана числом ${sizes[0]}`)
+  }
+
+  const layout = await readFile(join(views, 'layout.eta'), 'utf8')
+  assert.match(layout, /data-narrow="<%= it\.h\.layout\.narrow %>"/,
+    'браузерный код получает границу разметкой')
+})
+
 test('auto-fit не соседствует с недопустимой дорожкой', async () => {
   for (const file of ['site.css', 'admin.css']) {
     const css = await readFile(join(PUBLIC, file), 'utf8')

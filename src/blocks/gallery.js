@@ -48,8 +48,8 @@ export default {
       min: 1,
       max: 3,
       hint: {
-        en: 'On a narrow screen the album is one continuous grid: screens and arrows are for the desktop, where a row fits whole.',
-        sr: 'Na uskom ekranu album je jedna neprekidna mreža: ekrani i strelice su za računar, gde red staje ceo.'
+        en: 'A phone screen does not divide the way a monitor does. Rows stay as set above, so the album scrolls sideways and never grows taller.',
+        sr: 'Ekran telefona se ne deli kao monitor. Redova ostaje koliko je zadato iznad, pa se album lista bočno i ne raste u visinu.'
       }
     },
     {
