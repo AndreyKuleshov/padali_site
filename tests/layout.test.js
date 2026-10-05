@@ -90,13 +90,15 @@ test('auto-fit не соседствует с недопустимой доро�
 /**
  * Два правила одинаковой силы — побеждает то, что ниже в файле, а
  * не то, чей медиазапрос «уже». Общее правило, стоящее ПОСЛЕ блока
- * узкого экрана, молча отменяет мобильное, и в коде это выглядит
+ * запроса, молча отменяет условное, и в коде это выглядит
  * правильно: в запросе написано одно, работает другое. Наступали
- * трижды: .contact-row--send, .contact-form button[type="submit"],
- * .album-card.
+ * четырежды: .contact-row--send, .contact-form button[type="submit"],
+ * .album-card и вордмарк героя в альбомной ориентации.
  *
- * Сравниваем по паре «селектор + свойство»: тот же селектор ниже,
- * но про другое свойство, — обычное дело и не спор.
+ * Проверяем КАЖДЫЙ запрос, а не только первый: в четвёртый раз
+ * обожглись именно на блоке по высоте, которого прежний сторож не
+ * смотрел. Сравниваем по паре «селектор + свойство»: тот же селектор
+ * ниже, но про другое свойство, — обычное дело и не спор.
  */
 /** Комментарии выкидываем до разбора: иначе они приклеиваются к
     следующему селектору и два одинаковых правила перестают быть
@@ -116,42 +118,45 @@ function rules (css) {
   return out
 }
 
-test('мобильное правило не перебивается более поздним общим', async () => {
-  for (const file of ['site.css', 'admin.css']) {
-    const css = await readFile(join(PUBLIC, file), 'utf8')
-
-    const start = css.search(/@media \(max-width:/)
-    if (start === -1) continue
-
-    // Конец блока запроса — его парная скобка.
+/** Границы каждого блока @media: от «@» до его парной скобки. */
+function mediaBlocks (css) {
+  const blocks = []
+  for (const match of css.matchAll(/@media[^{]*\{/g)) {
     let depth = 0
-    let end = css.length
-    for (let i = css.indexOf('{', start); i < css.length; i += 1) {
+    for (let i = match.index + match[0].length - 1; i < css.length; i += 1) {
       if (css[i] === '{') depth += 1
       else if (css[i] === '}') {
         depth -= 1
-        if (depth === 0) { end = i; break }
+        if (depth === 0) { blocks.push([match.index, i]); break }
       }
     }
+  }
+  return blocks
+}
 
-    const narrow = new Map()
-    for (const [selector, props] of rules(css.slice(start, end))) {
-      for (const prop of props) narrow.set(selector + ' | ' + prop, true)
-    }
-
-    // Ниже смотрим только безусловные правила: вложенные запросы
-    // спорят между собой по своим границам, а не с этим блоком.
-    const below = css.slice(end).replace(/@[\w-]+[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, ' ')
-
+test('условное правило не перебивается более поздним общим', async () => {
+  for (const file of ['site.css', 'admin.css']) {
+    const css = withoutComments(await readFile(join(PUBLIC, file), 'utf8'))
     const clash = []
-    for (const [selector, props] of rules(below)) {
-      for (const prop of props) {
-        if (narrow.has(selector + ' | ' + prop)) clash.push(selector + ' { ' + prop + ' }')
+
+    for (const [start, end] of mediaBlocks(css)) {
+      const inside = new Set()
+      for (const [selector, props] of rules(css.slice(start, end))) {
+        for (const prop of props) inside.add(selector + ' | ' + prop)
+      }
+
+      /* Ниже смотрим только безусловные правила: вложенные запросы
+         спорят между собой по своим границам, а не с этим блоком. */
+      const below = css.slice(end).replace(/@[\w-]+[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, ' ')
+      for (const [selector, props] of rules(below)) {
+        for (const prop of props) {
+          if (inside.has(selector + ' | ' + prop)) clash.push(selector + ' { ' + prop + ' }')
+        }
       }
     }
 
     assert.deepEqual(clash, [],
-      `${file}: ${clash[0]} задан и в узком экране, и безусловно ниже — узкое правило не сработает`)
+      `${file}: ${clash[0]} задано и в медиазапросе, и безусловно ниже — запрос не сработает`)
   }
 })
 
