@@ -25,6 +25,17 @@
     <p class="hint"><%= it.inherited.builtIn ? it.t('blockForm.logoBuiltIn') : it.t('blockForm.logoFromSettings') %></p>
   </div>
   <% } %>
+  <% ;/* Размер — не выдумка: 2560 это потолок, выше которого
+         загруженное всё равно уменьшается, а ниже нужной ширины
+         снимок на экране мылит. Подсказку поля печатаем здесь же —
+         до этого у медиаполей она не показывалась вовсе. */ %>
+  <% if (field.size) { %>
+  <p class="hint"><%= field.size.h
+       ? it.t('blockForm.bestSize', { w: field.size.w, h: field.size.h })
+       : it.t('blockForm.bestWidth', { w: field.size.w }) %></p>
+  <% } %>
+  <% if (field.hint) { %><p class="hint"><%= it.localize(field.hint) %></p><% } %>
+
   <div class="media-actions">
     <button type="button" class="btn btn--small media-pick"><%= it.t('blockForm.pickFromMedia') %></button>
     <label class="btn btn--small media-upload">

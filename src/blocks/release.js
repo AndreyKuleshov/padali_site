@@ -21,6 +21,15 @@ export default {
     { key: 'note',    label: { en: 'Note', sr: 'Napomena' }, input: 'textarea', rows: 2 },
     { key: 'more_label', label: { en: '«More» label', sr: 'Naziv za «još»' }, input: 'text' },
     {
+      key: 'platforms_label',
+      label: { en: 'Label above the platforms', sr: 'Naslov iznad platformi' },
+      input: 'text',
+      hint: {
+        en: 'Without it a row of grey icons reads as broken buttons. Before release: «Soon on».',
+        sr: 'Bez njega red sivih ikona izgleda kao pokvarena dugmad. Pre izlaska: «Uskoro na».'
+      }
+    },
+    {
       key: 'countdown_label',
       label: { en: 'Countdown label', sr: 'Tekst odbrojavanja' },
       input: 'text',
@@ -32,8 +41,8 @@ export default {
   ],
 
   media: [
-    { key: 'cover',   label: { en: 'Cover', sr: 'Omot' },                required: true },
-    { key: 'sticker', label: { en: 'Sticker over the cover', sr: 'Nalepnica preko omota' } }
+    { key: 'cover',   label: { en: 'Cover', sr: 'Omot' },                required: true, size: { w: 1000, h: 1000 } },
+    { key: 'sticker', label: { en: 'Sticker over the cover', sr: 'Nalepnica preko omota' }, size: { w: 320, h: 320 } }
   ],
 
   settings: [

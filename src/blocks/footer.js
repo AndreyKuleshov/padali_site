@@ -24,7 +24,7 @@ export default {
   ],
 
   media: [
-    { key: 'logo', label: { en: 'Logo', sr: 'Logotip' }, fallback: 'siteLogo' }
+    { key: 'logo', label: { en: 'Logo', sr: 'Logotip' }, fallback: 'siteLogo', size: { w: 640 } }
   ],
 
   settings: [

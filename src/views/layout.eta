@@ -8,6 +8,7 @@
 <meta name="description" content="<%= it.meta.description %>">
 <% } %>
 <link rel="icon" href="<%= it.h.asset('/brand/favicon.png') %>">
+<meta name="theme-color" content="#0A0A0A">
 
 <link rel="canonical" href="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale) %>">
 <% it.locales.forEach(function (locale) { %>
@@ -26,10 +27,21 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=Archivo:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<%= it.h.asset('/css/site.css') %>">
+
+<% ;/* Кто играет и где: без этого концерт не попадает в «События»
+       Google. jsonScript экранирует «<», иначе строка из названия
+       площадки закрыла бы тег скрипта. */ %>
+<% if (it.jsonLd) { %>
+<script type="application/ld+json"><%~ it.h.jsonScript(it.jsonLd) %></script>
+<% } %>
 </head>
 <body>
+
+<% ;/* До содержимого было пять нажатий Tab: логотип, три соцссылки,
+       переключатель языка. Ссылка видна только при фокусе. */ %>
+<a class="skip-link" href="#top"><%= it.s('nav.skipToContent') %></a>
 
 <%~ include('/partials/topbar', it) %>
 <% if (it.quicknav.length > 0) { %><%~ include('/partials/side-menu', it) %><% } %>

@@ -204,6 +204,167 @@ test('билеты: по ссылке — кнопка, на входе — ст
   assert.match(cards[2], /600 RSD/)
 })
 
+/* Раздел на странице есть, а в меню его нет — так выпадали «Мерч»
+   и «Контакты»: запасная подпись объявлена в дескрипторе, но
+   попадала в тексты только при создании блока, и у заведённых
+   раньше поле осталось пустым. */
+test('раздел без своей подписи всё равно попадает в меню', async () => {
+  const { pageId } = await buildPage()
+
+  const block = await createBlock({
+    pageId, type: 'merch', anchor: 'merch', settings: defaultSettings('merch')
+  })
+  assert.ok(block)
+  invalidateCache()
+
+  const en = (await app.inject({ method: 'GET', url: '/' })).body
+  const sr = (await app.inject({ method: 'GET', url: '/sr' })).body
+
+  assert.match(en, /<a href="#merch">Merch<\/a>/, 'запасная подпись из дескриптора')
+  assert.match(sr, /<a href="#merch">Merch<\/a>/, 'и на втором языке')
+
+  /* Своя подпись по-прежнему главнее: дескриптор только подстилает. */
+  await saveBlockTexts(block, { en: { nav_label: 'Shop' } })
+  invalidateCache()
+  const own = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(own, /<a href="#merch">Shop<\/a>/)
+})
+
+/* Вчерашний концерт — уже не «ближайший». Уходит он сам, по дате:
+   правило «редактор вспомнит» не работает ни в одном проекте.
+   «Сегодня» передаётся параметром — иначе тест пришлось бы
+   привязывать к часам машины, на которой он идёт. */
+test('прошедшие концерты уходят со страницы, оставшиеся — по возрастанию', async () => {
+  const { composePage } = await import('../src/services/page-composer.js')
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'shows',
+    settings: {
+      ...defaultSettings('concert'),
+      events: [
+        { date: '2026-12-05', tickets: 'door' },
+        { date: '2026-10-16', tickets: 'link' },
+        { date: '2020-01-01', tickets: 'door' }
+      ]
+    }
+  })
+  invalidateCache()
+
+  const page = await composePage({ locale: 'en', today: '2026-11-01' })
+  const block = page.blocks.find((item) => item.type === 'concert')
+
+  assert.deepEqual(block.settings.events.map((event) => event.date), ['2026-12-05'],
+    'прошедшие отброшены')
+
+  const earlier = await composePage({ locale: 'en', today: '2026-01-01' })
+  const dates = earlier.blocks.find((item) => item.type === 'concert').settings.events
+    .map((event) => event.date)
+  assert.deepEqual(dates, ['2026-10-16', '2026-12-05'], 'ближайший идёт первым')
+})
+
+/* Блок, которому нечего показать, не рисуется — значит, и пункт
+   меню на него вёл бы в никуда: страница прокручивалась бы в
+   случайное место. */
+test('концерты без будущих событий исчезают и из меню', async () => {
+  const { composePage } = await import('../src/services/page-composer.js')
+  const { pageId } = await buildPage()
+
+  const block = await createBlock({
+    pageId, type: 'concert', anchor: 'shows',
+    settings: { ...defaultSettings('concert'), events: [{ date: '2020-01-01', tickets: 'door' }] }
+  })
+  await saveBlockTexts(block, { en: { nav_label: 'Concerts' } })
+  invalidateCache()
+
+  const page = await composePage({ locale: 'en', today: '2026-11-01' })
+  assert.deepEqual(page.quicknav.filter((item) => item.anchor === 'shows'), [],
+    'пункта меню нет')
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.doesNotMatch(body, /id="shows"/, 'и самого раздела нет')
+})
+
+/* Слово «от» набирали прямо в поле цены, одном на оба языка, и на
+   сербской странице стоял английский предлог. Теперь это флажок, а
+   слово берётся из словаря сайта. */
+test('«цена от» переводится, а не набирается в поле', async () => {
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'shows',
+    settings: {
+      ...defaultSettings('concert'),
+      events: [{ date: '2026-12-05', tickets: 'door', price: '1000 RSD', price_from: true }]
+    }
+  })
+  invalidateCache()
+
+  const en = (await app.inject({ method: 'GET', url: '/' })).body
+  const sr = (await app.inject({ method: 'GET', url: '/sr' })).body
+
+  assert.match(en, /concert-price">from 1000 RSD</)
+  assert.match(sr, /concert-price">od 1000 RSD</)
+  assert.doesNotMatch(sr, /from 1000 RSD/, 'английского предлога на сербской странице нет')
+})
+
+/* Разметка для поисковиков: без неё концерт не попадает в «События»
+   Google. Прошедшие туда тоже не попадают — отсечка одна и та же. */
+test('в разметке для поиска есть группа и будущий концерт', async () => {
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'shows',
+    settings: {
+      ...defaultSettings('concert'),
+      events: [{ date: '2099-12-05', tickets: 'door', price: '1000 RSD' }]
+    }
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const raw = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(body)
+  assert.ok(raw, 'разметки нет вовсе')
+
+  const graph = JSON.parse(raw[1])['@graph']
+  assert.equal(graph[0]['@type'], 'MusicGroup')
+  assert.equal(graph[0].name, 'PADALI')
+
+  const event = graph.find((node) => node['@type'] === 'MusicEvent')
+  assert.ok(event, 'концерта в разметке нет')
+  assert.equal(event.startDate, '2099-12-05')
+  assert.deepEqual(
+    { price: event.offers.price, currency: event.offers.priceCurrency },
+    { price: '1000', currency: 'RSD' },
+    'цена и валюта разобраны по отдельности: половинчатое предложение поиск отбрасывает'
+  )
+})
+
+/* Без скрипта браузер приходит на /send сам. Показать ему голый
+   JSON нельзя, а терять написанное — тем более: до правки у формы
+   не было action, и текст сообщения уезжал в адресную строку. */
+test('отправка формы без скрипта возвращает на страницу, а не в JSON', async () => {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/send',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    payload: 'kind=contact&message=Привет&contact_kind=email&contact=a@b.rs&locale=sr'
+  })
+
+  assert.equal(response.statusCode, 303)
+  assert.equal(response.headers.location, '/sr#contact')
+
+  /* А скрипт по-прежнему получает JSON: он шлёт JSON-тело и
+     заголовка Accept не ставит. */
+  const ajax = await app.inject({
+    method: 'POST',
+    url: '/send',
+    payload: { kind: 'contact', message: 'Привет', contact_kind: 'email', contact: 'a@b.rs' }
+  })
+  assert.equal(ajax.statusCode, 200)
+  assert.deepEqual(ajax.json(), { ok: true })
+})
+
 /* «Пока неизвестно» — это отсутствие сведений, а не пустые поля:
    ссылка и цена могли остаться от прежнего способа продажи, и
    показать их значило бы продать билет, которого нет. */

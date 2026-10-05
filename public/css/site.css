@@ -5,9 +5,16 @@
 :root {
   --bg: #0A0A0A;
   --bg-2: #151515;
+  /* Фон полей ввода: светлее карточек, иначе поле сливается с фоном. */
+  --panel: #1C1C1C;
   --ink: #F2F0EA;
   --soft: #9B9790;
   --line: #2A2A2A;
+  /* Граница того, что нажимают и во что пишут. Волосяная линия
+     разделов для этого не годится: поле ввода давало к своему фону
+     контраст 1,25:1 при пороге 3:1, и коробку, в которую надо
+     писать, на дневном экране просто не было видно. */
+  --line-strong: #6A6A6A;
   /* Тот же неон, что в admin.css: сборки нет, менять придётся в обоих. */
   --neon: #D6FF2E;
   --display: 'Oswald', 'Arial Narrow', sans-serif;
@@ -91,11 +98,17 @@ ul { list-style: none; margin: 0; padding: 0; }
   border-bottom: 1px solid var(--line);
 }
 
+/* Высота шапки объявлена переменной, и по ней считается отступ
+   при переходе по якорю. Раньше она была просто числом рядом с
+   отступами, которые её и задавали: на телефоне кнопка меню
+   растягивала шапку до 69 px при объявленных 59, и заголовок
+   раздела уезжал под шапку на эти 10 px. Теперь высоту задаёт
+   сама переменная, и разойтись им нечем. */
 .topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-block: 14px;
+  min-height: calc(var(--topbar-h) - 1px);
 }
 
 /* Встроенный логотип нарисован чёрным, поэтому осветляется фильтром.
@@ -135,7 +148,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   letter-spacing: 0.04em;
   color: var(--soft);
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 3px;
   padding: 5px 10px;
   text-decoration: none;
@@ -158,11 +171,21 @@ ul { list-style: none; margin: 0; padding: 0; }
   background: linear-gradient(180deg, rgba(10, 10, 10, 0) 35%, rgba(10, 10, 10, 0.92) 92%);
 }
 
-@media (min-width: 641px) {
-  /* На всю высоту экрана за вычетом липкой шапки. */
-  .hero--full .hero-media { height: calc(100svh - var(--topbar-h)); }
-  .hero--full .hero-media img { height: 100%; object-fit: cover; }
-}
+/* На всю высоту экрана за вычетом липкой шапки — и на телефоне
+   тоже. Правило стояло только в запросе для широкого экрана, и на
+   390 точках герой получал натуральные пропорции снимка: полоса в
+   244 точки, 29% экрана, где участников не разглядеть, а вордмарк
+   лежит у них на торсах. Основной трафик по ссылке группы — как раз
+   телефон, открытый из переписки, и единственное место на сайте с
+   арт-дирекшеном на нём не случалось. */
+.hero--full .hero-media { height: calc(100svh - var(--topbar-h)); }
+.hero--full .hero-media img { position: relative; height: 100%; object-fit: cover; }
+
+/* Размытый слой лежит под кадром и нужен только там, где кадр
+   вписывается целиком, — на телефоне. Селектор из трёх частей
+   намеренно: правило для «.hero--full .hero-media img» весомее
+   одиночного класса и перебило бы его, где бы тот ни стоял. */
+.hero--full .hero-media .hero-blur { display: none; }
 
 .hero-caption {
   position: absolute;
@@ -172,13 +195,50 @@ ul { list-style: none; margin: 0; padding: 0; }
   padding-bottom: 34px;
 }
 
+/* Вордмарк — заголовок первого уровня, а внутри него картинка:
+   своя из медиатеки или встроенная. Размеры и инверсия поэтому
+   живут на картинке, а не на обёртке. */
 .hero-wordmark {
+  display: block;
+  margin: 0 0 16px;
+}
+
+.hero-wordmark img {
   width: min(78vw, 420px);
   height: auto;
   display: block;
-  margin-bottom: 16px;
-  filter: invert(1);
 }
+
+.hero-wordmark--built-in img { filter: invert(1); }
+
+/* Для читалки экрана, но не для глаза: имя группы, когда вордмарк
+   выключен, и подписи, которым незачем занимать место. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Пропуск шапки: видна только под фокусом. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -60px;
+  z-index: 20;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--neon);
+  color: var(--ink);
+  transition: top .15s;
+}
+
+.skip-link:focus { top: 8px; }
 
 .hero-caption p {
   font-size: 1.1rem;
@@ -189,7 +249,21 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 /* ─── Быстрая навигация ──────────────────────────────────── */
 
-.quicknav { display: flex; flex-wrap: wrap; border-top: 1px solid var(--line); }
+/* Полоса разделов липнет под шапкой. Раньше она стояла один раз
+   между героем и релизом и уезжала навсегда: на странице в три с
+   половиной тысячи точек разделы были доступны ровно в одной
+   точке — у самого верха. */
+.quicknav {
+  position: sticky;
+  top: calc(var(--topbar-h) - 1px);
+  z-index: 9;
+  display: flex;
+  flex-wrap: wrap;
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
 
 .quicknav a {
   flex: 1 1 auto;
@@ -206,6 +280,15 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .quicknav a:last-child { border-right: none; }
 
+/* Текущий раздел: без него полоса выглядела одинаково от начала
+   страницы до конца, и где ты — приходилось угадывать. */
+.quicknav a[aria-current],
+.side-menu-links a[aria-current] {
+  color: var(--neon);
+}
+
+.quicknav a[aria-current] { box-shadow: inset 0 -2px 0 var(--neon); }
+
 /* ─── Меню телефона ──────────────────────────────────────── */
 
 /* Кнопка живёт в шапке, но видна только на узком экране: на
@@ -218,7 +301,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   height: 40px;
   padding: 0;
   background: none;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   color: var(--ink);
   cursor: pointer;
@@ -260,7 +343,7 @@ ul { list-style: none; margin: 0; padding: 0; }
   height: 40px;
   padding: 0;
   background: none;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   color: var(--ink);
   cursor: pointer;
@@ -325,20 +408,22 @@ body.no-scroll { overflow: hidden; }
   margin-bottom: 14px;
 }
 
+/* Название песни — заголовок блока, а набрано было мельче даты и
+   серым: читалка объявляла «заголовок второго уровня», а глаз видел
+   подпись. Дата важна, но она не главное имя. */
 .single-title {
-  font-size: 0.98rem;
-  color: var(--soft);
-  margin-bottom: 6px;
-  font-family: var(--sans);
-  font-weight: 500;
+  font-family: var(--display);
+  font-size: 2.1rem;
+  color: var(--ink);
+  margin-bottom: 4px;
   text-transform: none;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .release-date {
   font-family: var(--display);
-  font-size: 2.1rem;
-  color: var(--ink);
+  font-size: 1.1rem;
+  color: var(--soft);
   margin-bottom: 10px;
 }
 
@@ -365,7 +450,21 @@ body.no-scroll { overflow: hidden; }
   transition: color .15s, border-color .15s;
 }
 
-.platform-icons a:hover { color: var(--neon); border-color: var(--soft); }
+.platform-icons a { border-color: var(--line-strong); }
+.platform-icons a:hover { color: var(--neon); border-color: var(--neon); }
+
+/* Площадка без ссылки — это «скоро здесь», а не выключенная
+   кнопка: без рамки и без указателя-руки на ней нечего нажимать. */
+.platform-icons .platform-soon { border-color: transparent; cursor: default; }
+
+.platforms-label {
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--soft);
+  margin-bottom: 8px;
+}
 .platform-icons svg { width: 17px; height: 17px; }
 
 .platform-icons .more {
@@ -460,6 +559,8 @@ body.no-scroll { overflow: hidden; }
 }
 
 /* Билеты на входе: рамка, а не кнопка — жать не на что. */
+/* «Билеты на входе» — сообщение, а не кнопка. В рамке с иконкой
+   билета оно читалось как выключённая кнопка, и по нему жали. */
 .concert-door {
   display: inline-flex;
   align-items: center;
@@ -468,9 +569,8 @@ body.no-scroll { overflow: hidden; }
   font-size: 0.86rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ink);
-  border: 1px solid var(--line);
-  padding: 10px 18px;
+  color: var(--soft);
+  padding: 10px 0;
 }
 
 .concert-door svg { width: 16px; height: 16px; }
@@ -577,12 +677,13 @@ body.no-scroll { overflow: hidden; }
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
+  /* 44 — нижняя граница, с которой в кнопку попадают пальцем. */
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 50%;
   background: rgba(10, 10, 10, .78);
   backdrop-filter: blur(4px);
@@ -594,8 +695,11 @@ body.no-scroll { overflow: hidden; }
 
 .gallery-arrow:hover { color: var(--neon); border-color: var(--soft); }
 .gallery-arrow svg { width: 20px; height: 20px; }
-.gallery-arrow--prev { left: -8px; }
-.gallery-arrow--next { right: -8px; }
+/* Наружу от кадра: заходя внутрь, стрелки постоянно накрывали
+   крайние миниатюры, а у концертов — афишу, по которой открывается
+   просмотр. */
+.gallery-arrow--prev { left: -22px; }
+.gallery-arrow--next { right: -22px; }
 
 /* Экран сетки складывает CSS, а не сервер: число колонок у
    монитора и телефона разное, и нарезанные заранее страницы на
@@ -692,9 +796,6 @@ img[data-lightbox] { cursor: zoom-in; }
 .site-footer-links a:hover { color: var(--neon); }
 .site-footer-links svg { width: 17px; height: 17px; }
 
-.hero-wordmark--own { display: block; margin-bottom: 16px; }
-.hero-wordmark--own img { width: min(78vw, 420px); height: auto; display: block; }
-
 /* ─── Лайтбокс ───────────────────────────────────────────── */
 
 .lightbox {
@@ -753,7 +854,7 @@ img[data-lightbox] { cursor: zoom-in; }
 .lightbox-close,
 .lightbox-nav {
   position: absolute;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
   color: var(--ink);
@@ -813,12 +914,16 @@ img[data-lightbox] { cursor: zoom-in; }
   .section { padding-block: 40px; }
 
   .release-grid { grid-template-columns: 128px 1fr; gap: 18px; }
-  .release-date { font-size: 1.6rem; }
+  .single-title { font-size: 1.6rem; }
   /* Полосу разделов заменяет кнопка в шапке: семь пунктов в ряд
      не помещались, а столбиком занимали пол-экрана ещё до того,
      как человек увидел содержимое. */
   .quicknav { display: none; }
-  .menu-toggle { display: inline-flex; }
+  /* Кнопка меню — к правому краю, под большой палец: она стояла
+     между логотипом и соцсетями, а краю доставался чип языка.
+     Соцссылки из шапки убраны — те же три стоят разделом ниже. */
+  .menu-toggle { display: inline-flex; order: 1; }
+  .topbar-right .social-row { display: none; }
   /* В столбик высоту афише задать не по чему — рядом нет карточки,
      — поэтому задаём её сами, отношением сторон. Иначе каждая
      афиша своей высоты: карточки под ними начинаются вразнобой, и
@@ -829,8 +934,25 @@ img[data-lightbox] { cursor: zoom-in; }
   .concert-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .poster-box { aspect-ratio: 4 / 5; height: auto; min-height: 0; align-self: start; }
 
+  /* Узкий экран: весь кадр целиком, остаток закрывает размытая
+     копия. Обрезкой тут не отделаться — снимок вдвое шире окна.
+     А если для телефона загружен свой кадр, обрезку выбрала группа
+     и вписывать нечего — он заполняет экран. */
+  .hero--full .hero-media img { object-fit: contain; }
+  .hero--full .hero-media--art img { object-fit: cover; }
+  .hero--full .hero-media .hero-blur {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    object-fit: cover;
+    filter: blur(22px) brightness(0.45);
+    transform: scale(1.15);
+  }
+
   .hero-caption { padding-bottom: 18px; }
-  .hero-wordmark { width: min(46vw, 190px); margin-bottom: 8px; }
+  .hero-wordmark { margin-bottom: 8px; }
+  .hero-wordmark img { width: min(46vw, 190px); }
   .hero-caption p { font-size: 0.95rem; }
 
   /* Число колонок на телефоне задаётся блоком отдельно: ширина
@@ -856,9 +978,10 @@ img[data-lightbox] { cursor: zoom-in; }
   .contact-form button[type="submit"] {
     justify-self: stretch;
     width: 100%;
-    justify-content: center;
   }
 
+  /* На телефоне поля по бокам нет — стрелки остаются над кадром,
+     но с краю, где ни афиши, ни лиц. */
   .gallery-arrow--prev { left: 2px; }
   .gallery-arrow--next { right: 2px; }
 
@@ -947,9 +1070,9 @@ img[data-lightbox] { cursor: zoom-in; }
 
 .contact-form input[type="text"], .contact-form textarea {
   width: 100%;
-  background: var(--panel, #171717);
+  background: var(--panel);
   color: inherit;
-  border: 1px solid var(--line, #2E2E2E);
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   padding: 10px 12px;
   font: inherit;
@@ -965,7 +1088,20 @@ img[data-lightbox] { cursor: zoom-in; }
   .contact-form button[type="submit"] { justify-self: start; }
 }
 
-.contact-form button[type="submit"] { margin-bottom: 0; }
+/* Отправка — конец всей формы, а выглядела мельче подписи поля:
+   0.86rem против 1rem у текста рядом, и 67 px в ширину возле поля
+   в 637. Кегль и ширина теперь не меньше окружения. */
+.contact-form button[type="submit"] {
+  margin-bottom: 0;
+  min-width: 140px;
+  /* Кнопка шире своей надписи, и по левому краю надпись висела
+     сбоку. Выравнивание общее: на телефоне кнопка тянется во всю
+     ширину, и там оно нужно тем более. */
+  justify-content: center;
+  /* Ровно как текст рядом: rem дал бы 16 там, где абзац 17. */
+  font-size: inherit;
+  padding: 12px 22px;
+}
 
 /* Варианты общей кнопки сайта: мелкая для карточки товара и
    тихая для «закрыть», чтобы она не спорила с отправкой. */
@@ -974,7 +1110,7 @@ img[data-lightbox] { cursor: zoom-in; }
 .button--ghost {
   background: transparent;
   color: var(--ink);
-  border-color: var(--line);
+  border-color: var(--line-strong);
 }
 
 .button--ghost:hover { border-color: var(--soft); filter: none; }
@@ -1009,7 +1145,7 @@ img[data-lightbox] { cursor: zoom-in; }
   border: 1px solid var(--line, #2E2E2E);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--panel, #171717);
+  background: var(--panel);
   display: flex;
   flex-direction: column;
 }
@@ -1106,7 +1242,7 @@ img[data-lightbox] { cursor: zoom-in; }
   justify-content: center;
   gap: 6px;
   padding: 9px 8px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 4px;
   color: var(--soft);
   font-size: .9rem;

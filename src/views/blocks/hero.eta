@@ -1,19 +1,46 @@
 <%
   var block = it.block
   var background = block.first('background')
+  var narrow = block.first('background_narrow')
   var logo = block.first('logo') || it.siteLogo
 %>
 <section class="hero<%= block.settings.full_height ? ' hero--full' : '' %>"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
-  <div class="hero-media">
-    <%~ include('/partials/picture', { media: background, sizes: '100vw', eager: true }) %>
+  <% ;/* Кадр группы широкий (1,6), а экран телефона узкий (0,5):
+         обрезка по ширине оставляла от четверых двоих.
+
+         Лучший ответ — свой кадр для телефона: как обрезать, решает
+         группа, а не браузер. Его и показываем, если он загружен.
+         Нет — вписываем широкий целиком, а пустоту закрывает он же,
+         размытый: тот же файл, браузер качает его один раз.
+         Размытую копию в этом случае и рисуем, иначе она была бы
+         лишней загрузкой. */ %>
+  <div class="hero-media<%= narrow ? ' hero-media--art' : '' %>">
+    <% if (background && !narrow) { %>
+    <%~ include('/partials/picture', { media: background, sizes: '100vw', eager: true, className: 'hero-blur', decorative: true }) %>
+    <% } %>
+    <picture>
+      <% if (narrow && narrow.srcset) { %>
+      <source media="(max-width: <%= it.h.layout.narrow %>px)" srcset="<%= narrow.srcset %>" sizes="100vw">
+      <% } else if (narrow) { %>
+      <source media="(max-width: <%= it.h.layout.narrow %>px)" srcset="<%= narrow.src %>">
+      <% } %>
+      <%~ include('/partials/picture', { media: background, sizes: '100vw', eager: true }) %>
+    </picture>
   </div>
   <div class="hero-caption wrap">
+    <% ;/* Имя группы — заголовок страницы, а не картинка рядом с
+           ним: заголовка первого уровня на странице не было вовсе,
+           и поиск с читалкой экрана не находили, чья это страница.
+           Вордмарк остаётся картинкой, h1 его обнимает; когда
+           вордмарк выключен, остаётся только имя для читалки. */ %>
     <% if (block.settings.show_wordmark) { %>
       <% if (logo) { %>
-      <span class="hero-wordmark hero-wordmark--own"><%~ include('/partials/picture', { media: logo, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 46vw, 420px', eager: true }) %></span>
+      <h1 class="hero-wordmark"><%~ include('/partials/picture', { media: logo, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 46vw, 420px', eager: true, alt: it.meta.title }) %></h1>
       <% } else { %>
-      <img class="hero-wordmark" src="<%= it.h.asset(it.h.builtInLogo) %>" alt="PADALI" width="420" height="56">
+      <h1 class="hero-wordmark hero-wordmark--built-in"><img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="<%= it.meta.title %>" width="420" height="56"></h1>
       <% } %>
+    <% } else { %>
+    <h1 class="visually-hidden"><%= it.meta.title %></h1>
     <% } %>
     <% if (block.text.tagline) { %><p><%= block.text.tagline %></p><% } %>
   </div>

@@ -52,7 +52,7 @@
             </a>
             <% } %>
             <% if (event.price) { %>
-            <span class="concert-price"><%= event.price %></span>
+            <span class="concert-price"><%= event.price_from ? it.s('concert.priceFrom') + ' ' + event.price : event.price %></span>
             <% } %>
           </div>
           <% } %>

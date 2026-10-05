@@ -16,6 +16,13 @@ import { createMessage, markMailed } from '../repositories/messages.js'
 import { sendMessage } from '../services/mail.js'
 import { checkContact } from '../services/contact-check.js'
 import { siteTranslator } from '../i18n/site.js'
+import { buildJsonLd } from '../services/json-ld.js'
+
+/** Сегодня по часам сервера, «ГГГГ-ММ-ДД». */
+function today () {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
 
 function etagOf (html) {
   return `"${createHash('sha1').update(html).digest('base64url')}"`
@@ -30,14 +37,19 @@ async function resolveOgImage () {
 }
 
 async function renderLocalisedPage (slug, locale) {
-  const key = cacheKey(['page', slug, locale])
+  /* День в ключе: страница зависит от даты — прошедшие концерты с
+     неё уходят, — а кэш сбрасывается только записью из админки и
+     срока жизни не имеет. Без этого отсечка не сработала бы ни
+     разу до следующей правки. */
+  const key = cacheKey(['page', slug, locale, today()])
   const cached = getCached(key)
   if (cached) return cached
 
   const page = await composePage({ slug, locale })
   if (!page) return null
 
-  const html = render('layout', { ...page, ogImage: await resolveOgImage() })
+  const view = { ...page, ogImage: await resolveOgImage() }
+  const html = render('layout', { ...view, jsonLd: buildJsonLd(view) })
   return setCached(key, { html, etag: etagOf(html) })
 }
 
@@ -117,10 +129,29 @@ async function publicRoutes (app) {
   }, async (request, reply) => {
     const body = request.body ?? {}
 
+    /* Обычно форму отправляет скрипт и ждёт JSON. Но у формы есть
+       action и method, и без скрипта браузер приходит сюда сам —
+       показать ему голый JSON нельзя, поэтому отвечаем переходом
+       обратно к форме.
+
+       Отличаем по типу тела, а не по Accept: наш скрипт шлёт JSON,
+       но заголовок Accept не ставит, и проверка на него сломала бы
+       живую форму. Тип тела говорит о том, КАК запрос составлен, и
+       соврать тут нечему. */
+    const wantsPage = String(request.headers['content-type'] ?? '').includes('urlencoded')
+    /* Куда вернуть: только на свой же язык и только если он
+       известен. Строка из формы в адрес перехода напрямую не
+       попадает — иначе это открытый перенаправитель. */
+    const asked = trim(body.locale, 8)
+    const known = (await listLocales()).some((locale) => locale.code === asked)
+    const backTo = (known && asked !== await getDefaultLocale() ? `/${asked}` : '/') + '#contact'
+
     /* Поле-приманка: человек его не видит и не заполняет, а робот
        заполняет всё подряд. Отвечаем как при успехе, иначе он
        подберёт форму ответа и попробует снова. */
-    if (String(body.website ?? '') !== '') return reply.send({ ok: true })
+    if (String(body.website ?? '') !== '') {
+      return wantsPage ? reply.redirect(backTo, 303) : reply.send({ ok: true })
+    }
 
     const kind = body.kind === 'order' ? 'order' : 'contact'
     const message = {
@@ -160,7 +191,7 @@ async function publicRoutes (app) {
     }
     if (!sent.ok) request.log.warn({ id, error: sent.error }, 'Письмо не ушло, сообщение осталось в базе')
 
-    return reply.send({ ok: true })
+    return wantsPage ? reply.redirect(backTo, 303) : reply.send({ ok: true })
   })
 
   /**

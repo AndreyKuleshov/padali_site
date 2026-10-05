@@ -28,7 +28,13 @@
 
       <% if (block.text.note) { %><p class="note"><%= block.text.note %></p><% } %>
 
+      <% ;/* Подпись над рядом: пока ссылок нет, значки говорят «вот
+             где это будет», а без подписи читались как кнопки,
+             которые не нажимаются. */ %>
       <% if (platforms.length > 0) { %>
+      <% if (block.text.platforms_label) { %>
+      <p class="platforms-label"><%= block.text.platforms_label %></p>
+      <% } %>
       <ul class="platform-icons">
         <% platforms.forEach(function (platform) { %>
         <li>
@@ -37,7 +43,7 @@
             <%~ it.h.icon(platform.icon, { title: platform.label }) %>
           </a>
           <% } else { %>
-          <span title="<%= platform.label %>"><%~ it.h.icon(platform.icon, { title: platform.label }) %></span>
+          <span class="platform-soon" title="<%= platform.label %>"><%~ it.h.icon(platform.icon, { title: platform.label }) %></span>
           <% } %>
         </li>
         <% }) %>

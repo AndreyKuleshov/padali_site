@@ -81,6 +81,9 @@
   <% if ((descriptor.media || []).length > 0) { %>
   <section class="card">
     <h2><%= it.t('blockForm.images') %></h2>
+    <% ;/* Картинок у блока бывает три-четыре, и столбиком они
+           занимали экран, оставляя три четверти ширины пустыми. */ %>
+    <div class="block-media-grid">
     <% descriptor.media.forEach(function (field) { %>
     <% ;/* Поле без своей картинки не пустует: показываем то, что
            сейчас на сайте, иначе редактор видит пустоту и решает,
@@ -94,6 +97,7 @@
           inherited: inherited
         }, showIf(field))) %>
     <% }) %>
+    </div>
   </section>
   <% } %>
 

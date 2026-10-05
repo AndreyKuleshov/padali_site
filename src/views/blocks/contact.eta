@@ -16,7 +16,10 @@
   <% } %>
 
   <% if (block.settings.show_form) { %>
-  <form class="contact-form" data-send-form data-kind="contact"
+  <% ;/* action и method обязательны, даже когда отправляет скрипт:
+         без них форма уходила GET'ом на «/», и текст сообщения
+         оказывался в адресной строке, в истории и в журналах. */ %>
+  <form class="contact-form" action="/send" method="post" data-send-form data-kind="contact"
         data-sent="<%= block.text.sent || it.s('contact.sent') %>"
         data-failed="<%= block.text.failed || it.s('contact.failed') %>">
     <label class="field">

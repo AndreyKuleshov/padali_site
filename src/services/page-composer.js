@@ -45,9 +45,33 @@ function viewMedia (media, textsByLocale, locale, defaultLocale) {
  * переводимые — в block_texts по ключу `<поле>.<индекс>.<подполе>`,
  * картинки — в block_media под тем же составным именем.
  */
-function resolveRepeater (field, rawRows, blockTexts, media, locale, defaultLocale) {
+/**
+ * Строки повторителя с подставленными текстами и картинками.
+ *
+ * Повторитель может объявить `upcoming: '<подполе с датой>'` — тогда
+ * строки с прошедшей датой на страницу не попадают, а оставшиеся
+ * идут по возрастанию. Без этого вчерашний концерт продолжал бы
+ * висеть под заголовком «Ближайший концерт», пока редактор не
+ * вспомнит; а править такое вручную раз в месяц никто не станет.
+ *
+ * Номер строки для текстов и картинок берётся ДО отсева: ключи
+ * `events.<номер>.<поле>` записаны по исходному порядку, и сдвиг
+ * отдал бы оставшемуся концерту чужую афишу.
+ */
+/** Подпись из дескриптора: она объявлена сразу на всех языках. */
+function pickLabel (value, locale, defaultLocale) {
+  if (typeof value === 'string') return value
+  return value?.[locale] ?? value?.[defaultLocale] ?? ''
+}
+
+/** «ГГГГ-ММ-ДД» по часам сервера: даты блоков хранятся так же. */
+function isoDate (date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function resolveRepeater (field, rawRows, blockTexts, media, locale, defaultLocale, today) {
   const rows = Array.isArray(rawRows) ? rawRows : []
-  return rows.map((row, index) => {
+  const resolvedRows = rows.map((row, index) => {
     const resolved = { ...row }
     for (const sub of field.fields) {
       const key = `${field.key}.${index}.${sub.key}`
@@ -60,13 +84,24 @@ function resolveRepeater (field, rawRows, blockTexts, media, locale, defaultLoca
     }
     return resolved
   })
+
+  if (!field.upcoming) return resolvedRows
+
+  return resolvedRows
+    .filter((row) => {
+      const date = row[field.upcoming]
+      return typeof date === 'string' && date !== '' && date >= today
+    })
+    .sort((a, b) => a[field.upcoming].localeCompare(b[field.upcoming]))
 }
 
 /**
  * Собирает дерево страницы за фиксированное число запросов,
  * независимо от количества блоков и фотографий.
  */
-async function composePage ({ slug = HOME_SLUG, locale }) {
+/* Сегодня приходит параметром, а не берётся внутри: тест должен
+   уметь показать и вчера, и завтра, не трогая часы машины. */
+async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date()) }) {
   const locales = await listLocales()
   const defaultLocale = await getDefaultLocale()
   const activeLocale = locales.some((row) => row.code === locale) ? locale : defaultLocale
@@ -129,7 +164,7 @@ async function composePage ({ slug = HOME_SLUG, locale }) {
     for (const field of descriptor?.settings ?? []) {
       if (field.input !== 'repeater') continue
       settingsResolved[field.key] = resolveRepeater(
-        field, block.settings?.[field.key], blockTexts, media, activeLocale, defaultLocale
+        field, block.settings?.[field.key], blockTexts, media, activeLocale, defaultLocale, today
       )
     }
 
@@ -170,6 +205,13 @@ async function composePage ({ slug = HOME_SLUG, locale }) {
       type: block.type,
       anchor: block.anchor,
       navLabel: text.nav_label ?? '',
+      /* Запасная подпись объявлена в дескрипторе у каждого блока, но
+         попадала в тексты только при создании: у блоков, заведённых
+         раньше, поле осталось пустым, и раздел молча выпадал из
+         меню, оставаясь на странице. Держим её отдельно от своей:
+         своя годится всегда, запасная — только пока не повторяет
+         уже занятую. */
+      navFallback: pickLabel(descriptor?.defaults?.navLabel, activeLocale, defaultLocale),
       descriptor,
       settings: settingsResolved,
       text,
@@ -180,9 +222,27 @@ async function composePage ({ slug = HOME_SLUG, locale }) {
     }
   })
 
-  const quicknav = blocks
-    .filter((block) => block.anchor && block.navLabel)
-    .map((block) => ({ anchor: block.anchor, label: block.navLabel }))
+  /* Блок, которому нечего показать, не рисуется — значит, и якоря
+     для него нет. Пункт меню, ведущий в никуда, прокручивает
+     страницу в случайное место. О пустоте знает дескриптор: только
+     он знает, что у концертов содержимое — это события.
+
+     Запасной подписью пользуемся, пока она никого не повторяет: два
+     альбома подряд получили бы в меню два одинаковых «Фото», и это
+     хуже, чем один ненайденный раздел. Повторилась — значит, имя
+     разделу должен дать редактор. */
+  const taken = new Set()
+  const quicknav = []
+  for (const block of blocks) {
+    if (!block.anchor) continue
+    if (block.descriptor?.isEmpty?.(block.settings)) continue
+
+    const label = block.navLabel || (taken.has(block.navFallback) ? '' : block.navFallback)
+    if (!label) continue
+
+    taken.add(label)
+    quicknav.push({ anchor: block.anchor, label })
+  }
 
   const pageTextsResolved = resolveTexts(pageTexts, activeLocale, defaultLocale)
 

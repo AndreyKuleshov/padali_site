@@ -213,7 +213,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .stack { display: grid; gap: 12px; }
 .stack label { display: grid; gap: 4px; }
-.stack label > span { font-size: .84rem; color: var(--soft); }
+.stack label > span { font-size: .92rem; font-weight: 500; color: var(--soft); }
 
 /* ─── Вход ───────────────────────────────────────────────── */
 
@@ -327,7 +327,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   letter-spacing: -0.01em;
 }
 
-.stack label > span { font-size: .92rem; font-weight: 500; }
 
 .locale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .locale-grid--stacked { grid-template-columns: 1fr; }
@@ -414,6 +413,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   justify-content: center;
 }
 /* ─── Картинки в формах ──────────────────────────────────── */
+
+/* Картинки блока — в ряд, пока хватает ширины. 260 — столько
+   нужно двум кнопкам под миниатюрой, чтобы не переноситься.
+   Имя с приставкой block- намеренно: .media-grid уже занят сеткой
+   медиатеки ниже по файлу, и при равной силе побеждала бы она. */
+.block-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+  align-items: start;
+}
+
+.block-media-grid .field { margin-bottom: 0; }
 
 .media-slots { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 

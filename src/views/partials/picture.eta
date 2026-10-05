@@ -9,7 +9,10 @@
   width="<%= media.width %>" height="<%= media.height %>"
   <% ;/* Украшение читать вслух незачем: тот же снимок уже стоит
          рядом со своей подписью, и второй раз он только мешает. */ %>
-  <% if (it.decorative) { %>alt="" aria-hidden="true"<% } else { %>alt="<%= media.alt %>"<% } %>
+  <% ;/* Подпись можно задать снаружи: у загруженного вордмарка её
+         в медиатеке нет, а заголовок страницы без имени — заголовок
+         ни о чём. */ %>
+  <% if (it.decorative) { %>alt="" aria-hidden="true"<% } else { %>alt="<%= it.alt || media.alt %>"<% } %>
   loading="<%= loading %>" decoding="async"
   <% if (className) { %>class="<%= className %>"<% } %>
   <% ;/* Открывается не только мышью: без tabindex и роли альбом

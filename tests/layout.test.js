@@ -98,9 +98,16 @@ test('auto-fit не соседствует с недопустимой доро�
  * Сравниваем по паре «селектор + свойство»: тот же селектор ниже,
  * но про другое свойство, — обычное дело и не спор.
  */
+/** Комментарии выкидываем до разбора: иначе они приклеиваются к
+    следующему селектору и два одинаковых правила перестают быть
+    одинаковыми. */
+function withoutComments (css) {
+  return css.replace(/\/\*[\s\S]*?\*\//g, ' ')
+}
+
 function rules (css) {
   const out = []
-  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+  for (const [, selector, body] of withoutComments(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const name = selector.trim().replace(/\s+/g, ' ')
     if (name.startsWith('@') || name === '') continue
     const props = [...body.matchAll(/(^|;)\s*([a-z-]+)\s*:/g)].map(([, , prop]) => prop)
@@ -145,5 +152,37 @@ test('мобильное правило не перебивается более
 
     assert.deepEqual(clash, [],
       `${file}: ${clash[0]} задан и в узком экране, и безусловно ниже — узкое правило не сработает`)
+  }
+})
+
+/**
+ * Одно и то же правило, написанное дважды, — в лучшем случае
+ * мёртвые строки, в худшем молчаливая подмена: побеждает нижнее.
+ * Так класс `.media-grid` для картинок блока достался сетке
+ * медиатеки, объявленной ниже по файлу, и колонки вышли чужие.
+ *
+ * Сравниваем по ПОЛНОМУ тексту селектора: «.a img, .b img» выше и
+ * «.b img» ниже — обычное переопределение частного после общего, а
+ * не спор.
+ */
+test('одно и то же правило не написано дважды', async () => {
+  for (const file of ['site.css', 'admin.css']) {
+    const css = await readFile(join(PUBLIC, file), 'utf8')
+    // Условные правила спорят по своим границам, их не считаем.
+    const flat = withoutComments(css).replace(/@[\w-]+[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, ' ')
+
+    const seen = new Set()
+    const twice = []
+    for (const match of flat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = match[1].trim().replace(/\s+/g, ' ')
+      if (selector === '' || selector.startsWith('@')) continue
+      for (const [, , prop] of match[2].matchAll(/(^|;)\s*([a-z-]+)\s*:/g)) {
+        const key = selector + ' { ' + prop + ' }'
+        if (seen.has(key)) twice.push(key)
+        else seen.add(key)
+      }
+    }
+
+    assert.deepEqual(twice, [], `${file}: ${twice[0]} написано дважды — работает нижнее`)
   }
 })

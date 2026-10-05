@@ -18,10 +18,14 @@ export default {
       label: { en: 'Concerts', sr: 'Koncerti' },
       input: 'repeater',
       tabs: true,
+      /* Прошедший концерт со страницы уходит сам, оставшиеся идут
+         по возрастанию даты: иначе «Ближайший концерт» врал бы со
+         следующего утра. */
+      upcoming: 'date',
       addLabel: { en: 'Add concert', sr: 'Dodaj koncert' },
       tabLabel: { en: 'Concert', sr: 'Koncert' },
       fields: [
-        { key: 'poster', label: { en: 'Poster', sr: 'Plakat' }, input: 'media' },
+        { key: 'poster', label: { en: 'Poster', sr: 'Plakat' }, input: 'media', size: { w: 1280, h: 1600 } },
         { key: 'date', label: { en: 'Date', sr: 'Datum' }, input: 'date', required: true },
         { key: 'venue', label: { en: 'Venue', sr: 'Mesto' }, input: 'text', translatable: true },
         { key: 'note', label: { en: 'Note', sr: 'Napomena' }, input: 'textarea', rows: 2, translatable: true },
@@ -63,6 +67,15 @@ export default {
             strings: { link: 'concert.tickets', door: 'concert.atDoor' }
           }
         },
+        /* «от» — слово, а не часть числа: набранное в поле цены, оно
+           оставалось английским на сербской странице. Теперь это
+           флажок, а слово берётся из словаря сайта. */
+        {
+          key: 'price_from',
+          label: { en: 'Price is a minimum («from»)', sr: 'Cena je najniža («od»)' },
+          input: 'checkbox',
+          showIf: { field: 'tickets', value: ['link', 'door'] }
+        },
         {
           key: 'price',
           label: { en: 'Price', sr: 'Cena' },
@@ -77,6 +90,10 @@ export default {
       ]
     }
   ],
+
+  /* Блок без будущих концертов не рисуется — значит, и пункта меню
+     на него быть не должно: он прокрутил бы страницу в никуда. */
+  isEmpty: (settings) => !Array.isArray(settings?.events) || settings.events.length === 0,
 
   template: 'blocks/concert'
 }

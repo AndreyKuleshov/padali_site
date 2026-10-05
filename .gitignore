@@ -81,6 +81,7 @@ tmp/
 # Помощники на основе моделей
 .claude
 CLAUDE*
+.impeccable/
 .cursor/
 .cursorrules
 .aider*

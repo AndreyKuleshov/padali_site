@@ -299,18 +299,13 @@ test('поле ссылки привязано к выбору своей стр
   const cells = [...page.matchAll(/data-show-if="([^"]*)" data-show-if-value="([^"]*)"/g)]
     .map(([, name, value]) => `${name}=${value}`)
 
-  assert.deepEqual(cells, [
-    // ссылка — только продаже по ссылке; подпись кнопки и цена — обоим способам
-    'settings[events][r0][tickets]=link',
-    'settings[events][r0][tickets]=link door',
-    'settings[events][r0][tickets]=link door',
-    'settings[events][r1][tickets]=link',
-    'settings[events][r1][tickets]=link door',
-    'settings[events][r1][tickets]=link door',
-    'settings[events][r__INDEX__][tickets]=link',
-    'settings[events][r__INDEX__][tickets]=link door',
-    'settings[events][r__INDEX__][tickets]=link door'
-  ], 'каждая строка смотрит на свой выбор, и заготовка — тоже')
+  /* Ссылка — только продаже по ссылке; подпись кнопки, флажок «от»
+     и цена — обоим способам продажи. При «пока неизвестно» прячутся
+     все четыре. */
+  const perRow = ['link', 'link door', 'link door', 'link door']
+  assert.deepEqual(cells, ['r0', 'r1', 'r__INDEX__'].flatMap(
+    (row) => perRow.map((value) => `settings[events][${row}][tickets]=${value}`)
+  ), 'каждая строка смотрит на свой выбор, и заготовка — тоже')
 
   /* Условие стоит на обёртке самого поля ссылки, а не где-то рядом:
      скрытие должно уносить и подпись. */

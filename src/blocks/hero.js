@@ -14,8 +14,17 @@ export default {
   ],
 
   media: [
-    { key: 'background', label: { en: 'Background photo', sr: 'Pozadinska fotografija' }, required: true },
-    { key: 'logo', label: { en: 'Logo over the photo', sr: 'Logotip preko fotografije' }, fallback: 'siteLogo' }
+    { key: 'background', label: { en: 'Background photo', sr: 'Pozadinska fotografija' }, required: true, size: { w: 2560, h: 1600 } },
+    {
+      key: 'background_narrow',
+      label: { en: 'Photo for phones', sr: 'Fotografija za telefone' },
+      size: { w: 1280, h: 2400 },
+      hint: {
+        en: 'A vertical crop. Without it a wide shot is fitted whole, and the gaps are filled by a blurred copy of it.',
+        sr: 'Uspravan kadar. Bez njega se široka fotografija uklapa cela, a praznine popunjava njena zamućena kopija.'
+      }
+    },
+    { key: 'logo', label: { en: 'Logo over the photo', sr: 'Logotip preko fotografije' }, fallback: 'siteLogo', size: { w: 840 } }
   ],
 
   settings: [

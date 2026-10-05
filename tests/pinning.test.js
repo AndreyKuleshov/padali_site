@@ -99,6 +99,42 @@ test('в админке у закреплённых блоков нет ручк
     'ручка только у незакреплённого блока')
 })
 
+/* Снимок группы широкий, а экран телефона узкий: обрезка по
+   ширине оставляла от четверых двоих. Своего кадра для телефона
+   нет — вписываем широкий целиком и закрываем пустоту его же
+   размытой копией; свой кадр есть — показываем только его, и
+   размытая копия не грузится вовсе. */
+test('на телефоне герой берёт свой кадр, а без него — размытие', async () => {
+  const wide = (await processUpload({
+    buffer: await makeImage({ width: 800, height: 500, seed: 73 }),
+    originalName: 'wide.png', mime: 'image/png'
+  })).media
+
+  const hero = await createBlock({
+    pageId, type: 'hero', settings: { ...defaultSettings('hero'), full_height: true }
+  })
+  await saveBlockMedia(hero, { background: [wide.id] })
+  invalidateCache()
+
+  let body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(body, /class="hero-blur"/, 'без своего кадра — размытая подложка')
+  assert.match(body, /aria-hidden="true"/, 'подложку не озвучивают')
+  assert.doesNotMatch(body, /<source media=/, 'подменять нечем')
+
+  const tall = (await processUpload({
+    buffer: await makeImage({ width: 500, height: 800, seed: 74 }),
+    originalName: 'tall.png', mime: 'image/png'
+  })).media
+  await saveBlockMedia(hero, { background: [wide.id], background_narrow: [tall.id] })
+  invalidateCache()
+
+  body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(body, new RegExp(`<source media="\\(max-width: \\d+px\\)" srcset="[^"]*${tall.hash.slice(0, 16)}`),
+    'свой кадр подставляется на узком экране')
+  assert.match(body, /hero-media--art/, 'и обрезку выбирает группа, а не браузер')
+  assert.doesNotMatch(body, /class="hero-blur"/, 'размытая копия больше не грузится')
+})
+
 test('свой логотип в шапке заменяет брендовый', async () => {
   const { media } = await processUpload({
     buffer: await makeImage({ width: 600, height: 120, seed: 71 }),
@@ -111,8 +147,14 @@ test('свой логотип в шапке заменяет брендовый'
   invalidateCache()
 
   const response = await app.inject({ method: 'GET', url: '/' })
-  assert.match(response.body, /hero-wordmark--own/)
-  assert.doesNotMatch(response.body, /class="hero-wordmark" src="\/brand/)
+  /* Вордмарк — заголовок первого уровня: на странице его не было
+     вовсе, и поиск с читалкой не знали, чья это страница. */
+  assert.match(response.body, /<h1 class="hero-wordmark">/)
+  assert.doesNotMatch(response.body, /<h1 class="hero-wordmark hero-wordmark--built-in"/,
+    'брендовый вордмарк в герое не рисуется')
+  /* У заголовка должно быть имя: у загруженного файла подписи в
+     медиатеке нет, и h1 остался бы пустым для читалки экрана. */
+  assert.match(response.body, /<h1 class="hero-wordmark"><img[\s\S]*?alt="PADALI"/)
 })
 
 test('без своего логотипа берётся брендовый', async () => {
@@ -122,7 +164,8 @@ test('без своего логотипа берётся брендовый', a
   invalidateCache()
 
   const response = await app.inject({ method: 'GET', url: '/' })
-  assert.match(response.body, /class="hero-wordmark" src="\/brand\/padali-wordmark\.webp/)
+  assert.match(response.body,
+    /<h1 class="hero-wordmark hero-wordmark--built-in"><img src="\/brand\/padali-wordmark\.webp/)
 })
 
 test('блок-подвал заменяет статический', async () => {

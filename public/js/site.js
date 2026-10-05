@@ -617,6 +617,63 @@
     })
   }
 
+  /* ── Где я сейчас ─────────────────────────────────────────
+     На одностраничнике в три с половиной тысячи точек посетителю
+     ни разу не сообщали, в каком он разделе: полоса разделов
+     выглядела одинаково от начала до конца. Подсвечиваем текущий —
+     и в полосе, и в боковом меню, они берут пункты из одного
+     списка.
+
+     Считаем по пересечению с полосой у верха окна, а не по
+     «сколько видно»: раздел высотой в пол-экрана иначе никогда не
+     побеждал бы соседа высотой в два экрана. */
+  function initScrollSpy () {
+    var links = document.querySelectorAll('.quicknav a[href^="#"], .side-menu-links a[href^="#"]')
+    if (links.length === 0 || !window.IntersectionObserver) return
+
+    var byAnchor = {}
+    var sections = []
+    for (var i = 0; i < links.length; i += 1) {
+      var anchor = links[i].getAttribute('href').slice(1)
+      if (!byAnchor[anchor]) {
+        var section = document.getElementById(anchor)
+        if (!section) continue
+        byAnchor[anchor] = []
+        sections.push(section)
+      }
+      byAnchor[anchor].push(links[i])
+    }
+
+    var visible = {}
+    var current = ''
+
+    function mark (anchor) {
+      if (anchor === current) return
+      current = anchor
+      for (var key in byAnchor) {
+        if (!Object.prototype.hasOwnProperty.call(byAnchor, key)) continue
+        for (var j = 0; j < byAnchor[key].length; j += 1) {
+          if (key === anchor) byAnchor[key][j].setAttribute('aria-current', 'true')
+          else byAnchor[key][j].removeAttribute('aria-current')
+        }
+      }
+    }
+
+    var observer = new window.IntersectionObserver(function (entries) {
+      for (var k = 0; k < entries.length; k += 1) {
+        visible[entries[k].target.id] = entries[k].isIntersecting
+      }
+      // Из пересекающих полосу берём самый верхний — тот, к которому подошли.
+      var found = ''
+      for (var m = 0; m < sections.length; m += 1) {
+        if (visible[sections[m].id]) { found = sections[m].id; break }
+      }
+      mark(found)
+    }, { rootMargin: '-15% 0px -80% 0px' })
+
+    for (var n = 0; n < sections.length; n += 1) observer.observe(sections[n])
+  }
+
   /* Страница лежит в кэше сервера до первой правки в админке, и
      после Нового года год в подвале мог бы остаться прошлым. */
   function initYear () {
@@ -633,5 +690,6 @@
   initContactPick()
   initOrderDialog()
   initSideMenu()
+  initScrollSpy()
   initYear()
 })()

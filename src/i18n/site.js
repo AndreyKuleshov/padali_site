@@ -46,6 +46,8 @@ const DICTIONARY = {
     'merch.sent': 'Thanks, we will get back to you.',
     'merch.failed': 'Not sent. Please try again.',
 
+    'nav.skipToContent': 'Skip to content',
+    'concert.priceFrom': 'from',
     'concert.tickets': 'Tickets',
     'concert.atDoor': 'Tickets at the door',
 
@@ -85,6 +87,8 @@ const DICTIONARY = {
     'merch.sent': 'Hvala, javićemo se.',
     'merch.failed': 'Nije poslato. Pokušajte ponovo.',
 
+    'nav.skipToContent': 'Pređi na sadržaj',
+    'concert.priceFrom': 'od',
     'concert.tickets': 'Karte',
     'concert.atDoor': 'Karte na ulazu',
 
