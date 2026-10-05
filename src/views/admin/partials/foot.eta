@@ -1,5 +1,10 @@
 </main>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
+<% ;/* Своя копия, а не CDN: скрипт выполняется на каждой странице
+       админки, где есть живая сессия и токен в разметке, и грузился
+       он без проверки целостности. Файл обновляется вместе с
+       зависимостью: npm i sortablejs && cp node_modules/sortablejs/
+       Sortable.min.js public/vendor/sortable.min.js */ %>
+<script src="<%= it.h.asset('/vendor/sortable.min.js') %>" defer></script>
 <script src="<%= it.h.asset('/js/admin.js') %>" defer></script>
 </body>
 </html>

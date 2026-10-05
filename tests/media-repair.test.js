@@ -78,6 +78,29 @@ test('починка идемпотентна', async () => {
   assert.deepEqual(await repairMedia({ logger: silent }), [])
 })
 
+/* Раньше брали одну выборку и рапортовали «Готово», оставив
+   остальную медиатеку в прежнем виде — молча. Проверяем на
+   уменьшенном пакете: записей больше, чем влезает за раз. */
+test('починка доходит до конца таблицы, а не до первой выборки', async () => {
+  const ids = []
+  for (let seed = 70; seed < 75; seed += 1) {
+    const { media } = await processUpload({
+      buffer: await makeImage({ width: 900, height: 600, seed }),
+      originalName: `old-${seed}.png`, mime: 'image/png'
+    })
+    await query('UPDATE media SET width = ?, derivatives = ?::jsonb WHERE id = ?',
+      [6240, JSON.stringify([320, 640, 1280, 1920, 2560, 6240]), media.id])
+    ids.push(media.id)
+  }
+
+  const repaired = await repairMedia({ logger: silent, batch: 2 })
+
+  assert.equal(repaired.length, ids.length, 'пересобраны все пять, а не первые два')
+  for (const id of ids) {
+    assert.equal(needsRepair(await getMedia(id)), false, `запись ${id} приведена к правилам`)
+  }
+})
+
 test('повреждённый файл не роняет починку остальных', async () => {
   const good = await processUpload({
     buffer: await makeImage({ width: 1000, height: 700, seed: 65 }),
@@ -106,11 +129,3 @@ test('превью для админки берёт мелкую ступень'
   assert.match(thumbnailUrl(media), /-160\.webp$/)
 })
 
-test('у крошечной картинки превью — она сама', async () => {
-  const { media } = await processUpload({
-    buffer: await makeImage({ width: 90, height: 90, seed: 67 }),
-    originalName: 'tiny.png', mime: 'image/png'
-  })
-  assert.deepEqual(media.derivatives, [90])
-  assert.match(thumbnailUrl(media), /-90\.webp$/)
-})

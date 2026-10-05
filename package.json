@@ -29,7 +29,8 @@
     "pg": "^8.13.1",
     "qs": "^6.13.1",
     "sanitize-html": "^2.14.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "sortablejs": "^1.15.6"
   },
   "allowScripts": {
     "argon2@0.41.1": true,

@@ -1,8 +1,11 @@
 import { readFile } from 'node:fs/promises'
-import { listMedia, updateMediaFile } from '../repositories/media.js'
+import { listMedia, countMedia, updateMediaFile } from '../repositories/media.js'
 import {
   absolutePath, writeDerivatives, dropReplacedFiles, needsRepair
 } from './media-processor.js'
+
+/** Размер пакета: столько записей `listMedia` отдаёт за раз. */
+const BATCH = 500
 
 /**
  * Приводит уже загруженные изображения к текущим правилам обработки.
@@ -17,33 +20,45 @@ import {
  * scripts/rebuild-derivatives.js, когда поменялись качество или
  * лестница ширин — такое признаком «отстал» не ловится.
  */
-async function repairMedia ({ logger = console, limit = 500, force = false } = {}) {
-  const items = await listMedia({ limit })
+async function repairMedia ({ logger = console, force = false, batch = BATCH } = {}) {
   const repaired = []
+  const total = await countMedia()
 
-  for (const media of items) {
-    if (!force && !needsRepair(media)) continue
+  /* Идём пакетами до конца таблицы. Раньше брали одну выборку в
+     500 записей — а выше неё `listMedia` всё равно не поднимается,
+     — и рапортовали «Готово», оставив остальную медиатеку в
+     прежнем виде. Молча: в выводе было только число пересобранных.
 
-    try {
-      const source = await readFile(absolutePath(media.path))
-      const before = { path: media.path, derivatives: media.derivatives ?? [], bytes: media.bytes }
-      const rebuilt = await writeDerivatives({ buffer: source, hash: media.hash })
+     Пересборка меняет путь записи, но не её место в порядке
+     (`created_at`, `id`), поэтому смещение не съезжает. */
+  for (let offset = 0; offset < total; offset += batch) {
+    const items = await listMedia({ limit: batch, offset })
+    if (items.length === 0) break
 
-      await updateMediaFile(media.id, {
-        path: rebuilt.path,
-        mime: 'image/webp',
-        width: rebuilt.width,
-        height: rebuilt.height,
-        bytes: rebuilt.bytes,
-        hash: media.hash,
-        originalName: media.originalName,
-        derivatives: rebuilt.derivatives
-      })
+    for (const media of items) {
+      if (!force && !needsRepair(media)) continue
 
-      await dropReplacedFiles(before, rebuilt)
-      repaired.push({ name: media.originalName, before, after: rebuilt })
-    } catch (error) {
-      logger.warn?.(`Не удалось пересобрать ${media.originalName}: ${error.message}`)
+      try {
+        const source = await readFile(absolutePath(media.path))
+        const before = { path: media.path, derivatives: media.derivatives ?? [], bytes: media.bytes }
+        const rebuilt = await writeDerivatives({ buffer: source, hash: media.hash })
+
+        await updateMediaFile(media.id, {
+          path: rebuilt.path,
+          mime: 'image/webp',
+          width: rebuilt.width,
+          height: rebuilt.height,
+          bytes: rebuilt.bytes,
+          hash: media.hash,
+          originalName: media.originalName,
+          derivatives: rebuilt.derivatives
+        })
+
+        await dropReplacedFiles(before, rebuilt)
+        repaired.push({ name: media.originalName, before, after: rebuilt })
+      } catch (error) {
+        logger.warn?.(`Не удалось пересобрать ${media.originalName}: ${error.message}`)
+      }
     }
   }
 

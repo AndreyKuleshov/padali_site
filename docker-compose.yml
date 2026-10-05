@@ -31,10 +31,29 @@ services:
       UPLOAD_DIR: /app/data/uploads
       LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-10}
 
+      # Сколько прокси стоит перед приложением. От этого зависит,
+      # чей адрес считается адресом посетителя: ошибёшься в большую
+      # сторону — подделают, в меньшую — все попытки входа сложатся
+      # в одну. За Traefik в Coolify это один.
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+
+      # Ещё администраторы, через запятую: почта:пароль. Заводятся,
+      # пока таблица admin_users пуста.
+      ADMIN_USERS: ${ADMIN_USERS:-}
+
+      # Сколько дней держим обезличенную статистику.
+      ANALYTICS_RETENTION_DAYS: ${ANALYTICS_RETENTION_DAYS:-180}
+
+      # Мастер-копия снимка: предел ширины и качество webp.
+      MASTER_MAX_WIDTH: ${MASTER_MAX_WIDTH:-2560}
+      MASTER_QUALITY: ${MASTER_QUALITY:-90}
+
       # Перевод полей админки. Без ключа кнопки просто не
       # показываются, поэтому переменная необязательная.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-20000}
 
       # Почта для форм на сайте. Без SMTP_HOST сообщения просто
       # копятся в админке, форма при этом работает.
@@ -44,6 +63,8 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_TO: ${MAIL_TO:-padaliband@gmail.com}
+      # Мёртвый SMTP не должен держать посетителя у формы минутами.
+      SMTP_TIMEOUT_MS: ${SMTP_TIMEOUT_MS:-8000}
 
     volumes:
       # Загруженные изображения. В Coolify сюда монтируется persistent
