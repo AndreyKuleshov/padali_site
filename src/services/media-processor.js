@@ -3,7 +3,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
 import sharp from 'sharp'
 import config from '../config.js'
-import { findMediaByHash, insertMedia } from '../repositories/media.js'
+import { findMediaByHash, insertMedia, updateMediaFile } from '../repositories/media.js'
 
 /* Что в файле на самом деле — знает только sharp. Заявленный тип
    приходит из формы, его пишет отправитель, и верить ему нельзя:
@@ -204,6 +204,41 @@ async function dropReplacedFiles (before, after) {
   }
 }
 
+/**
+ * Заменяет файл записи новой мастер-копией и убирает прежние файлы.
+ *
+ * Эти пять шагов — собрать прежнее состояние, пересобрать, обновить
+ * запись, снести лишнее, вернуть «было и стало» — повторялись в трёх
+ * местах: дважды в синхронизации файлов репозитория и раз в починке
+ * медиатеки. Копии уже разошлись: одна не сортировала ширины и не
+ * могла залогировать размер.
+ *
+ * @returns {{before: object, after: object}}
+ */
+async function rebuildMediaFile (media, buffer, { hash = media.hash, originalName } = {}) {
+  const before = {
+    path: media.path,
+    bytes: media.bytes,
+    derivatives: [...(media.derivatives ?? [])].sort((a, b) => a - b)
+  }
+
+  const after = await writeDerivatives({ buffer, hash })
+
+  await updateMediaFile(media.id, {
+    path: after.path,
+    mime: 'image/webp',
+    width: after.width,
+    height: after.height,
+    bytes: after.bytes,
+    hash,
+    originalName: originalName ?? media.originalName,
+    derivatives: after.derivatives
+  })
+
+  await dropReplacedFiles(before, after)
+  return { before, after }
+}
+
 /** Удаляет оригинал и все деривативы с диска. Запись в БД удаляется отдельно. */
 async function deleteFiles (media) {
   await rm(absolutePath(media.path), { force: true })
@@ -259,7 +294,8 @@ function needsRepair (media) {
 }
 
 export {
-  processUpload, writeDerivatives, deleteFiles, dropReplacedFiles, pictureSources, thumbnailUrl,
+  processUpload, writeDerivatives, rebuildMediaFile, deleteFiles, dropReplacedFiles,
+  pictureSources, thumbnailUrl,
   mediaUrl, derivativeRelPath, absolutePath, hashOf,
   MIME_BY_EXTENSION, expectedWidths, needsRepair, UploadError
 }

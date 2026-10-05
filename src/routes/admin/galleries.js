@@ -96,10 +96,7 @@ async function galleryRoutes (app) {
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
-    const raw = request.body?.media
-    const mediaIds = (Array.isArray(raw) ? raw : [raw])
-      .map((value) => Number.parseInt(value, 10))
-      .filter((value) => Number.isInteger(value) && value > 0)
+    const mediaIds = idList(request.body?.media)
 
     if (mediaIds.length === 0) {
       return reply.code(400).send({ ok: false, message: request.t('media.noFiles') })
@@ -117,10 +114,7 @@ async function galleryRoutes (app) {
     const gallery = await getGallery(id)
     if (!gallery) return reply.callNotFound()
 
-    const raw = request.body?.media
-    const mediaIds = (Array.isArray(raw) ? raw : [raw])
-      .map((value) => Number.parseInt(value, 10))
-      .filter((value) => Number.isInteger(value) && value > 0)
+    const mediaIds = idList(request.body?.media)
 
     if (mediaIds.length === 0) {
       return reply.code(400).send({ ok: false, message: request.t('media.noFiles') })

@@ -527,7 +527,6 @@ body.no-scroll { overflow: hidden; }
   transition: color .15s, border-color .15s, opacity .15s;
 }
 
-.gallery-arrow[hidden] { display: none; }
 .gallery-arrow:hover { color: var(--neon); border-color: var(--soft); }
 .gallery-arrow svg { width: 20px; height: 20px; }
 .gallery-arrow--prev { left: -8px; }
@@ -645,7 +644,6 @@ img[data-lightbox] { cursor: zoom-in; }
   cursor: zoom-out;
 }
 
-.lightbox[hidden] { display: none; }
 
 /* Лента кадров: листается пальцем и примагничивается, поэтому
    фотография едет за движением, а не подменяется рывком. */
@@ -701,9 +699,6 @@ img[data-lightbox] { cursor: zoom-in; }
   transition: color .15s, border-color .15s, background .15s;
 }
 
-.lightbox-close[hidden],
-.lightbox-nav[hidden] { display: none; }
-
 .lightbox-close:hover,
 .lightbox-nav:hover { color: var(--neon); border-color: var(--soft); background: rgba(255, 255, 255, 0.12); }
 
@@ -743,7 +738,6 @@ img[data-lightbox] { cursor: zoom-in; }
   letter-spacing: 0.04em;
 }
 
-.lightbox-counter[hidden] { display: none; }
 
 /* ─── Узкий экран ────────────────────────────────────────── */
 
@@ -891,7 +885,14 @@ img[data-lightbox] { cursor: zoom-in; }
 .contact-form textarea { resize: vertical; }
 .contact-form input:focus, .contact-form textarea:focus { border-color: var(--neon); outline: none; }
 
-.contact-form button[type="submit"] { justify-self: start; margin-bottom: 0; }
+/* Только широкий экран: это правило стоит ниже мобильного блока, и
+   при равной силе оно побеждало бы его при любой ширине. Узкая
+   ветка растягивает кнопку, и спорить им теперь нечем. */
+@media (min-width: 641px) {
+  .contact-form button[type="submit"] { justify-self: start; }
+}
+
+.contact-form button[type="submit"] { margin-bottom: 0; }
 
 /* Варианты общей кнопки сайта: мелкая для карточки товара и
    тихая для «закрыть», чтобы она не спорила с отправкой. */

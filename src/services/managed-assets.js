@@ -3,10 +3,10 @@ import { basename, extname, join } from 'node:path'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  findMediaByHash, getMediaByManagedKey, updateMediaFile, countBlockUsesByManagedKey
+  findMediaByHash, getMediaByManagedKey, countBlockUsesByManagedKey
 } from '../repositories/media.js'
 import {
-  hashOf, writeDerivatives, dropReplacedFiles, MIME_BY_EXTENSION, needsRepair
+  hashOf, rebuildMediaFile, MIME_BY_EXTENSION, needsRepair
 } from './media-processor.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -61,23 +61,12 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
          условия про ширину мастера. */
       if (!needsRepair(media)) continue
 
-      const previous = {
-        path: media.path,
-        bytes: media.bytes,
-        derivatives: [...(media.derivatives ?? [])].sort((a, b) => a - b)
-      }
-      const rebuilt = await writeDerivatives({ buffer, hash })
-      await updateMediaFile(media.id, {
-        path: rebuilt.path, mime: 'image/webp',
-        width: rebuilt.width, height: rebuilt.height, bytes: rebuilt.bytes,
-        hash, originalName: media.originalName, derivatives: rebuilt.derivatives
-      })
-      await dropReplacedFiles(previous, rebuilt)
+      const { before, after } = await rebuildMediaFile(media, buffer)
       logger.info?.(
-        `Пересобран ${media.originalName}: [${previous.derivatives}] → [${rebuilt.derivatives}], ` +
-        `${Math.round(previous.bytes / 1024)} КБ → ${Math.round(rebuilt.bytes / 1024)} КБ.`
+        `Пересобран ${media.originalName}: [${before.derivatives}] → [${after.derivatives}], ` +
+        `${Math.round(before.bytes / 1024)} КБ → ${Math.round(after.bytes / 1024)} КБ.`
       )
-      updated.push({ key: source.key, file: source.file, width: rebuilt.width, height: rebuilt.height })
+      updated.push({ key: source.key, file: source.file, width: after.width, height: after.height })
       continue
     }
 
@@ -89,22 +78,8 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
       continue
     }
 
-    const previous = { path: media.path, derivatives: media.derivatives }
-    const written = await writeDerivatives({ buffer, hash })
-
-    await updateMediaFile(media.id, {
-      path: written.path,
-      mime: 'image/webp',
-      width: written.width,
-      height: written.height,
-      bytes: written.bytes,
-      hash,
-      originalName: source.file,
-      derivatives: written.derivatives
-    })
-
-    await dropReplacedFiles(previous, written)
-    updated.push({ key: source.key, file: source.file, width: written.width, height: written.height })
+    const { after } = await rebuildMediaFile(media, buffer, { hash, originalName: source.file })
+    updated.push({ key: source.key, file: source.file, width: after.width, height: after.height })
   }
 
   if (updated.length > 0) {

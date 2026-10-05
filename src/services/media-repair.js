@@ -1,8 +1,6 @@
 import { readFile } from 'node:fs/promises'
-import { listMedia, countMedia, updateMediaFile } from '../repositories/media.js'
-import {
-  absolutePath, writeDerivatives, dropReplacedFiles, needsRepair
-} from './media-processor.js'
+import { listMedia, countMedia } from '../repositories/media.js'
+import { absolutePath, rebuildMediaFile, needsRepair } from './media-processor.js'
 
 /** Размер пакета: столько записей `listMedia` отдаёт за раз. */
 const BATCH = 500
@@ -40,22 +38,8 @@ async function repairMedia ({ logger = console, force = false, batch = BATCH } =
 
       try {
         const source = await readFile(absolutePath(media.path))
-        const before = { path: media.path, derivatives: media.derivatives ?? [], bytes: media.bytes }
-        const rebuilt = await writeDerivatives({ buffer: source, hash: media.hash })
-
-        await updateMediaFile(media.id, {
-          path: rebuilt.path,
-          mime: 'image/webp',
-          width: rebuilt.width,
-          height: rebuilt.height,
-          bytes: rebuilt.bytes,
-          hash: media.hash,
-          originalName: media.originalName,
-          derivatives: rebuilt.derivatives
-        })
-
-        await dropReplacedFiles(before, rebuilt)
-        repaired.push({ name: media.originalName, before, after: rebuilt })
+        const { before, after } = await rebuildMediaFile(media, source)
+        repaired.push({ name: media.originalName, before, after })
       } catch (error) {
         logger.warn?.(`Не удалось пересобрать ${media.originalName}: ${error.message}`)
       }

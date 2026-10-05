@@ -432,19 +432,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .gallery-chip img { height: 120px; }
 
-.chip-title, .chip-title, .chip-price {
-  width: 100%;
-  border: 0 !important;
-  border-top: 1px solid var(--line) !important;
-  border-radius: 0 !important;
-  padding: 5px 7px !important;
-  font-size: .82rem;
-  background: var(--panel) !important;
-  /* Перетаскивают плитку за снимок; в поле нужно попадать курсором. */
-  cursor: text;
-}
 
-.chip-title { font-weight: 500; }
 
 .media-remove {
   position: absolute;
@@ -473,9 +461,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 /* ─── Медиатека ──────────────────────────────────────────── */
 
-.upload-form { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+/* Цена на плитке альбома. Класс .chip-title из этого правила ушёл
+   вместе с переездом названия в .album-card-title. */
+.chip-price {
+  width: 100%;
+  border: 0 !important;
+  border-top: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  padding: 5px 7px !important;
+  font-size: .82rem;
+  background: var(--panel) !important;
+  /* Перетаскивают плитку за снимок; в поле нужно попадать курсором. */
+  cursor: text;
+}
 
-.upload-form { align-items: flex-start; }
+.upload-form { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 24px; }
 
 .upload-drop {
   flex: 1;
@@ -509,7 +509,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   border-top: 1px solid var(--line);
 }
 
-.upload-previews[hidden] { display: none; }
 
 .upload-preview {
   position: relative;
@@ -532,7 +531,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   color: var(--danger);
 }
 
-.upload-note[hidden] { display: none; }
 
 .upload-preview-name {
   display: block;
@@ -612,12 +610,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-top: 1px solid var(--line);
   gap: 12px;
   padding: 14px 18px;
 }
 
 .media-picker header { border-bottom: 1px solid var(--line); }
-.media-picker footer { border-top: 1px solid var(--line); }
 .media-picker footer .hint { margin: 0; }
 
 .media-picker-grid {
@@ -1003,59 +1001,48 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 .album-panel .hint { margin: 6px 0 0; }
 
-/* Карточка товара в полосе: снимок и под ним две строки. */
+/* Карточка товара: снимок, название на двух языках и цена — в
+   строку. Один блок на всё: раньше класс объявляли трижды подряд,
+   и первые два читались как действующие, хотя нижний перебивал в
+   них почти каждую строку. */
 .album-card {
-  width: 120px;
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 140px;
+  gap: 12px;
+  align-items: start;
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
   background: var(--panel-2);
 }
 
-.album-card img {
-  width: 100%;
-  height: 100px;
-  border: 0;
-  border-radius: 0;
-}
+.album-card img { width: 96px; height: 96px; border: 0; border-radius: 4px; }
 
 .album-card input {
   width: 100%;
-  border: 0 !important;
-  border-top: 1px solid var(--line) !important;
-  border-radius: 0 !important;
-  padding: 5px 7px !important;
   font-size: .82rem;
-  background: var(--panel) !important;
-}
-
-.album-card-title { font-weight: 500; }
-
-/* Крестик на карточке — поверх снимка, как в остальных плитках. */
-.album-card { position: relative; }
-.album-card .media-remove { top: 4px; right: 4px; }
-
-/* Без полей товара карточка — это просто снимок с крестиком. */
-.album-card--bare { width: 72px; }
-.album-card--bare img { height: 72px; }
-.album-panel .media-actions { margin-top: 8px; }
-
-/* Карточка товара с переводимым названием: шире, в строку. */
-.album-card { width: 100%; display: grid; grid-template-columns: 96px minmax(0, 1fr) 140px; gap: 12px; align-items: start; padding: 10px; }
-.album-card img { width: 96px; height: 96px; border-radius: 4px; }
-.album-card--bare { width: 72px; display: block; padding: 0; }
-.album-card--bare img { width: 100%; height: 72px; border-radius: 0; }
-
-.album-card-title-box { display: grid; gap: 6px; min-width: 0; }
-.album-card-locale { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 6px; }
-.album-card-locale > span { font-family: var(--mono); font-size: .68rem; color: var(--soft); }
-
-.album-card input {
   border: 1px solid var(--line) !important;
   border-radius: 4px !important;
   padding: 7px 9px !important;
   background: var(--bg) !important;
 }
+
+.album-card-title { font-weight: 500; }
+
+/* Крестик на карточке — поверх снимка, как в остальных плитках. */
+.album-card .media-remove { top: 4px; right: 4px; }
+
+/* Без полей товара карточка — это просто снимок с крестиком. */
+.album-card--bare { width: 72px; display: block; padding: 0; }
+.album-card--bare img { width: 100%; height: 72px; border-radius: 0; }
+.album-panel .media-actions { margin-top: 8px; }
+
+.album-card-title-box { display: grid; gap: 6px; min-width: 0; }
+.album-card-locale { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 6px; }
+.album-card-locale > span { font-family: var(--mono); font-size: .68rem; color: var(--soft); }
 
 .album-card .translate-row { margin-bottom: 2px; }
 
@@ -1064,6 +1051,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 @media (max-width: 720px) {
   .album-card { grid-template-columns: 64px minmax(0, 1fr); }
+  /* Снимок по колонке: 96 точек в 64-точечной полосе налезали на
+     поле названия. */
+  .album-card img { width: 64px; height: 64px; }
   .album-card .album-card-price { grid-column: 2; }
 }
 

@@ -1206,12 +1206,12 @@
 
       panel.albumRefresh = refresh
 
-      /** Привязать уже загруженные картинки к альбому. */
-      panel.albumAdd = function (mediaIds) {
+      /** Изменить состав альбома: адрес решает, добавить или убрать. */
+      function albumPost (suffix, mediaIds) {
         var id = panel.albumId()
         if (!id || mediaIds.length === 0) return Promise.resolve()
 
-        return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items.json', {
+        return fetch('/admin/galleries/' + encodeURIComponent(id) + suffix, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ _csrf: csrfToken(panel), media: mediaIds })
@@ -1224,25 +1224,12 @@
           })
           .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
       }
+
+      /** Привязать уже загруженные картинки к альбому. */
+      panel.albumAdd = function (mediaIds) { return albumPost('/items.json', mediaIds) }
 
       /** Убрать снимки из альбома; файлы остаются в медиатеке. */
-      panel.albumDrop = function (mediaIds) {
-        var id = panel.albumId()
-        if (!id || mediaIds.length === 0) return Promise.resolve()
-
-        return fetch('/admin/galleries/' + encodeURIComponent(id) + '/items/remove.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ _csrf: csrfToken(panel), media: mediaIds })
-        })
-          .then(function (response) { return response.json() })
-          .then(function (result) {
-            if (!result.ok) throw new Error('reject')
-            say('')
-            refresh()
-          })
-          .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
-      }
+      panel.albumDrop = function (mediaIds) { return albumPost('/items/remove.json', mediaIds) }
 
       strip.addEventListener('click', function (event) {
         var drop = event.target.closest('[data-album-remove]')
