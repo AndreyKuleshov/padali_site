@@ -18,7 +18,13 @@
      здесь, где известен и повторитель, и номер строки. Значений
      может быть несколько — подпись кнопки нужна и продаже по
      ссылке, и продаже на входе. */
-  var showIfName = function (sub) { return it.prefix + '[' + index + '][' + sub.showIf.field + ']' }
+  ;/* Номер строки в имени поля нечисловой: «events[r2][date]».
+     Числовой qs считает индексом массива и смыкает разрывы — после
+     удаления среднего концерта оставшиеся строки приезжали как 0 и
+     1, а их тексты и афиши остались под прежними номерами и
+     терялись при сохранении. */
+  var fieldName = function (key) { return it.prefix + '[r' + index + '][' + key + ']' }
+  var showIfName = function (sub) { return fieldName(sub.showIf.field) }
   var showIfValue = function (sub) {
     var value = sub.showIf.value
     return Array.isArray(value) ? value.join(' ') : value
@@ -47,7 +53,7 @@
         values: function (locale, key) { return (it.texts[locale] || {})[key] || '' },
         showIfName: sub.showIf ? showIfName(sub) : '',
         showIfValue: sub.showIf ? showIfValue(sub) : '',
-        placeholderFrom: sub.placeholderFrom ? it.prefix + '[' + index + '][' + sub.placeholderFrom.field + ']' : '',
+        placeholderFrom: sub.placeholderFrom ? fieldName(sub.placeholderFrom.field) : '',
         placeholders: sub.placeholderFrom ? function (locale) { return placeholders(sub, locale) } : null
       })) %>
 
@@ -65,8 +71,8 @@
     <span class="cell-label"><%= it.localize(sub.label) %></span>
     <%~ include('/admin/fields/input', Object.assign({}, it, {
           field: sub,
-          name: it.prefix + '[' + index + '][' + sub.key + ']',
-          currencyName: it.prefix + '[' + index + '][' + sub.key + '_currency]',
+          name: fieldName(sub.key),
+          currencyName: fieldName(sub.key + '_currency'),
           value: row ? row[sub.key] : sub.default
         })) %>
   </div>

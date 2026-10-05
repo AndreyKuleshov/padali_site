@@ -123,10 +123,16 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
     }
 
     const raw = body.settings?.[field.key]
-    // qs отдаёт объект с числовыми ключами, когда индексы разрежены.
-    const rawRows = Array.isArray(raw)
-      ? raw.map((row, index) => [index, row])
-      : Object.entries(raw ?? {}).map(([index, row]) => [Number(index), row])
+    /* Номер строки приходит нечисловым («events[r2][date]») именно
+       затем, чтобы разрыв дожил до сюда: числовой ключ qs считает
+       индексом массива и смыкает дыры, и после удаления среднего
+       концерта оставшиеся приезжали как 0 и 1 — а их тексты и афиши
+       остались под номерами 0 и 2 и терялись. Числовые ключи всё
+       равно разбираем: так приходят формы, отрисованные до этой
+       правки. */
+    const rawRows = Object.entries(raw ?? {})
+      .map(([key, row]) => [Number(String(key).replace(/^r/, '')), row])
+      .filter(([index]) => Number.isInteger(index) && index >= 0)
 
     const rows = []
     for (const [originalIndex, rawRow] of rawRows.sort((a, b) => a[0] - b[0])) {

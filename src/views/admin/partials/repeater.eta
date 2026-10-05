@@ -6,8 +6,13 @@
   var rows = Array.isArray(it.rows) ? it.rows : []
 %>
 <div class="field repeater<%= field.tabs ? ' repeater--tabs' : '' %>" data-repeater="<%= field.key %>"
+     <% ;/* Строка-закладка — это целый концерт: афиша, тексты на
+            двух языках, цена. Терять такое по промаху незачем,
+            поэтому у закладок удаление спрашивает. Обычная строка
+            повторителя — одна ссылка, её спрашивать не о чем. */ %>
      <% if (field.tabs) { %>data-tab-label="<%= it.localize(field.tabLabel || field.label) %>"
-     data-add-label="<%= it.addLabel %>"<% } %>>
+     data-add-label="<%= it.addLabel %>"
+     data-remove-confirm="<%= it.t('blockForm.confirmRemoveRow') %>"<% } %>>
   <% if (field.label && !field.tabs) { %><label><%= it.localize(field.label) %></label><% } %>
 
   <% ;/* Строк бывает много и каждая длинная — концерт это афиша,

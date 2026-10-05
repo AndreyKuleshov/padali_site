@@ -6,7 +6,7 @@ import {
 import { createPage } from '../src/repositories/pages.js'
 import { listBlocks, getBlockTexts, getBlock, saveBlockTexts } from '../src/repositories/blocks.js'
 import { createGallery } from '../src/repositories/galleries.js'
-import { setSetting } from '../src/repositories/settings.js'
+import { setSetting, getSetting } from '../src/repositories/settings.js'
 
 let app
 let session
@@ -44,9 +44,36 @@ test('повторитель соцсетей показывает строку 
   })
 
   assert.equal(response.statusCode, 200)
-  assert.match(response.body, /name="social\[0\]\[url\]" value="https:\/\/t\.me\/padali"/)
+  assert.match(response.body, /name="social\[r0\]\[url\]" value="https:\/\/t\.me\/padali"/)
   assert.match(response.body, /<option value="telegram" selected>/)
-  assert.match(response.body, /name="social\[__INDEX__\]\[url\]"/, 'шаблон новой строки на месте')
+  assert.match(response.body, /name="social\[r__INDEX__\]\[url\]"/, 'шаблон новой строки на месте')
+})
+
+/* Соцсети разбирает не тот код, что строки блока, но имена полей
+   у них общие. Переименование номера строки (с «[0]» на «[r0]»)
+   легко забыть сверить со вторым читателем — отсюда эта проверка
+   с удалённой средней строкой, какую и шлёт браузер. */
+test('соцсети сохраняются и после удаления средней строки', async () => {
+  const response = await app.inject({
+    method: 'POST', url: '/admin/settings',
+    cookies: session.cookies,
+    ...form({
+      _csrf: session.csrf,
+      'social[r0][icon]': 'telegram',
+      'social[r0][label]': 'Telegram',
+      'social[r0][url]': 'https://t.me/padali',
+      'social[r2][icon]': 'youtube',
+      'social[r2][label]': 'YouTube',
+      'social[r2][url]': 'https://youtube.com/@padali'
+    })
+  })
+
+  assert.equal(response.statusCode, 302)
+
+  const saved = await getSetting('social')
+  assert.deepEqual(saved.map((row) => row.icon), ['telegram', 'youtube'],
+    'обе строки на месте и в прежнем порядке')
+  assert.equal(saved[1].url, 'https://youtube.com/@padali')
 })
 
 /* Печать экранирует кавычки: пустой data-album-id приезжал как
@@ -139,14 +166,14 @@ test('у каждого концерта свои тексты и своя аф�
       _csrf: session.csrf,
       is_visible: 'on',
       'text[en][heading]': 'Concerts',
-      'settings[events][0][date]': '2026-10-16',
-      'settings[events][0][tickets]': 'link',
+      'settings[events][r0][date]': '2026-10-16',
+      'settings[events][r0][tickets]': 'link',
       'text[en][events.0.venue]': 'Novi Sad',
       'text[sr][events.0.venue]': 'Novi Sad',
       'text[en][events.0.note]': 'С гостями',
       'media[events.0.poster][]': String(first.id),
-      'settings[events][1][date]': '2026-11-20',
-      'settings[events][1][tickets]': 'door',
+      'settings[events][r1][date]': '2026-11-20',
+      'settings[events][r1][tickets]': 'door',
       'text[en][events.1.venue]': 'Beograd',
       'media[events.1.poster][]': String(second.id)
     })
@@ -177,10 +204,68 @@ test('у каждого концерта свои тексты и своя аф�
   assert.match(page, /name="text\[en\]\[events\.0\.venue\]"/)
   assert.match(page, /name="text\[sr\]\[events\.0\.venue\]"/)
   assert.match(page, /name="media\[events\.1\.poster\]\[\]"/)
-  assert.match(page, /name="settings\[events\]\[1\]\[price_currency\]"/,
+  assert.match(page, /name="settings\[events\]\[r1\]\[price_currency\]"/,
     'у каждого концерта своя валюта, а не одна на всех')
-  assert.doesNotMatch(page, /name="settings\[events\]\[0\]\[venue\]"/,
+  assert.doesNotMatch(page, /name="settings\[events\]\[r0\]\[venue\]"/,
     'переводимое подполе не уходит в settings')
+})
+
+/* Удалённый концерт оставляет в форме дыру: браузер шлёт строки
+   0 и 2. Сервер обязан сомкнуть ряд и увести за строкой её тексты
+   и афишу — иначе после удаления первого концерта у второго
+   оказалась бы чужая афиша или вовсе никакой. */
+test('удаление концерта из середины смыкает ряд', async () => {
+  const { processUpload } = await import('../src/services/media-processor.js')
+  const { makeImage } = await import('./helpers.js')
+  const { getBlockMedia } = await import('../src/repositories/blocks.js')
+
+  const first = (await processUpload({
+    buffer: await makeImage({ width: 300, height: 400, seed: 97 }),
+    originalName: 'ostalsya.png', mime: 'image/png'
+  })).media
+  const third = (await processUpload({
+    buffer: await makeImage({ width: 300, height: 400, seed: 98 }),
+    originalName: 'byl-tretim.png', mime: 'image/png'
+  })).media
+
+  await app.inject({
+    method: 'POST', url: '/admin/blocks',
+    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'concert' })
+  })
+  const [block] = await listBlocks(pageId)
+
+  await app.inject({
+    method: 'POST', url: `/admin/blocks/${block.id}`,
+    cookies: session.cookies,
+    ...form({
+      _csrf: session.csrf,
+      is_visible: 'on',
+      // средний концерт удалён в браузере — строки 1 в форме нет
+      'settings[events][r0][date]': '2026-10-16',
+      'settings[events][r0][tickets]': 'link',
+      'text[en][events.0.venue]': 'Остался первым',
+      'media[events.0.poster][]': String(first.id),
+      'settings[events][r2][date]': '2026-12-05',
+      'settings[events][r2][tickets]': 'door',
+      'text[en][events.2.venue]': 'Был третьим',
+      'text[sr][events.2.venue]': 'Bio treći',
+      'media[events.2.poster][]': String(third.id)
+    })
+  })
+
+  const saved = await getBlock(block.id)
+  assert.equal(saved.settings.events.length, 2, 'дыра сомкнулась')
+  assert.equal(saved.settings.events[1].tickets, 'door', 'бывший третий встал вторым')
+
+  const texts = await getBlockTexts(block.id)
+  assert.equal(texts.en['events.1.venue'], 'Был третьим', 'текст уехал за своей строкой')
+  assert.equal(texts.sr['events.1.venue'], 'Bio treći')
+  assert.equal(texts.en['events.2.venue'], undefined, 'по старому номеру текста не осталось')
+
+  const media = await getBlockMedia(block.id)
+  assert.deepEqual(media['events.0.poster'], [first.id], 'у первого своя афиша')
+  assert.deepEqual(media['events.1.poster'], [third.id], 'у второго — та, что была у третьего')
+  assert.equal(media['events.2.poster'], undefined, 'по старому номеру афиши не осталось')
 })
 
 /* Ссылка на билеты нужна не всегда: при продаже на входе поле
@@ -200,10 +285,10 @@ test('поле ссылки привязано к выбору своей стр
     ...form({
       _csrf: session.csrf,
       is_visible: 'on',
-      'settings[events][0][date]': '2026-10-16',
-      'settings[events][0][tickets]': 'link',
-      'settings[events][1][date]': '2026-11-20',
-      'settings[events][1][tickets]': 'door'
+      'settings[events][r0][date]': '2026-10-16',
+      'settings[events][r0][tickets]': 'link',
+      'settings[events][r1][date]': '2026-11-20',
+      'settings[events][r1][tickets]': 'door'
     })
   })
 
@@ -216,20 +301,20 @@ test('поле ссылки привязано к выбору своей стр
 
   assert.deepEqual(cells, [
     // ссылка — только продаже по ссылке; подпись кнопки и цена — обоим способам
-    'settings[events][0][tickets]=link',
-    'settings[events][0][tickets]=link door',
-    'settings[events][0][tickets]=link door',
-    'settings[events][1][tickets]=link',
-    'settings[events][1][tickets]=link door',
-    'settings[events][1][tickets]=link door',
-    'settings[events][__INDEX__][tickets]=link',
-    'settings[events][__INDEX__][tickets]=link door',
-    'settings[events][__INDEX__][tickets]=link door'
+    'settings[events][r0][tickets]=link',
+    'settings[events][r0][tickets]=link door',
+    'settings[events][r0][tickets]=link door',
+    'settings[events][r1][tickets]=link',
+    'settings[events][r1][tickets]=link door',
+    'settings[events][r1][tickets]=link door',
+    'settings[events][r__INDEX__][tickets]=link',
+    'settings[events][r__INDEX__][tickets]=link door',
+    'settings[events][r__INDEX__][tickets]=link door'
   ], 'каждая строка смотрит на свой выбор, и заготовка — тоже')
 
   /* Условие стоит на обёртке самого поля ссылки, а не где-то рядом:
      скрытие должно уносить и подпись. */
-  assert.match(page, /<div class="repeater-cell" data-show-if="settings\[events\]\[1\]\[tickets\]"[^>]*>\s*<span class="cell-label">Ticket link<\/span>/)
+  assert.match(page, /<div class="repeater-cell" data-show-if="settings\[events\]\[r1\]\[tickets\]"[^>]*>\s*<span class="cell-label">Ticket link<\/span>/)
 
   /* Кавычки в атрибутах — настоящие, а не &quot;: печать куска
      разметки через <%= уже ломала data-album-id. */
@@ -252,7 +337,7 @@ test('поле ссылки привязано к выбору своей стр
   }, 'сербскому — сербские')
   assert.notDeepEqual(hints[0], hints[1])
 
-  assert.match(page, /data-placeholder-from="settings\[events\]\[1\]\[tickets\]"/,
+  assert.match(page, /data-placeholder-from="settings\[events\]\[r1\]\[tickets\]"/,
     'подсказка смотрит на выбор своей строки')
 })
 

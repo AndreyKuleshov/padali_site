@@ -290,14 +290,25 @@
   }
 
   /* ── Повторители ────────────────────────────────────────── */
+  /* Как строка названа в полосе закладок — так её и называем в
+     вопросе: «Concert 2», а не «строка 2». */
+  function rowLabel (repeater, row) {
+    var all = Array.prototype.slice.call(repeater.querySelectorAll('.repeater-row'))
+    return ((repeater.getAttribute('data-tab-label') || '') + ' ' + (all.indexOf(row) + 1)).trim()
+  }
+
   function initRepeaters () {
     document.querySelectorAll('[data-repeater]').forEach(function (repeater) {
       var rows = repeater.querySelector('.repeater-rows')
       var template = repeater.querySelector('[data-repeater-template]')
       var addButton = repeater.querySelector('.repeater-add')
-      if (!rows || !template || !addButton) return
+      if (!rows || !template) return
 
-      addButton.addEventListener('click', function () {
+      /* Кнопки «добавить» у повторителя с закладками нет: там
+         добавляет плюсик в полосе закладок. Раньше её отсутствие
+         обрывало весь разбор на этом месте — вместе с добавлением
+         терялось и удаление, и крестик у концерта ничего не делал. */
+      if (addButton) addButton.addEventListener('click', function () {
         // Индексы могут быть разрежены после удалений — берём следующий за максимальным.
         var used = Array.prototype.map.call(
           rows.querySelectorAll('.repeater-row'),
@@ -314,7 +325,15 @@
         var button = event.target.closest('.repeater-remove')
         if (!button) return
         var row = button.closest('.repeater-row')
-        if (row) row.remove()
+        if (!row) return
+
+        /* Спрашиваем, только если повторитель попросил: строка с
+           закладкой — это целый концерт с афишей и текстами на
+           двух языках, а обычная строка — одна ссылка. */
+        var ask = repeater.getAttribute('data-remove-confirm')
+        if (ask && !window.confirm(fill(ask, { label: rowLabel(repeater, row) }))) return
+
+        row.remove()
       })
     })
   }
