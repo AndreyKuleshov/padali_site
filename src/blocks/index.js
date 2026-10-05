@@ -175,6 +175,5 @@ function textKeysFor (descriptor, settings = {}) {
 }
 
 export {
-  getBlockType, listBlockTypes, hasBlockType, pinOf, pinRank, sortBlocks,
-  defaultSettings, textKeysFor, validateDescriptor, nextAnchor, INPUT_TYPES
+  getBlockType, listBlockTypes, hasBlockType, pinOf, sortBlocks, defaultSettings, textKeysFor, nextAnchor
 }

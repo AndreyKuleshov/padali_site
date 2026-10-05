@@ -165,6 +165,5 @@ function afterWrite () {
 }
 
 export {
-  renderAdmin, afterWrite, resolveAdminLocale, languageUrl,
-  NAV, LANG_COOKIE, numericId, pageSlice, itemKey, stripItemKeys, idList
+  renderAdmin, afterWrite, resolveAdminLocale, languageUrl, numericId, pageSlice, itemKey, stripItemKeys, idList
 }

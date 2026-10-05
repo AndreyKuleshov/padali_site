@@ -20,22 +20,18 @@ export async function currentSiteLogo () {
 /** То же самое, когда настройки уже прочитаны вызывающим кодом. */
 export async function logoFromSettings (settings) {
   const id = Number(settings?.logo_id)
-  if (!Number.isInteger(id) || id <= 0) return builtIn()
+  if (!Number.isInteger(id) || id <= 0) return builtInLogo()
 
   const media = await getMedia(id)
   // Файл могли удалить из медиатеки — сайт в этом случае тоже
   // откатывается на встроенный логотип.
-  if (!media) return builtIn()
+  if (!media) return builtInLogo()
 
   return { thumb: thumbnailUrl(media), builtIn: false, name: media.originalName }
 }
 
 /** Встроенный логотип сам по себе — нужен для отката в интерфейсе. */
 export function builtInLogo () {
-  return builtIn()
-}
-
-function builtIn () {
   // Через assetUrl: встроенный файл отдаётся с длинным кэшем,
   // и без отпечатка админка показывала бы прежнюю картинку.
   return { thumb: assetUrl(BUILT_IN_LOGO), builtIn: true, name: null }

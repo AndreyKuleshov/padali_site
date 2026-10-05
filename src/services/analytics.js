@@ -57,11 +57,6 @@ function normalizePath (value) {
 }
 
 /**
- * Число внутри диапазона или NaN. Для координат клика именно так:
- * подогнать значение к границе значило бы нарисовать на карте точку
- * там, где никто не нажимал.
- */
-/**
  * Якорь клика: число — ссылка на блок, слово — служебная область
  * вне блоков. Всё прочее отбрасывается.
  */
@@ -72,6 +67,11 @@ function splitAnchor (value) {
   return { blockId: null, anchor: null }
 }
 
+/**
+ * Число внутри диапазона или NaN. Для координат клика именно так:
+ * подогнать значение к границе значило бы нарисовать на карте точку
+ * там, где никто не нажимал.
+ */
 function inRange (value, min, max) {
   const number = Number(value)
   return Number.isFinite(number) && number >= min && number <= max ? number : NaN
@@ -103,7 +103,4 @@ function parseClicks (raw, path) {
   ))
 }
 
-export {
-  visitorHash, isBot, referrerHost, normalizePath, parseClicks,
-  splitAnchor, clamp, inRange
-}
+export { visitorHash, isBot, referrerHost, normalizePath, parseClicks, clamp }

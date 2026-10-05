@@ -200,4 +200,4 @@ async function composePage ({ slug = HOME_SLUG, locale }) {
   }
 }
 
-export { composePage, pick, resolveTexts }
+export { composePage, pick }

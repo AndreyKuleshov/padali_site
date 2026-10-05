@@ -111,4 +111,4 @@ async function analyticsRoutes (app) {
 }
 
 export default analyticsRoutes
-export { intensityStep, parsePeriod, isoDay }
+export { intensityStep, isoDay }

@@ -44,7 +44,7 @@ function assetUrl (publicPath) {
   }
 }
 
-export { assetUrl, fingerprint, PUBLIC_DIR }
+export { assetUrl, PUBLIC_DIR }
 
 /**
  * Логотип, вшитый в репозиторий: шапка, hero и подвал откатываются

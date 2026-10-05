@@ -93,9 +93,9 @@ async function start () {
     await waitForDatabase({ logger: app.log })
     await migrate({ logger: app.log })
     await ensureSeeded({ logger: app.log })
+    await ensureFooterBlock({ logger: app.log })
     // Файлы репозитория доезжают до сайта так же, как код: заменили
     // картинку в seed-assets, выкатили — медиатека обновилась.
-    await ensureFooterBlock({ logger: app.log })
     await syncManagedAssets({ logger: app.log })
     // Снимки, загруженные по старым правилам, приводим к текущим.
     await repairMedia({ logger: app.log })

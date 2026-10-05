@@ -1,6 +1,5 @@
 import { readdir, readFile, rm } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
-import { dirname } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   findMediaByHash, getMediaByManagedKey, countBlockUsesByManagedKey
@@ -95,4 +94,4 @@ async function syncManagedAssets ({ logger = console, dir = MANAGED_DIR } = {}) 
   return updated
 }
 
-export { syncManagedAssets, listManagedSources, MANAGED_DIR }
+export { syncManagedAssets, MANAGED_DIR }

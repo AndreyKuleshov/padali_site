@@ -102,7 +102,7 @@ async function galleryRoutes (app) {
       return reply.code(400).send({ ok: false, message: request.t('media.noFiles') })
     }
 
-    const added = await appendGalleryItems(id, mediaIds);
+    const added = await appendGalleryItems(id, mediaIds)
     afterWrite()
     return reply.send({ ok: true, added })
   })

@@ -219,4 +219,4 @@ async function publicRoutes (app) {
 }
 
 export default publicRoutes
-export { renderLocalisedPage }
+export {  }

@@ -124,10 +124,7 @@
         )
         fetch('/admin/blocks/reorder', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': list.getAttribute('data-csrf')
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order: order, _csrf: csrfToken(list) })
         }).then(function (response) {
           if (!response.ok) window.alert(list.getAttribute('data-error'))

@@ -108,7 +108,9 @@ function ensureCsrfToken (request, reply) {
 
 function verifyCsrf (request) {
   const fromCookie = request.cookies?.[CSRF_COOKIE]
-  const fromBody = request.body?._csrf ?? request.headers['x-csrf-token']
+  // Токен приходит телом: заголовок слали из одного места и вместе
+  // с полем, которое выигрывало, — ветка под него не исполнялась.
+  const fromBody = request.body?._csrf
   if (typeof fromCookie !== 'string' || typeof fromBody !== 'string') return false
   if (fromCookie.length !== fromBody.length) return false
   return timingSafeEqual(Buffer.from(fromCookie), Buffer.from(fromBody))
@@ -136,9 +138,5 @@ function takeFlash (request, reply) {
 }
 
 export {
-  SESSION_COOKIE, CSRF_COOKIE,
-  hashPassword, verifyPassword, bootstrapAdminUser,
-  login, logout, currentUser,
-  ensureCsrfToken, verifyCsrf,
-  setFlash, takeFlash
+  hashPassword, bootstrapAdminUser, login, logout, currentUser, ensureCsrfToken, verifyCsrf, setFlash, takeFlash
 }

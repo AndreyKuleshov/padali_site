@@ -99,7 +99,7 @@ async function migrate ({ logger = console } = {}) {
   }
 }
 
-export { migrate, waitForDatabase, safeSchema }
+export { migrate, waitForDatabase }
 
 // Запуск из CLI: npm run migrate
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

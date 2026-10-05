@@ -190,4 +190,4 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
   }
 }
 
-export { parseBlockForm, isEmptySubmission, asString, asBoolean, asNumber, asDate, asUrl, coerceScalar }
+export { parseBlockForm, asString, asDate, asUrl }

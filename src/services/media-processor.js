@@ -294,8 +294,5 @@ function needsRepair (media) {
 }
 
 export {
-  processUpload, writeDerivatives, rebuildMediaFile, deleteFiles, dropReplacedFiles,
-  pictureSources, thumbnailUrl,
-  mediaUrl, derivativeRelPath, absolutePath, hashOf,
-  MIME_BY_EXTENSION, expectedWidths, needsRepair, UploadError
+  processUpload, writeDerivatives, rebuildMediaFile, deleteFiles, dropReplacedFiles, pictureSources, thumbnailUrl, derivativeRelPath, absolutePath, hashOf, MIME_BY_EXTENSION, needsRepair, UploadError
 }

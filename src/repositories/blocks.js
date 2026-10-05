@@ -1,5 +1,8 @@
 import { db, placeholders, groupTexts, replaceTexts, jsonValue } from './helpers.js'
 
+/** Колонки блока: перечислены один раз, чтобы запросы не разошлись. */
+const COLUMNS = 'id, page_id, type, position, is_visible, anchor, settings'
+
 function hydrate (row) {
   return {
     id: row.id,
@@ -14,7 +17,7 @@ function hydrate (row) {
 
 async function listBlocks (pageId, { visibleOnly = false } = {}, conn) {
   const rows = await db(conn).all(
-    'SELECT id, page_id, type, position, is_visible, anchor, settings FROM blocks ' +
+    `SELECT ${COLUMNS} FROM blocks ` +
     `WHERE page_id = ?${visibleOnly ? ' AND is_visible' : ''} ` +
     'ORDER BY position, id',
     [pageId]
@@ -24,7 +27,7 @@ async function listBlocks (pageId, { visibleOnly = false } = {}, conn) {
 
 async function getBlock (id, conn) {
   const row = await db(conn).one(
-    'SELECT id, page_id, type, position, is_visible, anchor, settings FROM blocks WHERE id = ?',
+    `SELECT ${COLUMNS} FROM blocks WHERE id = ?`,
     [id]
   )
   return row ? hydrate(row) : null
