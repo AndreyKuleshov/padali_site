@@ -6,7 +6,9 @@ import {
 import { listLocales } from '../../repositories/locales.js'
 import { processUpload, deleteFiles, thumbnailUrl, UploadError } from '../../services/media-processor.js'
 import { verifyCsrf, setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite, numericId, pageSlice } from './helpers.js'
+import {
+  renderAdmin, afterWrite, numericId, pageSlice, mediaCard, textsFromBody
+} from './helpers.js'
 
 const PER_PAGE = 60
 
@@ -122,7 +124,7 @@ async function mediaRoutes (app) {
     afterWrite()
     return reply.send({
       items: uploaded.map(({ media }) => ({
-        id: media.id, name: media.originalName, thumb: thumbnailUrl(media)
+        ...mediaCard(media)
       })),
       errors
     })
@@ -136,13 +138,7 @@ async function mediaRoutes (app) {
     if (!media) return reply.callNotFound()
 
     const locales = (await listLocales()).map((row) => row.code)
-    const textsByLocale = {}
-    for (const locale of locales) {
-      textsByLocale[locale] = {
-        alt: String(request.body?.text?.[locale]?.alt ?? '').trim(),
-        caption: String(request.body?.text?.[locale]?.caption ?? '').trim()
-      }
-    }
+    const textsByLocale = textsFromBody(request.body, locales, ['alt', 'caption'])
 
     await saveMediaTexts(id, textsByLocale)
     afterWrite()

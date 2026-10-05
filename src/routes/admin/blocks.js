@@ -12,9 +12,8 @@ import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listGalleries, setGalleryItemFields } from '../../repositories/galleries.js'
 import { listLocales } from '../../repositories/locales.js'
 import { parseBlockForm } from '../../services/block-form.js'
-import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite, numericId, stripItemKeys, idList } from './helpers.js'
+import { renderAdmin, afterWrite, numericId, stripItemKeys, idList, mediaCard } from './helpers.js'
 import { localize } from '../../i18n/admin.js'
 import { currentSiteLogo } from '../../services/site-logo.js'
 import { lookupVideo } from '../../services/youtube.js'
@@ -132,7 +131,7 @@ async function blockRoutes (app) {
       previews[field] = ids
         .map((mediaId) => mediaById.get(mediaId))
         .filter(Boolean)
-        .map((media) => ({ id: media.id, thumb: thumbnailUrl(media), name: media.originalName }))
+        .map((media) => mediaCard(media))
     }
 
     // Поле логотипа показывает действующую картинку, даже когда
@@ -279,13 +278,7 @@ async function blockRoutes (app) {
   /* ─── Медиатека для модального выбора картинки ──────────── */
   app.get('/media.json', async () => {
     const media = await listMediaForPicker()
-    return media.map((item) => ({
-      id: item.id,
-      thumb: thumbnailUrl(item),
-      name: item.originalName,
-      width: item.width,
-      height: item.height
-    }))
+    return media.map((item) => mediaCard(item, { width: item.width, height: item.height }))
   })
 }
 

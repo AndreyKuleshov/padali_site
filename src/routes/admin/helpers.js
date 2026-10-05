@@ -4,6 +4,8 @@ import { listLocales, getDefaultLocale } from '../../repositories/locales.js'
 import { invalidateCache } from '../../services/cache.js'
 import { adminTranslator, translatedLocales, localize } from '../../i18n/admin.js'
 import { isConfigured } from '../../services/translate.js'
+import { thumbnailUrl } from '../../services/media-processor.js'
+import { asString } from '../../services/block-form.js'
 
 const LANG_COOKIE = 'padali_admin_lang'
 
@@ -159,11 +161,46 @@ function stripItemKeys (fields) {
   return out
 }
 
+/**
+ * Карточка файла для окон выбора: ровно то, что читает браузер.
+ *
+ * Собиралась в шести местах, и копии уже разошлись — где-то с
+ * размерами, где-то с ценой. Добавочные поля передавайте вторым
+ * доводом, общая часть должна оставаться общей.
+ */
+function mediaCard (media, extra) {
+  return {
+    id: media.id,
+    thumb: thumbnailUrl(media),
+    name: media.originalName,
+    ...extra
+  }
+}
+
+/**
+ * Переводимые поля из формы: `{ en: {title, description}, … }`.
+ *
+ * Три маршрута собирали это вручную, причём двумя разными
+ * идиомами — `String(...).trim()` и `asString`, — а вторая умеет
+ * то, чего не умеет первая: форма может прислать массив.
+ */
+function textsFromBody (body, locales, keys) {
+  const byLocale = {}
+  for (const locale of locales) {
+    byLocale[locale] = Object.fromEntries(
+      keys.map((key) => [key, asString(body?.text?.[locale]?.[key])])
+    )
+  }
+  return byLocale
+}
+
 /** Любая запись делает кэш публичных страниц недействительным. */
 function afterWrite () {
   invalidateCache()
 }
 
 export {
-  renderAdmin, afterWrite, resolveAdminLocale, languageUrl, numericId, pageSlice, itemKey, stripItemKeys, idList
+  renderAdmin, afterWrite, resolveAdminLocale, languageUrl,
+  numericId, pageSlice, itemKey, stripItemKeys, idList,
+  mediaCard, textsFromBody
 }

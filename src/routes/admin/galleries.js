@@ -7,9 +7,10 @@ import {
 } from '../../repositories/galleries.js'
 import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
-import { thumbnailUrl } from '../../services/media-processor.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite, numericId, itemKey, idList } from './helpers.js'
+import {
+  renderAdmin, afterWrite, numericId, itemKey, idList, mediaCard, textsFromBody
+} from './helpers.js'
 
 function slugify (value) {
   return String(value ?? '')
@@ -72,10 +73,7 @@ async function galleryRoutes (app) {
     const items = itemIds
       .map((mediaId) => mediaById.get(mediaId))
       .filter(Boolean)
-      .map((media) => ({
-        id: media.id,
-        thumb: thumbnailUrl(media),
-        name: media.originalName,
+      .map((media) => mediaCard(media, {
         title: fields.get(media.id)?.title ?? {},
         price: fields.get(media.id)?.price ?? ''
       }))
@@ -158,12 +156,7 @@ async function galleryRoutes (app) {
     const items = itemIds
       .map((mediaId) => mediaById.get(mediaId))
       .filter(Boolean)
-      .map((media) => ({
-        id: media.id,
-        thumb: thumbnailUrl(media),
-        name: media.originalName,
-        price: fields.get(media.id)?.price ?? ''
-      }))
+      .map((media) => mediaCard(media, { price: fields.get(media.id)?.price ?? '' }))
 
     // Где этот альбом уже вставлен — чтобы было видно последствия правок.
     const usedIn = await blocksUsingGallery(id)
@@ -175,7 +168,7 @@ async function galleryRoutes (app) {
       locales,
       usedIn,
       library: library.map((media) => ({
-        id: media.id, thumb: thumbnailUrl(media), name: media.originalName
+        ...mediaCard(media)
       }))
     })
   })
@@ -187,13 +180,7 @@ async function galleryRoutes (app) {
     if (!gallery) return reply.callNotFound()
 
     const locales = (await listLocales()).map((row) => row.code)
-    const textsByLocale = {}
-    for (const locale of locales) {
-      textsByLocale[locale] = {
-        title: String(request.body?.text?.[locale]?.title ?? '').trim(),
-        description: String(request.body?.text?.[locale]?.description ?? '').trim()
-      }
-    }
+    const textsByLocale = textsFromBody(request.body, locales, ['title', 'description'])
 
     const mediaIds = idList(request.body?.items)
 

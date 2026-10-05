@@ -3,10 +3,9 @@ import { getPageBySlug, getPageTexts, savePageTexts, HOME_SLUG } from '../../rep
 import { listLocales } from '../../repositories/locales.js'
 import { listMediaForPicker } from '../../repositories/media.js'
 import { ICON_NAMES } from '../../services/icons.js'
-import { thumbnailUrl } from '../../services/media-processor.js'
 import { asUrl, asString } from '../../services/block-form.js'
 import { setFlash } from '../../services/auth.js'
-import { renderAdmin, afterWrite } from './helpers.js'
+import { renderAdmin, afterWrite, mediaCard, textsFromBody } from './helpers.js'
 import { logoFromSettings, builtInLogo } from '../../services/site-logo.js'
 
 async function settingsRoutes (app) {
@@ -43,9 +42,7 @@ async function settingsRoutes (app) {
       pageTexts,
       locales,
       iconNames: ICON_NAMES,
-      library: library.map((media) => ({
-        id: media.id, thumb: thumbnailUrl(media), name: media.originalName
-      }))
+      library: library.map((media) => mediaCard(media))
     })
   })
 
@@ -81,13 +78,7 @@ async function settingsRoutes (app) {
 
     const page = await getPageBySlug(HOME_SLUG)
     if (page) {
-      const textsByLocale = {}
-      for (const locale of locales) {
-        textsByLocale[locale] = {
-          title: asString(request.body?.text?.[locale]?.title),
-          description: asString(request.body?.text?.[locale]?.description)
-        }
-      }
+      const textsByLocale = textsFromBody(request.body, locales, ['title', 'description'])
       await savePageTexts(page.id, textsByLocale)
     }
 
