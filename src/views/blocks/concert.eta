@@ -18,9 +18,20 @@
     <div class="<%= many ? 'gallery-track ' : '' %>concert-list"<% if (many) { %> data-gallery-scroll<% } %>>
       <% events.forEach(function (event) { %>
       <% var atDoor = event.tickets === 'door' %>
+      <% ;/* Пока ничего не известно — ни кнопки, ни цены, даже
+             если в полях что-то осталось от прежнего способа
+             продажи: показать старую ссылку хуже, чем не
+             показать ничего. */ %>
+      <% var noTickets = event.tickets === 'unknown' %>
       <div class="concert-grid<%= event.poster ? '' : ' concert-grid--no-poster' %>">
         <% if (event.poster) { %>
+        <% ;/* Афиши приходят и стоячие, и лежачие, и ряд из них
+               выглядел рваным. Кадр вписывается целиком, а пустоту
+               вокруг заполняет он же, размытый: так не срезается
+               край афиши и не скачет высота. Оба снимка — один и
+               тот же файл, браузер качает его один раз. */ %>
         <div class="poster-box">
+          <%~ include('/partials/picture', { media: event.poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', className: 'poster-blur', decorative: true }) %>
           <%~ include('/partials/picture', { media: event.poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', lightbox: true }) %>
         </div>
         <% } %>
@@ -31,7 +42,7 @@
           <% if (event.venue) { %><p class="concert-venue"><%= event.venue %></p><% } %>
           <% if (event.note) { %><p class="note"><%= event.note %></p><% } %>
 
-          <% if (atDoor || event.ticket_url || event.price) { %>
+          <% if (!noTickets && (atDoor || event.ticket_url || event.price)) { %>
           <div class="concert-tickets">
             <% if (atDoor) { %>
             <p class="concert-door"><%~ it.h.icon('ticket') %><%= event.ticket_label || it.s('concert.atDoor') %></p>

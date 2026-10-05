@@ -7,7 +7,9 @@
   src="<%= media.src %>"
   <% if (media.srcset) { %>srcset="<%= media.srcset %>" sizes="<%= sizes %>"<% } %>
   width="<%= media.width %>" height="<%= media.height %>"
-  alt="<%= media.alt %>"
+  <% ;/* Украшение читать вслух незачем: тот же снимок уже стоит
+         рядом со своей подписью, и второй раз он только мешает. */ %>
+  <% if (it.decorative) { %>alt="" aria-hidden="true"<% } else { %>alt="<%= media.alt %>"<% } %>
   loading="<%= loading %>" decoding="async"
   <% if (className) { %>class="<%= className %>"<% } %>
   <% ;/* Открывается не только мышью: без tabindex и роли альбом

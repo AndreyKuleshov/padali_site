@@ -14,6 +14,25 @@
   var index = it.index
   var row = it.row
   var textKey = function (sub) { return field.key + '.' + index + '.' + sub.key }
+  ;/* Условие показа ссылается на поле той же строки: имя считаем
+     здесь, где известен и повторитель, и номер строки. Значений
+     может быть несколько — подпись кнопки нужна и продаже по
+     ссылке, и продаже на входе. */
+  var showIfName = function (sub) { return it.prefix + '[' + index + '][' + sub.showIf.field + ']' }
+  var showIfValue = function (sub) {
+    var value = sub.showIf.value
+    return Array.isArray(value) ? value.join(' ') : value
+  }
+  ;/* Подсказка в пустом поле — то, чем сайт заполнит его сам.
+     Зависит и от языка строки, и от выбранного способа продажи,
+     поэтому отдаём словарь целиком, а выбирает из него скрипт. */
+  var placeholders = function (sub, locale) {
+    var out = {}
+    Object.keys(sub.placeholderFrom.strings).forEach(function (option) {
+      out[option] = it.siteText(locale)(sub.placeholderFrom.strings[option])
+    })
+    return out
+  }
 %>
 <div class="repeater-row" data-index="<%= index %>">
   <% field.fields.forEach(function (sub) { %>
@@ -25,18 +44,24 @@
         key: textKey(sub),
         field: sub,
         hint: sub.hint ? it.localize(sub.hint) : '',
-        values: function (locale, key) { return (it.texts[locale] || {})[key] || '' }
+        values: function (locale, key) { return (it.texts[locale] || {})[key] || '' },
+        showIfName: sub.showIf ? showIfName(sub) : '',
+        showIfValue: sub.showIf ? showIfValue(sub) : '',
+        placeholderFrom: sub.placeholderFrom ? it.prefix + '[' + index + '][' + sub.placeholderFrom.field + ']' : '',
+        placeholders: sub.placeholderFrom ? function (locale) { return placeholders(sub, locale) } : null
       })) %>
 
   <% } else if (sub.input === 'media') { %>
   <%~ include('/admin/partials/media-field', Object.assign({}, it, {
         field: sub,
         name: textKey(sub),
-        chosen: (it.previews || {})[textKey(sub)] || []
+        chosen: (it.previews || {})[textKey(sub)] || [],
+        showIfName: sub.showIf ? showIfName(sub) : '',
+        showIfValue: sub.showIf ? showIfValue(sub) : ''
       })) %>
 
   <% } else { %>
-  <div class="repeater-cell">
+  <div class="repeater-cell"<% if (sub.showIf) { %> data-show-if="<%= showIfName(sub) %>" data-show-if-value="<%= showIfValue(sub) %>"<% } %>>
     <span class="cell-label"><%= it.localize(sub.label) %></span>
     <%~ include('/admin/fields/input', Object.assign({}, it, {
           field: sub,

@@ -127,6 +127,66 @@
     document.querySelectorAll('[data-price-input]').forEach(syncPriceRequired)
   }
 
+  /* ── Поля, зависящие от выбора ────────────────────────────
+     Ссылка на билеты не нужна тому, кто продаёт их на входе.
+     Какое поле от какого зависит, скрипт узнаёт из разметки:
+     data-show-if хранит имя управляющего поля, data-show-if-value —
+     значение, при котором показывать.
+
+     Прячем атрибутом hidden, а не disabled: выключенное поле
+     браузер не отправляет, и набранное пропало бы при сохранении.
+     Обязательность на время снимаем — невидимое обязательное поле
+     не даёт отправить форму и ничего при этом не объясняет. */
+  function syncConditional (box) {
+    var form = box.closest('form')
+    if (!form) return
+    var control = form.querySelector('[name="' + box.getAttribute('data-show-if') + '"]')
+    if (!control) {
+      console.error('padali: поле-условие не найдено:', box.getAttribute('data-show-if'))
+      return
+    }
+
+    var allowed = box.getAttribute('data-show-if-value').split(' ')
+    var show = allowed.indexOf(control.value) !== -1
+    box.querySelectorAll('input, select, textarea').forEach(function (el) {
+      if (!el.dataset.wasRequired) el.dataset.wasRequired = el.required ? 'yes' : 'no'
+      el.required = show && el.dataset.wasRequired === 'yes'
+    })
+    box.hidden = !show
+  }
+
+  /* Подсказка в пустом поле показывает, чем сайт заполнит его сам.
+     Что именно подставится, зависит от выбора в соседнем поле, —
+     поэтому подсказка меняется вместе с ним. */
+  function syncPlaceholder (input) {
+    var form = input.closest('form')
+    if (!form) return
+    var control = form.querySelector('[name="' + input.getAttribute('data-placeholder-from') + '"]')
+    if (!control) {
+      console.error('padali: поле-условие подсказки не найдено:', input.getAttribute('data-placeholder-from'))
+      return
+    }
+    try {
+      input.placeholder = JSON.parse(input.getAttribute('data-placeholders'))[control.value] || ''
+    } catch (error) {
+      console.error('padali: не разобрать подсказки поля', error)
+    }
+  }
+
+  function initConditionalFields () {
+    var sweep = function () {
+      document.querySelectorAll('[data-show-if]').forEach(syncConditional)
+      document.querySelectorAll('[data-placeholder-from]').forEach(syncPlaceholder)
+    }
+
+    document.addEventListener('change', sweep)
+    // Строки повторителя добавляются позже, поэтому не разовый обход.
+    if (window.MutationObserver) {
+      new window.MutationObserver(sweep).observe(document.body, { childList: true, subtree: true })
+    }
+    sweep()
+  }
+
   /* ── Enter в форме ───────────────────────────────────────
      В длинной форме Enter из любого поля отправлял всю форму —
      недописанный блок сохранялся на полуслове. Теперь Enter в
@@ -1418,4 +1478,5 @@
   initHeatmap()
   initPriceFields()
   initRepeaterTabs()
+  initConditionalFields()
 })()

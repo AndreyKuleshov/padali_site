@@ -388,12 +388,41 @@ body.no-scroll { overflow: hidden; }
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 28px;
-  align-items: start;
 }
 
 .concert-grid--no-poster { grid-template-columns: 1fr; }
 
-.poster-box img { width: 100%; display: block; border: 1px solid var(--line); }
+/* Высота афиши — по карточке рядом. Снимки приходят и стоячие, и
+   лежачие: по своей высоте они рвали ряд, а обрезка по ширине
+   срезала афише края, где обычно и написано, кто играет. Кадр
+   вписывается целиком, остаток занимает он же, размытый.
+   Селектор у размытого слоя из двух классов намеренно: `.poster-box
+   img` весомее одиночного класса и перебил бы его, где бы тот ни
+   стоял. */
+.poster-box {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+}
+
+.poster-box img {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.poster-box .poster-blur {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  filter: blur(18px) brightness(0.5);
+  /* Размытие высветляет края; увеличение прячет их за кадром. */
+  transform: scale(1.15);
+}
 
 .concert-card {
   background: var(--bg-2);
@@ -790,7 +819,12 @@ img[data-lightbox] { cursor: zoom-in; }
      как человек увидел содержимое. */
   .quicknav { display: none; }
   .menu-toggle { display: inline-flex; }
+  /* В одну колонку афиша во всю ширину и своей высоты: тянуть её
+     не по чему, да и размывать нечего — пустоты по бокам нет. */
   .concert-grid { grid-template-columns: 1fr; }
+  .poster-box { min-height: 0; }
+  .poster-box img { height: auto; }
+  .poster-box .poster-blur { display: none; }
 
   .hero-caption { padding-bottom: 18px; }
   .hero-wordmark { width: min(46vw, 190px); margin-bottom: 8px; }

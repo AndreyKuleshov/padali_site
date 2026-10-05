@@ -3,6 +3,7 @@ import { ensureCsrfToken, takeFlash } from '../../services/auth.js'
 import { listLocales, getDefaultLocale } from '../../repositories/locales.js'
 import { invalidateCache } from '../../services/cache.js'
 import { adminTranslator, translatedLocales, localize } from '../../i18n/admin.js'
+import { siteTranslator } from '../../i18n/site.js'
 import { isConfigured } from '../../services/translate.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
 import { asString } from '../../services/block-form.js'
@@ -69,6 +70,10 @@ async function renderAdmin (request, reply, template, data = {}) {
       active: code === request.adminLocale
     })),
     localize: (value) => localize(value, request.adminLocale ?? 'en'),
+    /* Строки сайта нужны админке, чтобы показать подсказкой то,
+       что подставится само. Берём их из того же словаря, что и
+       сайт: вторая копия подписи разъехалась бы с первой. */
+    siteText: (locale) => siteTranslator(locale),
     csrf: ensureCsrfToken(request, reply),
     // Без ключа к модели кнопок перевода просто нет: пустая
     // кнопка, которая всегда отвечает ошибкой, хуже её отсутствия.

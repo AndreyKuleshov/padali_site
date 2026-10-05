@@ -29,23 +29,45 @@ export default {
           key: 'tickets',
           label: { en: 'Tickets', sr: 'Karte' },
           input: 'select',
-          options: ['link', 'door'],
+          options: ['link', 'door', 'unknown'],
           optionLabels: {
             link: { en: 'Sold by a link', sr: 'Prodaju se preko linka' },
-            door: { en: 'At the door', sr: 'Na ulazu' }
+            door: { en: 'At the door', sr: 'Na ulazu' },
+            unknown: { en: 'Not known yet', sr: 'Još nije poznato' }
           },
-          default: 'link',
-          hint: {
-            en: 'With «at the door» the link below is not shown, even if filled.',
-            sr: 'Uz «na ulazu» link ispod se ne prikazuje, čak i ako je popunjen.'
+          default: 'link'
+        },
+        /* Что к чему относится: адрес нужен только продаже по
+           ссылке, подпись кнопки и цена — обоим способам продажи,
+           а пока ничего не известно, не нужно ничего. Лишние поля
+           прячутся, набранное в них остаётся: вернув способ
+           продажи, редактор получит свои значения обратно. */
+        {
+          key: 'ticket_url',
+          label: { en: 'Ticket link', sr: 'Link za karte' },
+          input: 'url',
+          showIf: { field: 'tickets', value: 'link' }
+        },
+        {
+          key: 'ticket_label',
+          label: { en: 'Ticket button label', sr: 'Tekst dugmeta za karte' },
+          input: 'text',
+          translatable: true,
+          showIf: { field: 'tickets', value: ['link', 'door'] },
+          /* Пустую подпись сайт заполняет сам, и подсказка в поле
+             показывает чем — на каждом языке и для выбранного
+             способа продажи. Редактор вписал «BUY» ровно потому,
+             что поле выглядело просто пустым. */
+          placeholderFrom: {
+            field: 'tickets',
+            strings: { link: 'concert.tickets', door: 'concert.atDoor' }
           }
         },
-        { key: 'ticket_url', label: { en: 'Ticket link', sr: 'Link za karte' }, input: 'url' },
-        { key: 'ticket_label', label: { en: 'Ticket button label', sr: 'Tekst dugmeta za karte' }, input: 'text', translatable: true },
         {
           key: 'price',
           label: { en: 'Price', sr: 'Cena' },
           input: 'price',
+          showIf: { field: 'tickets', value: ['link', 'door'] },
           hint: {
             en: 'Amount and currency. Leave the amount empty to hide the price.',
             sr: 'Iznos i valuta. Ostavite iznos prazan da se cena sakrije.'

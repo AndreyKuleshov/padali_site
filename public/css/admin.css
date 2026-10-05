@@ -316,8 +316,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   letter-spacing: -0.01em;
 }
 
-/* Названия подполей в повторителе и в медиатеке — из того же ряда. */
-.cell-label, .stack label > span { font-size: .92rem; font-weight: 500; }
+/* Названия подполей в повторителе — такие же, как у полей формы.
+   Мельче и бледнее они читались как пояснение, а не как название:
+   цену в строке концерта редактор просто не заметил и не заполнил. */
+.cell-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.stack label > span { font-size: .92rem; font-weight: 500; }
 
 .locale-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .locale-grid--stacked { grid-template-columns: 1fr; }
@@ -403,8 +413,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   font-size: inherit;
   justify-content: center;
 }
-.cell-label { color: var(--soft); }
-
 /* ─── Картинки в формах ──────────────────────────────────── */
 
 .media-slots { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }

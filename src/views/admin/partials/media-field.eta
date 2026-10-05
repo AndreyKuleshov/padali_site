@@ -8,7 +8,7 @@
   var chosen = it.chosen || []
 %>
 <div class="field media-field<%= field.fallback === 'siteLogo' ? ' media-field--logo' : '' %>"
-     data-media-field="<%= name %>" data-multiple="<%= field.multiple ? '1' : '' %>">
+     data-media-field="<%= name %>" data-multiple="<%= field.multiple ? '1' : '' %>"<% if (it.showIfName) { %> data-show-if="<%= it.showIfName %>" data-show-if-value="<%= it.showIfValue %>"<% } %>>
   <label><%= it.localize(field.label) %><%= field.required ? ' *' : '' %></label>
   <div class="media-slots">
     <% chosen.forEach(function (item) { %>

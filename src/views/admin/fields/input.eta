@@ -64,5 +64,11 @@
   <input type="url" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>" placeholder="https://">
 
 <% } else { %>
-  <input type="text" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>">
+  <% ;/* Подсказка в пустом поле — то, чем сайт заполнит его сам.
+         Словарь отдаём целиком: какой из вариантов показать,
+         решает выбор в соседнем поле, а он меняется без
+         перезагрузки. */ %>
+  <input type="text" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>"
+    <% if (it.placeholderFrom && it.placeholders) { %>data-placeholder-from="<%= it.placeholderFrom %>"
+    data-placeholders="<%= JSON.stringify(it.placeholders) %>"<% } %>>
 <% } %>

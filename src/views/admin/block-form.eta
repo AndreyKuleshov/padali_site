@@ -5,6 +5,19 @@
   function textValue (locale, key) {
     return (it.texts[locale] && it.texts[locale][key]) || ''
   }
+  ;/* Условие показа поля ссылается на настройку блока: тексты
+     заполняются по языкам и управлять показом не могут. */
+  function showIf (field) {
+    if (!field.showIf) return {}
+    var value = field.showIf.value
+    return {
+      showIfName: 'settings[' + field.showIf.field + ']',
+      showIfValue: Array.isArray(value) ? value.join(' ') : value
+    }
+  }
+  function showIfValue (field) {
+    return Array.isArray(field.showIf.value) ? field.showIf.value.join(' ') : field.showIf.value
+  }
 %>
 <%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.localize(descriptor.title) })) %>
 
@@ -36,7 +49,7 @@
           field: field,
           values: textValue,
           hint: field.hint ? it.localize(field.hint) : ''
-        })) %>
+        }, showIf(field))) %>
     <% }) %>
 
     <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
@@ -60,7 +73,7 @@
           field: field,
           values: textValue,
           hint: field.hint ? it.localize(field.hint) : ''
-        })) %>
+        }, showIf(field))) %>
     <% }) %>
   </section>
   <% } %>
@@ -79,7 +92,7 @@
           name: field.key,
           chosen: chosen,
           inherited: inherited
-        })) %>
+        }, showIf(field))) %>
     <% }) %>
   </section>
   <% } %>
@@ -98,7 +111,7 @@
         })) %>
 
     <% } else if (field.input === 'checkbox') { %>
-    <div class="field">
+    <div class="field"<% if (field.showIf) { %> data-show-if="settings[<%= field.showIf.field %>]" data-show-if-value="<%= showIfValue(field) %>"<% } %>>
       <%~ include('/admin/fields/input', Object.assign({}, it, {
             field: field,
             name: 'settings[' + field.key + ']',
@@ -108,7 +121,7 @@
     </div>
 
     <% } else { %>
-    <div class="field">
+    <div class="field"<% if (field.showIf) { %> data-show-if="settings[<%= field.showIf.field %>]" data-show-if-value="<%= showIfValue(field) %>"<% } %>>
       <label for="settings_<%= field.key %>_"><%= it.localize(field.label) %><%= field.required ? ' *' : '' %></label>
       <%~ include('/admin/fields/input', Object.assign({}, it, {
             field: field,

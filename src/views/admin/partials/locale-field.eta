@@ -7,7 +7,7 @@
        Ожидает: label, prefix (text[<язык>] или свой), key, field
        (описание поля для /admin/fields/input), values(locale, key),
        hint. */ %>
-<div class="field" data-translate>
+<div class="field" data-translate<% if (it.showIfName) { %> data-show-if="<%= it.showIfName %>" data-show-if-value="<%= it.showIfValue %>"<% } %>>
   <label><%= it.label %></label>
   <%~ include('/admin/partials/translate-row', it) %>
   <div class="locale-grid<%= (it.field.input === 'richtext' || it.field.input === 'textarea') ? ' locale-grid--stacked' : '' %>">
@@ -17,7 +17,9 @@
       <%~ include('/admin/fields/input', Object.assign({}, it, {
             field: it.field,
             name: it.prefix + '[' + locale.code + '][' + it.key + ']',
-            value: it.values(locale.code, it.key)
+            value: it.values(locale.code, it.key),
+            placeholders: it.placeholders ? it.placeholders(locale.code) : null,
+            placeholderFrom: it.placeholderFrom || ''
           })) %>
     </div>
     <% }) %>

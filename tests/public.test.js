@@ -204,6 +204,35 @@ test('билеты: по ссылке — кнопка, на входе — ст
   assert.match(cards[2], /600 RSD/)
 })
 
+/* «Пока неизвестно» — это отсутствие сведений, а не пустые поля:
+   ссылка и цена могли остаться от прежнего способа продажи, и
+   показать их значило бы продать билет, которого нет. */
+test('пока неизвестно — ни кнопки, ни цены', async () => {
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'tba',
+    settings: {
+      ...defaultSettings('concert'),
+      events: [{
+        date: '2026-10-16',
+        tickets: 'unknown',
+        ticket_url: 'https://tickets.example/старое',
+        price: '800 RSD'
+      }]
+    }
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const section = /<section class="section wrap" id="tba">[\s\S]*?<\/section>/.exec(body)[0]
+
+  assert.match(section, /16\.10\.2026/, 'дата остаётся')
+  assert.doesNotMatch(section, /tickets\.example/, 'прежняя ссылка не всплывает')
+  assert.doesNotMatch(section, /800 RSD/, 'прежняя цена не всплывает')
+  assert.doesNotMatch(section, /concert-tickets/, 'строки билетов нет вовсе')
+})
+
 /* Два концерта листаются, как фотографии; один — просто карточка,
    без ленты и стрелок: листать нечего. */
 test('несколько концертов листаются, один — нет', async () => {

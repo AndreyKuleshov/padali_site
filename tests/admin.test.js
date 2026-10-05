@@ -183,6 +183,79 @@ test('у каждого концерта свои тексты и своя аф�
     'переводимое подполе не уходит в settings')
 })
 
+/* Ссылка на билеты нужна не всегда: при продаже на входе поле
+   прячется. Условие объявлено в дескрипторе, а разметка обязана
+   назвать управляющее поле ИМЕННО ЭТОЙ строки — иначе вторая
+   вкладка слушала бы выбор первой. */
+test('поле ссылки привязано к выбору своей строки', async () => {
+  await app.inject({
+    method: 'POST', url: '/admin/blocks',
+    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'concert' })
+  })
+  const [block] = await listBlocks(pageId)
+
+  await app.inject({
+    method: 'POST', url: `/admin/blocks/${block.id}`,
+    cookies: session.cookies,
+    ...form({
+      _csrf: session.csrf,
+      is_visible: 'on',
+      'settings[events][0][date]': '2026-10-16',
+      'settings[events][0][tickets]': 'link',
+      'settings[events][1][date]': '2026-11-20',
+      'settings[events][1][tickets]': 'door'
+    })
+  })
+
+  const page = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${block.id}`, cookies: session.cookies
+  })).body
+
+  const cells = [...page.matchAll(/data-show-if="([^"]*)" data-show-if-value="([^"]*)"/g)]
+    .map(([, name, value]) => `${name}=${value}`)
+
+  assert.deepEqual(cells, [
+    // ссылка — только продаже по ссылке; подпись кнопки и цена — обоим способам
+    'settings[events][0][tickets]=link',
+    'settings[events][0][tickets]=link door',
+    'settings[events][0][tickets]=link door',
+    'settings[events][1][tickets]=link',
+    'settings[events][1][tickets]=link door',
+    'settings[events][1][tickets]=link door',
+    'settings[events][__INDEX__][tickets]=link',
+    'settings[events][__INDEX__][tickets]=link door',
+    'settings[events][__INDEX__][tickets]=link door'
+  ], 'каждая строка смотрит на свой выбор, и заготовка — тоже')
+
+  /* Условие стоит на обёртке самого поля ссылки, а не где-то рядом:
+     скрытие должно уносить и подпись. */
+  assert.match(page, /<div class="repeater-cell" data-show-if="settings\[events\]\[1\]\[tickets\]"[^>]*>\s*<span class="cell-label">Ticket link<\/span>/)
+
+  /* Кавычки в атрибутах — настоящие, а не &quot;: печать куска
+     разметки через <%= уже ломала data-album-id. */
+  assert.doesNotMatch(page, /data-show-if=&quot;/)
+
+  /* Подпись кнопки сайт подставляет сам, и подсказка показывает
+     чем — на каждом языке и для каждого способа продажи. Строки
+     берутся из словаря сайта: вторая копия разъехалась бы с ним. */
+  const { siteTranslator } = await import('../src/i18n/site.js')
+  const hints = [...page.matchAll(/data-placeholders="([^"]*)"/g)]
+    .map(([, json]) => JSON.parse(json.replaceAll('&quot;', '"')))
+
+  assert.deepEqual(hints[0], {
+    link: siteTranslator('en')('concert.tickets'),
+    door: siteTranslator('en')('concert.atDoor')
+  }, 'английскому полю — английские подписи')
+  assert.deepEqual(hints[1], {
+    link: siteTranslator('sr')('concert.tickets'),
+    door: siteTranslator('sr')('concert.atDoor')
+  }, 'сербскому — сербские')
+  assert.notDeepEqual(hints[0], hints[1])
+
+  assert.match(page, /data-placeholder-from="settings\[events\]\[1\]\[tickets\]"/,
+    'подсказка смотрит на выбор своей строки')
+})
+
 test('неверный пароль не пускает', async () => {
   const page = await app.inject({ method: 'GET', url: '/admin/login' })
   const csrf = /name="_csrf" value="([a-f0-9]{64})"/.exec(page.body)[1]
