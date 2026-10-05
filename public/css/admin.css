@@ -1057,8 +1057,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   position: relative;
   width: 100%;
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 140px;
-  gap: 12px;
+  /* Две колонки, а не три: цена своей строкой под названием.
+     В третьей колонке на 140 точек поле суммы схлопывалось в
+     полоску, и от цены оставалась одна валюта. */
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px 12px;
   align-items: start;
   padding: 10px;
   border: 1px solid var(--line);
@@ -1067,7 +1070,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   background: var(--panel-2);
 }
 
-.album-card img { width: 96px; height: 96px; border: 0; border-radius: 4px; }
+/* Снимок держит обе строки: название сверху, цена под ним. */
+.album-card img { width: 96px; height: 96px; border: 0; border-radius: 4px; grid-row: span 2; }
+
+.album-card .price-input { grid-column: 2; max-width: 240px; }
 
 .album-card input {
   width: 100%;
@@ -1102,7 +1108,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   /* Снимок по колонке: 96 точек в 64-точечной полосе налезали на
      поле названия. */
   .album-card img { width: 64px; height: 64px; }
-  .album-card .album-card-price { grid-column: 2; }
+  .album-card .price-input { max-width: none; }
 }
 
 .form-hint { margin: 0; align-self: center; }
