@@ -819,12 +819,15 @@ img[data-lightbox] { cursor: zoom-in; }
      как человек увидел содержимое. */
   .quicknav { display: none; }
   .menu-toggle { display: inline-flex; }
-  /* В одну колонку афиша во всю ширину и своей высоты: тянуть её
-     не по чему, да и размывать нечего — пустоты по бокам нет. */
-  .concert-grid { grid-template-columns: 1fr; }
-  .poster-box { min-height: 0; }
-  .poster-box img { height: auto; }
-  .poster-box .poster-blur { display: none; }
+  /* В столбик высоту афише задать не по чему — рядом нет карточки,
+     — поэтому задаём её сами, отношением сторон. Иначе каждая
+     афиша своей высоты: карточки под ними начинаются вразнобой, и
+     лента концертов выглядит рваной. 4:5 чуть шире стоячей афиши,
+     а лежачая ложится в неё с полями, которые закрывает размытый
+     кадр. Карточке отдаём весь остаток высоты, чтобы у всех
+     концертов она кончалась на одной линии. */
+  .concert-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .poster-box { aspect-ratio: 4 / 5; height: auto; min-height: 0; align-self: start; }
 
   .hero-caption { padding-bottom: 18px; }
   .hero-wordmark { width: min(46vw, 190px); margin-bottom: 8px; }

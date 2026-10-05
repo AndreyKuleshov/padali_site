@@ -86,3 +86,64 @@ test('auto-fit не соседствует с недопустимой доро�
     }
   }
 })
+
+/**
+ * Два правила одинаковой силы — побеждает то, что ниже в файле, а
+ * не то, чей медиазапрос «уже». Общее правило, стоящее ПОСЛЕ блока
+ * узкого экрана, молча отменяет мобильное, и в коде это выглядит
+ * правильно: в запросе написано одно, работает другое. Наступали
+ * трижды: .contact-row--send, .contact-form button[type="submit"],
+ * .album-card.
+ *
+ * Сравниваем по паре «селектор + свойство»: тот же селектор ниже,
+ * но про другое свойство, — обычное дело и не спор.
+ */
+function rules (css) {
+  const out = []
+  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const name = selector.trim().replace(/\s+/g, ' ')
+    if (name.startsWith('@') || name === '') continue
+    const props = [...body.matchAll(/(^|;)\s*([a-z-]+)\s*:/g)].map(([, , prop]) => prop)
+    for (const part of name.split(',')) out.push([part.trim(), props])
+  }
+  return out
+}
+
+test('мобильное правило не перебивается более поздним общим', async () => {
+  for (const file of ['site.css', 'admin.css']) {
+    const css = await readFile(join(PUBLIC, file), 'utf8')
+
+    const start = css.search(/@media \(max-width:/)
+    if (start === -1) continue
+
+    // Конец блока запроса — его парная скобка.
+    let depth = 0
+    let end = css.length
+    for (let i = css.indexOf('{', start); i < css.length; i += 1) {
+      if (css[i] === '{') depth += 1
+      else if (css[i] === '}') {
+        depth -= 1
+        if (depth === 0) { end = i; break }
+      }
+    }
+
+    const narrow = new Map()
+    for (const [selector, props] of rules(css.slice(start, end))) {
+      for (const prop of props) narrow.set(selector + ' | ' + prop, true)
+    }
+
+    // Ниже смотрим только безусловные правила: вложенные запросы
+    // спорят между собой по своим границам, а не с этим блоком.
+    const below = css.slice(end).replace(/@[\w-]+[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, ' ')
+
+    const clash = []
+    for (const [selector, props] of rules(below)) {
+      for (const prop of props) {
+        if (narrow.has(selector + ' | ' + prop)) clash.push(selector + ' { ' + prop + ' }')
+      }
+    }
+
+    assert.deepEqual(clash, [],
+      `${file}: ${clash[0]} задан и в узком экране, и безусловно ниже — узкое правило не сработает`)
+  }
+})
