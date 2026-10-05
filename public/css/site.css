@@ -17,7 +17,11 @@
   --line-strong: #6A6A6A;
   /* Тот же неон, что в admin.css: сборки нет, менять придётся в обоих. */
   --neon: #D6FF2E;
-  --display: 'Oswald', 'Arial Narrow', sans-serif;
+  /* Anton — тяжёлый узкий шрифт концертных афиш: он отвечает рваным
+     буквам вордмарка, тогда как узкий нейтральный с ними не спорил
+     и ни к чему не относился. Начертание у него одно: просить
+     font-weight нельзя — браузер подделает жир и буквы поплывут. */
+  --display: 'Anton', 'Arial Narrow', sans-serif;
   --sans: 'Archivo', Arial, sans-serif;
   --wrap: 760px;
   --gutter: 24px;
@@ -50,15 +54,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Размер заголовков был браузерным по умолчанию — 24 px, вровень с
+   абзацем: страница читалась сплошной лентой без ступеней. Теперь
+   он задан и тянется с шириной окна. */
 h1, h2, h3 {
   font-family: var(--display);
-  font-weight: 600;
+  /* Ровно 400, и не потому, что так красивее: у Anton одно
+     начертание, а браузер по умолчанию даёт заголовкам bold и
+     подделывает его — буквы разъезжаются и мылятся. Убрать строку
+     нельзя, можно только задать настоящее значение. */
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   line-height: 1.12;
   margin: 0 0 0.5em;
   color: var(--ink);
 }
+
+h2 { font-size: clamp(1.9rem, 4.2vw, 2.4rem); }
+h3 { font-size: clamp(1.3rem, 2.6vw, 1.5rem); }
 
 p { margin: 0 0 1em; }
 a { color: inherit; }
@@ -240,10 +254,19 @@ ul { list-style: none; margin: 0; padding: 0; }
 
 .skip-link:focus { top: 8px; }
 
+/* Строка под вордмарком — подпись к марке, а не фраза из абзаца:
+   обычным начертанием она ни с чем не спорила и ни к чему не
+   относилась. Прописные с разрядкой привязывают её к логотипу. */
 .hero-caption p {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ink);
-  max-width: 36ch;
+  /* 36ch хватало строчному набору, но прописные с разрядкой шире, и
+     подпись переламывалась надвое. Мера оставлена, просто шире:
+     совсем без неё длинный слоган растянулся бы в абзац. */
+  max-width: 50ch;
   margin: 0;
 }
 

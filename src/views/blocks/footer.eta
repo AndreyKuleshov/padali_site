@@ -8,7 +8,7 @@
     <% if (logo) { %>
     <span class="site-footer-logo"><%~ include('/partials/picture', { media: logo, sizes: '160px' }) %></span>
     <% } else { %>
-    <img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="PADALI" width="120" height="16">
+    <img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="PADALI" width="916" height="267">
     <% } %>
   <% } %>
 

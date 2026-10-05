@@ -37,7 +37,7 @@
       <% if (logo) { %>
       <h1 class="hero-wordmark"><%~ include('/partials/picture', { media: logo, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 46vw, 420px', eager: true, alt: it.meta.title }) %></h1>
       <% } else { %>
-      <h1 class="hero-wordmark hero-wordmark--built-in"><img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="<%= it.meta.title %>" width="420" height="56"></h1>
+      <h1 class="hero-wordmark hero-wordmark--built-in"><img src="<%= it.h.asset(it.h.builtInLogo) %>" alt="<%= it.meta.title %>" width="916" height="267"></h1>
       <% } %>
     <% } else { %>
     <h1 class="visually-hidden"><%= it.meta.title %></h1>
