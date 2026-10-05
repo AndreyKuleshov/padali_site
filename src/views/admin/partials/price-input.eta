@@ -1,0 +1,35 @@
+<%
+  ;/* Поле цены: сумма и валюта. Один компонент на все три места —
+     концерт, фотографии альбома, карточки товаров, — иначе список
+     валют и правило «без валюты не сохраняем» разъехались бы по
+     трём копиям.
+
+     Ждёт: name (имя поля суммы), currencyName (имя поля валюты),
+     value (строка «1000 RSD»), необязательно id и placeholder.
+     Обратно их собирает joinPrice.
+
+     Имя валюты задаётся отдельно, а не приписыванием к имени
+     суммы: «price[m7]_currency» qs разбирает как второе значение
+     того же ключа и схлопывает оба в массив. Правильное соседство —
+     «price[m7]» и «price_currency[m7]». */
+  var parts = it.h.splitPrice(it.value)
+  var id = it.id || String(it.name).replace(/[\[\]]/g, '_')
+%>
+<div class="price-input" data-price-input>
+  <input type="text" id="<%= id %>" name="<%= it.name %>" value="<%= parts.amount %>"
+         maxlength="48" autocomplete="off" inputmode="decimal"
+         <% if (it.placeholder) { %>placeholder="<%= it.placeholder %>"<% } %>
+         data-price-amount>
+  <% ;/* Пусто по умолчанию: валюту выбирают осознанно. Обязательной
+         она становится, как только вписана сумма — это ставит
+         скрипт, чтобы пустая цена не мешала сохранить блок. */ %>
+  <select name="<%= it.currencyName %>" aria-label="<%= it.t('common.currency') %>" data-price-currency>
+    <option value=""></option>
+    <% it.h.currencies.forEach(function (code, index) { %>
+    <% ;/* Черта после местных: их выбирают почти всегда, и глазу
+           нужен край, где кончается частое. */ %>
+    <% if (index === it.h.currenciesPinned) { %><option disabled>──────</option><% } %>
+    <option value="<%= code %>"<%= parts.currency === code ? ' selected' : '' %>><%= code %></option>
+    <% }) %>
+  </select>
+</div>

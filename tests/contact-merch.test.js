@@ -274,7 +274,7 @@ test('цена сохраняется из формы альбома', async () 
     cookies: auth.cookies,
     ...form({
       _csrf: auth.csrf, slug: 'merch', items: String(id),
-      [`price[m${id}]`]: '2500 RSD'
+      [`price[m${id}]`]: '2500', [`price_currency[m${id}]`]: 'RSD'
     })
   })
 
@@ -583,7 +583,10 @@ test('форма альбома правит цену и не трогает п�
     method: 'POST',
     url: `/admin/galleries/${album}`,
     cookies: auth.cookies,
-    ...form({ _csrf: auth.csrf, slug: 'merch', items: String(id), [`price[m${id}]`]: '5500 RSD' })
+    ...form({
+      _csrf: auth.csrf, slug: 'merch', items: String(id),
+      [`price[m${id}]`]: '5500', [`price_currency[m${id}]`]: 'RSD'
+    })
   })
 
   const fields = (await itemFieldsForGalleries([album])).get(album)
@@ -797,10 +800,12 @@ test('название и цена сохраняются формой блок�
       item_album: String(album),
       [`item[m${first}][title][en]`]: 'Shirt',
       [`item[m${first}][title][sr]`]: 'Majica',
-      [`item[m${first}][price]`]: '2500 RSD',
+      [`item[m${first}][price]`]: '2500',
+      [`item[m${first}][currency]`]: 'RSD',
       [`item[m${second}][title][en]`]: 'Patch',
       [`item[m${second}][title][sr]`]: '',
-      [`item[m${second}][price]`]: '600 RSD'
+      [`item[m${second}][price]`]: '600',
+      [`item[m${second}][currency]`]: 'RSD'
     })
   })
 
@@ -855,7 +860,10 @@ test('состав альбома отдаёт название по языка�
   })).json()
 
   assert.deepEqual(body.items[0].title, { en: 'Cap', sr: 'Kapa' })
-  assert.equal(body.items[0].price, '1500 RSD')
+  /* Цена приходит разобранной: карточку рисует скрипт, и разбирать
+     строку там значило бы держать вторую копию правил о валютах. */
+  assert.equal(body.items[0].amount, '1500')
+  assert.equal(body.items[0].currency, 'RSD')
 })
 
 test('поля товара включены у мерча и выключены у галереи', async () => {

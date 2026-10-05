@@ -41,10 +41,10 @@ export default {
     {
       key: 'price',
       label: { en: 'Price', sr: 'Cena' },
-      input: 'text',
+      input: 'price',
       hint: {
-        en: 'As people should read it: «800 RSD», «€7». Leave empty to hide.',
-        sr: 'Onako kako se čita: «800 RSD», «7 €». Ostavite prazno da se sakrije.'
+        en: 'Amount and currency. Leave the amount empty to hide the price.',
+        sr: 'Iznos i valuta. Ostavite iznos prazan da se cena sakrije.'
       }
     }
   ],

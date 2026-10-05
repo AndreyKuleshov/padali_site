@@ -461,6 +461,54 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 
 /* ─── Медиатека ──────────────────────────────────────────── */
 
+/* Поле цены: сумма и валюта в одной рамке. Рамка на обёртке, а не
+   на полях, — иначе между ними видна вторая линия и выходит два
+   поля вместо одного. */
+.price-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.price-input:focus-within { border-color: var(--neon); }
+
+.price-input > input,
+.price-input > select {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  outline: none;
+}
+
+/* Валюта прижата к правому краю и отделена чертой. */
+.price-input > select {
+  width: auto;
+  border-left: 1px solid var(--line) !important;
+  padding-right: 8px;
+  color: var(--soft);
+  cursor: pointer;
+}
+
+.price-input > select:hover { color: var(--ink); }
+
+/* На плитке альбома места в ряд нет — 120 точек на сумму и валюту
+   вместе оставляли от суммы пустоту. Там они в два этажа. */
+.gallery-chip .price-input {
+  grid-template-columns: minmax(0, 1fr);
+  border: 0;
+  border-radius: 0;
+}
+
+.gallery-chip .price-input > input,
+.gallery-chip .price-input > select {
+  border-top: 1px solid var(--line) !important;
+  padding: 5px 7px;
+  font-size: .82rem;
+}
+
 /* Цена на плитке альбома. Класс .chip-title из этого правила ушёл
    вместе с переездом названия в .album-card-title. */
 .chip-price {

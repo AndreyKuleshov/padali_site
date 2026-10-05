@@ -50,6 +50,12 @@
     <div class="youtube-preview" data-youtube-preview hidden></div>
   </div>
 
+<% } else if (field.input === 'price') { %>
+  <%~ include('/admin/partials/price-input', Object.assign({}, it, {
+        id: id,
+        currencyName: 'settings[' + field.key + '_currency]'
+      })) %>
+
 <% } else if (field.input === 'url') { %>
   <input type="url" id="<%= id %>" name="<%= name %>" value="<%= value || '' %>" placeholder="https://">
 

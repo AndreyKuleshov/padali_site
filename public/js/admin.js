@@ -31,6 +31,34 @@
     if (message && !window.confirm(message)) event.preventDefault()
   })
 
+  /* ── Поле цены ────────────────────────────────────────────
+     Валюта обязательна ровно тогда, когда вписана сумма: без неё
+     цена ничего не значит, а пустое поле не должно мешать
+     сохранить блок. Проверку делает сам браузер — форма не уйдёт,
+     и ничего из набранного не пропадёт. */
+  function syncPriceRequired (box) {
+    var amount = box.querySelector('[data-price-amount]')
+    var currency = box.querySelector('[data-price-currency]')
+    if (!amount || !currency) return
+    currency.required = amount.value.trim() !== ''
+  }
+
+  function initPriceFields () {
+    document.addEventListener('input', function (event) {
+      var box = event.target.closest && event.target.closest('[data-price-input]')
+      if (box) syncPriceRequired(box)
+    })
+
+    // Карточки товаров рисуются позже, поэтому не разовый обход.
+    if (window.MutationObserver) {
+      new window.MutationObserver(function () {
+        document.querySelectorAll('[data-price-input]').forEach(syncPriceRequired)
+      }).observe(document.body, { childList: true, subtree: true })
+    }
+
+    document.querySelectorAll('[data-price-input]').forEach(syncPriceRequired)
+  }
+
   /* ── Enter в форме ───────────────────────────────────────
      В длинной форме Enter из любого поля отправлял всю форму —
      недописанный блок сохранялся на полуслове. Теперь Enter в
@@ -1086,6 +1114,8 @@
 
       var withFields = panel.hasAttribute('data-album-fields')
       var locales = (strings.getAttribute('data-locales') || '').split(',').filter(Boolean)
+      var currencies = (strings.getAttribute('data-currencies') || '').split(',').filter(Boolean)
+      var pinned = Number(strings.getAttribute('data-currencies-pinned')) || 0
 
       /* Имя не «input»: так уже называется файловое поле в этой
          же области, и объявление переменной затирало бы функцию. */
@@ -1101,6 +1131,47 @@
         node.maxLength = limit
         if (locale) node.setAttribute('data-locale', locale)
         return node
+      }
+
+      /**
+       * Поле цены карточки: сумма и валюта, как в партиале
+       * price-input. Разметку приходится повторять здесь, потому
+       * что карточки рисует скрипт, — но список валют и правило
+       * «без валюты цены нет» приходят с сервера, а не живут
+       * второй копией.
+       */
+      function priceInput (item) {
+        var box = document.createElement('div')
+        box.className = 'price-input'
+        box.setAttribute('data-price-input', '')
+
+        var amount = document.createElement('input')
+        amount.type = 'text'
+        amount.name = 'item[m' + item.id + '][price]'
+        amount.value = item.amount || ''
+        amount.maxLength = 48
+        amount.autocomplete = 'off'
+        amount.placeholder = strings.getAttribute('data-item-price') || ''
+        amount.setAttribute('data-price-amount', '')
+
+        var currency = document.createElement('select')
+        currency.name = 'item[m' + item.id + '][currency]'
+        currency.setAttribute('aria-label', strings.getAttribute('data-currency-label') || '')
+        currency.setAttribute('data-price-currency', '')
+        currency.appendChild(new Option('', ''))
+        currencies.forEach(function (code, index) {
+          // Черта после местных — как в партиале price-input.
+          if (index === pinned) {
+            var line = new Option('──────', '')
+            line.disabled = true
+            currency.appendChild(line)
+          }
+          currency.appendChild(new Option(code, code, false, item.currency === code))
+        })
+
+        box.appendChild(amount)
+        box.appendChild(currency)
+        return box
       }
 
       /** Название товара: строка перевода и поле на каждый язык. */
@@ -1167,7 +1238,7 @@
              альбома незачем. Обычной галерее они не нужны. */
           if (withFields) {
             card.appendChild(titleBox(item))
-            card.appendChild(fieldInput('price', item, '', strings.getAttribute('data-item-price'), 64))
+            card.appendChild(priceInput(item))
           }
           strip.appendChild(card)
         })
@@ -1277,4 +1348,5 @@
   initAlbumDialog()
   initAlbumPanels()
   initHeatmap()
+  initPriceFields()
 })()

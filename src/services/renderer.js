@@ -5,6 +5,7 @@ import sanitizeHtml from 'sanitize-html'
 import config from '../config.js'
 import { icon, ICON_NAMES } from './icons.js'
 import { assetUrl, BUILT_IN_LOGO } from './assets.js'
+import { CURRENCIES, PINNED, splitPrice } from './money.js'
 import { parseVideoId, thumbnailFor, embedUrl, watchUrl } from './youtube.js'
 
 const VIEWS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'views')
@@ -82,6 +83,10 @@ const LAYOUT = {
 const helpers = {
   icon,
   layout: LAYOUT,
+  /* Цена хранится строкой, а правится двумя полями. */
+  splitPrice,
+  currencies: CURRENCIES,
+  currenciesPinned: PINNED,
   /** Встроенный логотип — когда своего нет ни у блока, ни в настройках. */
   builtInLogo: BUILT_IN_LOGO,
   asset: assetUrl,

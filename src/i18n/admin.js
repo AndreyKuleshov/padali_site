@@ -34,6 +34,7 @@ const DICTIONARY = {
     'common.cancel': 'Cancel',
     'common.delete': 'Delete',
     'common.close': 'Close',
+    'common.currency': 'Currency',
     'common.description': 'Description',
     'common.csrfExpired': 'Your session expired. Reload the page and try again.',
 
@@ -151,7 +152,7 @@ const DICTIONARY = {
     'galleries.removeFromAlbum': 'Remove from the album — the file stays in the media library',
     'galleries.albumEmpty': 'The album is empty — upload photos.',
     'galleries.pricesElsewhere': 'Prices and order of the photos are set on the album page.',
-    'galleries.priceHint': 'A price turns a photo into merch: in a «Merch» block such photos get an order button. Write it as people should read it — «2500 RSD», «25 €». Leave empty for an ordinary photo. The name goes above the price and shows on the card; leave it empty and the caption from the media library is used.',
+    'galleries.priceHint': 'A price turns a photo into merch: in a «Merch» block such photos get an order button. Amount and currency; leave the amount empty for an ordinary photo. The name goes above the price and shows on the card; leave it empty and the caption from the media library is used.',
     'galleries.confirmDelete': 'Delete the album? The photos stay in the media library.',
     'galleries.deleteButton': 'Delete album',
 
@@ -278,6 +279,7 @@ const DICTIONARY = {
     'common.cancel': 'Otkaži',
     'common.delete': 'Obriši',
     'common.close': 'Zatvori',
+    'common.currency': 'Valuta',
     'common.description': 'Opis',
     'common.csrfExpired': 'Sesija je istekla. Osvežite stranicu i pokušajte ponovo.',
 
@@ -395,7 +397,7 @@ const DICTIONARY = {
     'galleries.removeFromAlbum': 'Ukloni iz albuma — fajl ostaje u medijateci',
     'galleries.albumEmpty': 'Album je prazan — otpremite fotografije.',
     'galleries.pricesElsewhere': 'Cene i redosled fotografija zadaju se na strani albuma.',
-    'galleries.priceHint': 'Cena pretvara fotografiju u artikal: u bloku «Merch» takve dobijaju dugme za porudžbinu. Pišite onako kako treba da se čita — «2500 RSD», «25 €». Prazno — obična fotografija. Naziv stoji iznad cene i vidi se na kartici; ako je prazan, koristi se potpis iz medijateke.',
+    'galleries.priceHint': 'Cena pretvara fotografiju u artikal: u bloku «Merch» takve dobijaju dugme za porudžbinu. Iznos i valuta; ostavite iznos prazan za običnu fotografiju. Naziv stoji iznad cene i vidi se na kartici; ako je prazan, koristi se potpis iz medijateke.',
     'galleries.confirmDelete': 'Obrisati album? Fotografije ostaju u galeriji fajlova.',
     'galleries.deleteButton': 'Obriši album',
 

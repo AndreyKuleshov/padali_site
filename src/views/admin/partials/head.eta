@@ -48,7 +48,10 @@
       data-item-title="<%= it.t('galleries.itemTitle') %>"
       data-item-price="<%= it.t('galleries.price') %>"
       data-remove="<%= it.t('galleries.removeFromAlbum') %>"
-      data-locales="<%= (it.locales || []).map(function (l) { return l.code }).join(',') %>"></span>
+      data-locales="<%= (it.locales || []).map(function (l) { return l.code }).join(',') %>"
+      data-currencies="<%= it.h.currencies.join(',') %>"
+      data-currencies-pinned="<%= it.h.currenciesPinned %>"
+      data-currency-label="<%= it.t('common.currency') %>"></span>
 
 <% if (it.canTranslate) { %>
 <% ;/* Строка перевода для карточек товара: они рисуются скриптом,

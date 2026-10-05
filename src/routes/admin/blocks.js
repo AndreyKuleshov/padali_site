@@ -14,9 +14,27 @@ import { listLocales } from '../../repositories/locales.js'
 import { parseBlockForm } from '../../services/block-form.js'
 import { setFlash } from '../../services/auth.js'
 import { renderAdmin, afterWrite, numericId, stripItemKeys, idList, mediaCard } from './helpers.js'
+import { joinPrice } from '../../services/money.js'
 import { localize } from '../../i18n/admin.js'
 import { currentSiteLogo } from '../../services/site-logo.js'
 import { lookupVideo } from '../../services/youtube.js'
+
+/**
+ * Цена карточки приходит двумя полями, а хранится одной строкой.
+ *
+ * Та же сборка, что у настроек блока и у страницы альбома: без
+ * валюты цены нет, и joinPrice вернёт пустое — товар просто
+ * останется без цены, вместо того чтобы показать «2500» непонятно
+ * в чём.
+ */
+function joinPrices (fields) {
+  for (const item of Object.values(fields)) {
+    if (!item) continue
+    item.price = joinPrice(item.price, item.currency)
+    delete item.currency
+  }
+  return fields
+}
 
 /** Пустые переводы названия не храним: иначе откат на язык по
  *  умолчанию не сработает. */
@@ -195,7 +213,7 @@ async function blockRoutes (app) {
       await saveBlockTexts(id, parsed.textsByLocale, conn)
       await saveBlockMedia(id, parsed.mediaByField, conn)
       if (albumId && itemFields) {
-        await setGalleryItemFields(albumId, cleanTitles(stripItemKeys(itemFields)), conn)
+        await setGalleryItemFields(albumId, joinPrices(cleanTitles(stripItemKeys(itemFields))), conn)
       }
     })
 

@@ -57,8 +57,12 @@
       <div class="gallery-chip" data-id="<%= item.id %>">
         <img src="<%= item.thumb %>" alt="" loading="lazy">
         <button type="button" class="media-remove" aria-label="<%= it.t('blockForm.remove') %>">×</button>
-        <input type="text" class="chip-price" name="price[m<%= item.id %>]" value="<%= item.price %>"
-               maxlength="64" placeholder="<%= it.t('galleries.price') %>">
+        <%~ include('/admin/partials/price-input', Object.assign({}, it, {
+              name: 'price[m' + item.id + ']',
+              currencyName: 'price_currency[m' + item.id + ']',
+              value: item.price,
+              placeholder: it.t('galleries.price')
+            })) %>
       </div>
       <% }) %>
     </div>

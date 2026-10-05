@@ -77,6 +77,41 @@ test('строка без ссылки выбрасывается, даже ес
   assert.equal(parsed.settings.items[0].label, 'Instagram')
 })
 
+/* Цена приходит двумя полями, а хранится одной строкой. Без
+   валюты цены нет: сохранить «1000» непонятно в чём хуже, чем не
+   сохранить ничего — на сайте появилось бы голое число. */
+test('цена собирается из суммы и валюты, без валюты — пусто', async () => {
+  const concert = (await import('../src/blocks/concert.js')).default
+
+  const full = parseBlockForm(concert, {
+    settings: { price: '1000', price_currency: 'RSD' }
+  }, ['en'])
+  assert.equal(full.settings.price, '1000 RSD')
+
+  const noCurrency = parseBlockForm(concert, { settings: { price: '1000' } }, ['en'])
+  assert.equal(noCurrency.settings.price, '')
+
+  const noAmount = parseBlockForm(concert, { settings: { price_currency: 'EUR' } }, ['en'])
+  assert.equal(noAmount.settings.price, '')
+
+  // Валюта не из списка — тоже не цена, а не «1000 ЧТО-ТО».
+  const alien = parseBlockForm(concert, {
+    settings: { price: '1000', price_currency: 'XXX' }
+  }, ['en'])
+  assert.equal(alien.settings.price, '')
+})
+
+/* Имя поля валюты не приписывается к имени суммы: «price[m7]_currency»
+   qs разбирает как второе значение того же ключа и схлопывает оба
+   в массив. */
+test('сумма и валюта в форме не схлопываются в один ключ', async () => {
+  const qs = (await import('qs')).default
+  const parsed = qs.parse('price[m7]=1000&price_currency[m7]=RSD')
+
+  assert.equal(parsed.price.m7, '1000')
+  assert.equal(parsed.price_currency.m7, 'RSD')
+})
+
 test('чужие текстовые ключи в форму не проходят', () => {
   const parsed = parseBlockForm(gallery, {
     text: { en: { heading: 'ok', password_hash: 'взлом' } },

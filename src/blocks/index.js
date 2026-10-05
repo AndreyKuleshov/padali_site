@@ -15,7 +15,7 @@ import footer from './footer.js'
  */
 const INPUT_TYPES = new Set([
   'text', 'textarea', 'richtext', 'number', 'checkbox',
-  'select', 'date', 'url', 'repeater', 'youtube'
+  'select', 'date', 'url', 'price', 'repeater', 'youtube'
 ])
 
 const DESCRIPTORS = [

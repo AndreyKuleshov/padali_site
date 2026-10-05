@@ -8,6 +8,7 @@ import {
 import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
 import { setFlash } from '../../services/auth.js'
+import { joinPrice, splitPrice } from '../../services/money.js'
 import {
   renderAdmin, afterWrite, numericId, itemKey, idList, mediaCard, textsFromBody
 } from './helpers.js'
@@ -73,9 +74,12 @@ async function galleryRoutes (app) {
     const items = itemIds
       .map((mediaId) => mediaById.get(mediaId))
       .filter(Boolean)
+      /* Цену отдаём разобранной: карточку рисует скрипт, и
+         повторять там разбор строки значило бы завести вторую
+         копию правил о валютах. */
       .map((media) => mediaCard(media, {
         title: fields.get(media.id)?.title ?? {},
-        price: fields.get(media.id)?.price ?? ''
+        ...splitPrice(fields.get(media.id)?.price ?? '')
       }))
 
     return reply.send({ ok: true, id, slug: gallery.slug, count: items.length, items })
@@ -199,11 +203,12 @@ async function galleryRoutes (app) {
        цена; title не трогаем, иначе переписывание состава стёрло
        бы переводы. */
     const prices = request.body?.price ?? {}
+    const currencies = request.body?.price_currency ?? {}
     const existing = (await itemFieldsForGalleries([id])).get(id) ?? new Map()
     const items = mediaIds.map((mediaId) => ({
       mediaId,
       title: existing.get(mediaId)?.title,
-      price: String(prices[itemKey(mediaId)] ?? '').trim().slice(0, 64)
+      price: joinPrice(prices[itemKey(mediaId)], currencies[itemKey(mediaId)])
     }))
 
     await transaction(async (conn) => {

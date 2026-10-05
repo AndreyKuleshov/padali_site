@@ -12,6 +12,7 @@
  */
 import { parseVideoId, watchUrl } from './youtube.js'
 import { textKeysFor } from '../blocks/index.js'
+import { joinPrice } from './money.js'
 
 function asString (value) {
   if (Array.isArray(value)) value = value[0]
@@ -111,7 +112,13 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
 
   for (const field of descriptor.settings ?? []) {
     if (field.input !== 'repeater') {
-      settings[field.key] = coerceScalar(field, body.settings?.[field.key])
+      /* Цена приходит двумя полями и хранится одной строкой:
+         собрать её может только тот, кто видит оба. Без валюты
+         цены нет — joinPrice вернёт пустое, и поле честно
+         окажется незаполненным. */
+      settings[field.key] = field.input === 'price'
+        ? joinPrice(body.settings?.[field.key], body.settings?.[`${field.key}_currency`])
+        : coerceScalar(field, body.settings?.[field.key])
       continue
     }
 
