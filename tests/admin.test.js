@@ -107,6 +107,82 @@ test('multipart не проносит запрос мимо проверки т�
     'тексты на месте')
 })
 
+/* Концерт стал строкой повторителя: у каждого свои тексты на двух
+   языках и своя афиша. Переводимое подполе уходит не в settings, а
+   в тексты блока под ключом «events.<номер>.<поле>» — до этой
+   правки шаблон рисовал его как settings[...], а разбор ждал
+   text[...], и переводы молча пропадали. */
+test('у каждого концерта свои тексты и своя афиша', async () => {
+  const { processUpload } = await import('../src/services/media-processor.js')
+  const { makeImage } = await import('./helpers.js')
+  const { getBlockMedia } = await import('../src/repositories/blocks.js').then((m) => m)
+
+  const first = (await processUpload({
+    buffer: await makeImage({ width: 300, height: 400, seed: 95 }),
+    originalName: 'afisha-1.png', mime: 'image/png'
+  })).media
+  const second = (await processUpload({
+    buffer: await makeImage({ width: 300, height: 400, seed: 96 }),
+    originalName: 'afisha-2.png', mime: 'image/png'
+  })).media
+
+  await app.inject({
+    method: 'POST', url: '/admin/blocks',
+    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'concert' })
+  })
+  const [block] = await listBlocks(pageId)
+
+  await app.inject({
+    method: 'POST', url: `/admin/blocks/${block.id}`,
+    cookies: session.cookies,
+    ...form({
+      _csrf: session.csrf,
+      is_visible: 'on',
+      'text[en][heading]': 'Concerts',
+      'settings[events][0][date]': '2026-10-16',
+      'settings[events][0][tickets]': 'link',
+      'text[en][events.0.venue]': 'Novi Sad',
+      'text[sr][events.0.venue]': 'Novi Sad',
+      'text[en][events.0.note]': 'С гостями',
+      'media[events.0.poster][]': String(first.id),
+      'settings[events][1][date]': '2026-11-20',
+      'settings[events][1][tickets]': 'door',
+      'text[en][events.1.venue]': 'Beograd',
+      'media[events.1.poster][]': String(second.id)
+    })
+  })
+
+  const saved = await getBlock(block.id)
+  assert.equal(saved.settings.events.length, 2)
+  assert.equal(saved.settings.events[1].tickets, 'door')
+
+  const texts = await getBlockTexts(block.id)
+  assert.equal(texts.en['events.0.venue'], 'Novi Sad')
+  assert.equal(texts.sr['events.0.venue'], 'Novi Sad')
+  assert.equal(texts.en['events.0.note'], 'С гостями')
+  assert.equal(texts.en['events.1.venue'], 'Beograd')
+  assert.equal(texts.en.heading, 'Concerts', 'заголовок остаётся у блока')
+
+  const media = await getBlockMedia(block.id)
+  assert.deepEqual(media['events.0.poster'], [first.id], 'афиша у своего концерта')
+  assert.deepEqual(media['events.1.poster'], [second.id])
+
+  /* И обратно: форма обязана рисовать ровно эти имена. Без этой
+     проверки тест стерёг бы только разбор, а разметка могла
+     вернуться к settings[...] — переводы бы молча пропадали. */
+  const page = (await app.inject({
+    method: 'GET', url: `/admin/blocks/${block.id}`, cookies: session.cookies
+  })).body
+
+  assert.match(page, /name="text\[en\]\[events\.0\.venue\]"/)
+  assert.match(page, /name="text\[sr\]\[events\.0\.venue\]"/)
+  assert.match(page, /name="media\[events\.1\.poster\]\[\]"/)
+  assert.match(page, /name="settings\[events\]\[1\]\[price_currency\]"/,
+    'у каждого концерта своя валюта, а не одна на всех')
+  assert.doesNotMatch(page, /name="settings\[events\]\[0\]\[venue\]"/,
+    'переводимое подполе не уходит в settings')
+})
+
 test('неверный пароль не пускает', async () => {
   const page = await app.inject({ method: 'GET', url: '/admin/login' })
   const csrf = /name="_csrf" value="([a-f0-9]{64})"/.exec(page.body)[1]

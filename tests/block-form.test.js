@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { parseBlockForm, asUrl, asDate } from '../src/services/block-form.js'
 import gallery from '../src/blocks/gallery.js'
 import links from '../src/blocks/links.js'
+import concert from '../src/blocks/concert.js'
 
 test('ссылка с небезопасной схемой отбрасывается', () => {
   assert.equal(asUrl('https://example.com'), 'https://example.com')
@@ -80,25 +81,35 @@ test('строка без ссылки выбрасывается, даже ес
 /* Цена приходит двумя полями, а хранится одной строкой. Без
    валюты цены нет: сохранить «1000» непонятно в чём хуже, чем не
    сохранить ничего — на сайте появилось бы голое число. */
-test('цена собирается из суммы и валюты, без валюты — пусто', async () => {
-  const concert = (await import('../src/blocks/concert.js')).default
+test('цена собирается из суммы и валюты, без валюты — пусто', () => {
+  // Описание на месте: так проверяется сам тип поля, а не то,
+  // какой блок сегодня держит цену.
+  const withPrice = {
+    type: 'test', title: { en: 'T' }, template: 'blocks/test',
+    settings: [{ key: 'price', label: { en: 'Price' }, input: 'price' }]
+  }
+  const price = (body) => parseBlockForm(withPrice, { settings: body }, ['en']).settings.price
 
-  const full = parseBlockForm(concert, {
-    settings: { price: '1000', price_currency: 'RSD' }
+  assert.equal(price({ price: '1000', price_currency: 'RSD' }), '1000 RSD')
+  assert.equal(price({ price: '1000' }), '', 'без валюты цены нет')
+  assert.equal(price({ price_currency: 'EUR' }), '', 'без суммы тоже')
+  assert.equal(price({ price: '1000', price_currency: 'XXX' }), '', 'валюта не из списка')
+})
+
+/* В строке концерта цена собирается тем же правилом: подполе
+   повторителя проходит через ту же сборку, что и настройка. */
+test('цена строки повторителя собирается так же', () => {
+  const parsed = parseBlockForm(concert, {
+    settings: {
+      events: {
+        0: { date: '2026-10-16', price: '1000', price_currency: 'RSD', tickets: 'link' },
+        1: { date: '2026-11-20', price: '500', tickets: 'door' }
+      }
+    }
   }, ['en'])
-  assert.equal(full.settings.price, '1000 RSD')
 
-  const noCurrency = parseBlockForm(concert, { settings: { price: '1000' } }, ['en'])
-  assert.equal(noCurrency.settings.price, '')
-
-  const noAmount = parseBlockForm(concert, { settings: { price_currency: 'EUR' } }, ['en'])
-  assert.equal(noAmount.settings.price, '')
-
-  // Валюта не из списка — тоже не цена, а не «1000 ЧТО-ТО».
-  const alien = parseBlockForm(concert, {
-    settings: { price: '1000', price_currency: 'XXX' }
-  }, ['en'])
-  assert.equal(alien.settings.price, '')
+  assert.equal(parsed.settings.events[0].price, '1000 RSD')
+  assert.equal(parsed.settings.events[1].price, '', 'без валюты цены нет и здесь')
 })
 
 /* Имя поля валюты не приписывается к имени суммы: «price[m7]_currency»

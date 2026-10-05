@@ -1,42 +1,63 @@
 <%
   var block = it.block
-  var poster = block.first('poster')
-  /* Билеты на входе: ссылку не показываем, даже если она осталась
-     заполненной с прошлого концерта. */
-  var atDoor = block.settings.tickets === 'door'
+  var events = Array.isArray(block.settings.events) ? block.settings.events : []
+  /* Листаем только когда есть что: один концерт — просто карточка,
+     без ленты и стрелок. */
+  var many = events.length > 1
 %>
+<% if (events.length > 0) { %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
-  <div class="concert-grid<%= poster ? '' : ' concert-grid--no-poster' %>">
-    <% if (poster) { %>
-    <div class="poster-box">
-      <%~ include('/partials/picture', { media: poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', lightbox: true }) %>
-    </div>
-    <% } %>
-    <div class="concert-card">
-      <% if (block.settings.date) { %>
-      <p class="concert-date"><time datetime="<%= block.settings.date %>"><%= it.h.formatDate(block.settings.date) %></time></p>
-      <% } %>
-      <% if (block.text.venue) { %><p class="concert-venue"><%= block.text.venue %></p><% } %>
-      <% if (block.text.note) { %><p class="note"><%= block.text.note %></p><% } %>
-      <% ;/* Билеты и цена — одной строкой: вместе они отвечают на
-             один вопрос, «как попасть и почём». Цена нужна в обоих
-             случаях — и при продаже по ссылке, и при оплате на входе. */ %>
-      <% if (atDoor || block.settings.ticket_url || block.settings.price) { %>
-      <div class="concert-tickets">
-        <% if (atDoor) { %>
-        <p class="concert-door"><%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.atDoor') %></p>
-        <% } else if (block.settings.ticket_url) { %>
-        <a class="button" href="<%= block.settings.ticket_url %>" target="_blank" rel="noopener">
-          <%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.tickets') %>
-        </a>
+
+  <% ;/* Та же лента, что у фотографий: прокрутка с примагничиванием,
+         стрелки для мыши, свайп на телефоне. Разметка общая со
+         скриптом initGalleryScrollers — он находит ленту по
+         data-gallery-scroll. */ %>
+  <div class="gallery-frame<%= many ? ' gallery-frame--scrollable' : '' %> concert-frame"
+       style="--gallery-columns: 1; --gallery-columns-mobile: 1; --gallery-rows: 1">
+    <div class="<%= many ? 'gallery-track ' : '' %>concert-list"<% if (many) { %> data-gallery-scroll<% } %>>
+      <% events.forEach(function (event) { %>
+      <% var atDoor = event.tickets === 'door' %>
+      <div class="concert-grid<%= event.poster ? '' : ' concert-grid--no-poster' %>">
+        <% if (event.poster) { %>
+        <div class="poster-box">
+          <%~ include('/partials/picture', { media: event.poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', lightbox: true }) %>
+        </div>
         <% } %>
-        <% if (block.settings.price) { %>
-        <span class="concert-price"><%= block.settings.price %></span>
-        <% } %>
+        <div class="concert-card">
+          <% if (event.date) { %>
+          <p class="concert-date"><time datetime="<%= event.date %>"><%= it.h.formatDate(event.date) %></time></p>
+          <% } %>
+          <% if (event.venue) { %><p class="concert-venue"><%= event.venue %></p><% } %>
+          <% if (event.note) { %><p class="note"><%= event.note %></p><% } %>
+
+          <% if (atDoor || event.ticket_url || event.price) { %>
+          <div class="concert-tickets">
+            <% if (atDoor) { %>
+            <p class="concert-door"><%~ it.h.icon('ticket') %><%= event.ticket_label || it.s('concert.atDoor') %></p>
+            <% } else if (event.ticket_url) { %>
+            <a class="button" href="<%= event.ticket_url %>" target="_blank" rel="noopener">
+              <%~ it.h.icon('ticket') %><%= event.ticket_label || it.s('concert.tickets') %>
+            </a>
+            <% } %>
+            <% if (event.price) { %>
+            <span class="concert-price"><%= event.price %></span>
+            <% } %>
+          </div>
+          <% } %>
+
+          <% if (event.tag) { %><p><span class="concert-tag"><%= event.tag %></span></p><% } %>
+        </div>
       </div>
-      <% } %>
-      <% if (block.text.tag) { %><p><span class="concert-tag"><%= block.text.tag %></span></p><% } %>
+      <% }) %>
     </div>
+
+    <% if (many) { %>
+    <button class="gallery-arrow gallery-arrow--prev" type="button" hidden
+            aria-label="<%= it.s('gallery.previous') %>"><%~ it.h.icon('arrow-left') %></button>
+    <button class="gallery-arrow gallery-arrow--next" type="button" hidden
+            aria-label="<%= it.s('gallery.next') %>"><%~ it.h.icon('arrow-right') %></button>
+    <% } %>
   </div>
 </section>
+<% } %>

@@ -5,8 +5,20 @@
   var field = it.field
   var rows = Array.isArray(it.rows) ? it.rows : []
 %>
-<div class="field repeater" data-repeater="<%= field.key %>">
-  <% if (field.label) { %><label><%= it.localize(field.label) %></label><% } %>
+<div class="field repeater<%= field.tabs ? ' repeater--tabs' : '' %>" data-repeater="<%= field.key %>"
+     <% if (field.tabs) { %>data-tab-label="<%= it.localize(field.tabLabel || field.label) %>"
+     data-add-label="<%= it.addLabel %>"<% } %>>
+  <% if (field.label && !field.tabs) { %><label><%= it.localize(field.label) %></label><% } %>
+
+  <% ;/* Строк бывает много и каждая длинная — концерт это афиша,
+         даты, тексты на двух языках. Подряд они не читаются, поэтому
+         такой повторитель показывает по одной, а переключают их
+         закладки. Рисует их скрипт: до него разметки у закладок нет,
+         и без него форма остаётся обычным списком строк. */ %>
+  <% if (field.tabs) { %>
+  <div class="repeater-tabs" data-repeater-tabs role="tablist" aria-label="<%= it.localize(field.label) %>"></div>
+  <% } %>
+
   <div class="repeater-rows">
     <% rows.forEach(function (row, index) { %>
     <%~ include('/admin/partials/repeater-row', Object.assign({}, it, { index: index, row: row })) %>
@@ -17,5 +29,7 @@
     <%~ include('/admin/partials/repeater-row', Object.assign({}, it, { index: '__INDEX__', row: null })) %>
   </template>
 
+  <% if (!field.tabs) { %>
   <button type="button" class="btn btn--small repeater-add"><%= it.addLabel %></button>
+  <% } %>
 </div>

@@ -3,21 +3,51 @@
      рисуют дважды: для уже сохранённых строк и внутрь <template>,
      по которому браузер добавляет новую. Две копии подряд в одном
      файле расходились — добавленная строка отличалась от той, что
-     пришла с сервера. */
+     пришла с сервера.
+
+     Подполе бывает трёх родов. Обычное уходит в settings. Переводимое
+     живёт не в settings, а в текстах блока под ключом
+     «<повторитель>.<номер>.<подполе>» — так его и ждёт разбор формы,
+     и так его достаёт композитор страницы. Медийное хранится в
+     block_media под тем же составным именем. */
   var field = it.field
   var index = it.index
   var row = it.row
+  var textKey = function (sub) { return field.key + '.' + index + '.' + sub.key }
 %>
 <div class="repeater-row" data-index="<%= index %>">
   <% field.fields.forEach(function (sub) { %>
+
+  <% if (sub.translatable) { %>
+  <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+        label: it.localize(sub.label),
+        prefix: 'text',
+        key: textKey(sub),
+        field: sub,
+        hint: sub.hint ? it.localize(sub.hint) : '',
+        values: function (locale, key) { return (it.texts[locale] || {})[key] || '' }
+      })) %>
+
+  <% } else if (sub.input === 'media') { %>
+  <%~ include('/admin/partials/media-field', Object.assign({}, it, {
+        field: sub,
+        name: textKey(sub),
+        chosen: (it.previews || {})[textKey(sub)] || []
+      })) %>
+
+  <% } else { %>
   <div class="repeater-cell">
     <span class="cell-label"><%= it.localize(sub.label) %></span>
     <%~ include('/admin/fields/input', Object.assign({}, it, {
           field: sub,
           name: it.prefix + '[' + index + '][' + sub.key + ']',
+          currencyName: it.prefix + '[' + index + '][' + sub.key + '_currency]',
           value: row ? row[sub.key] : sub.default
         })) %>
   </div>
+  <% } %>
+
   <% }) %>
-  <button type="button" class="btn btn--danger btn--small repeater-remove">×</button>
+  <button type="button" class="btn btn--danger btn--small repeater-remove"
+          aria-label="<%= it.t('blockForm.remove') %>">×</button>
 </div>

@@ -179,36 +179,63 @@ test('кнопка отправки стоит в строке связи, а в
 test('билеты: по ссылке — кнопка, на входе — строка без ссылки', async () => {
   const { pageId } = await buildPage()
 
-  const link = await createBlock({
-    pageId, type: 'concert', anchor: 'byLink',
+  await createBlock({
+    pageId, type: 'concert', anchor: 'shows',
     settings: {
       ...defaultSettings('concert'),
-      tickets: 'link', ticket_url: 'https://tickets.example/padali', price: '800 RSD'
+      events: [
+        { date: '2026-10-16', tickets: 'link', ticket_url: 'https://tickets.example/padali', price: '800 RSD' },
+        { date: '2026-11-20', tickets: 'door', ticket_url: 'https://tickets.example/старый', price: '600 RSD' }
+      ]
     }
   })
-  const door = await createBlock({
-    pageId, type: 'concert', anchor: 'atDoor',
-    settings: {
-      ...defaultSettings('concert'),
-      tickets: 'door', ticket_url: 'https://tickets.example/старый', price: '600 RSD'
-    }
-  })
-  assert.ok(link && door)
   invalidateCache()
 
   const body = (await app.inject({ method: 'GET', url: '/' })).body
-  const section = (id) => /<section class="section wrap" id="SECTION">[\s\S]*?<\/section>/
-    .source.replace('SECTION', id)
+  const section = /<section class="section wrap" id="shows">[\s\S]*?<\/section>/.exec(body)[0]
+  const cards = section.split('class="concert-grid')
 
-  const byLink = new RegExp(section('byLink')).exec(body)[0]
-  assert.match(byLink, /href="https:\/\/tickets\.example\/padali"/)
-  assert.match(byLink, /800 RSD/)
+  assert.match(cards[1], /href="https:\/\/tickets\.example\/padali"/)
+  assert.match(cards[1], /800 RSD/)
 
-  const atDoor = new RegExp(section('atDoor')).exec(body)[0]
-  assert.doesNotMatch(atDoor, /tickets\.example/, 'ссылка прошлого концерта не показывается')
-  assert.match(atDoor, /concert-door/)
-  assert.match(atDoor, /Tickets at the door/)
-  assert.match(atDoor, /600 RSD/)
+  assert.doesNotMatch(cards[2], /tickets\.example/, 'ссылка этого концерта не показывается')
+  assert.match(cards[2], /concert-door/)
+  assert.match(cards[2], /Tickets at the door/)
+  assert.match(cards[2], /600 RSD/)
+})
+
+/* Два концерта листаются, как фотографии; один — просто карточка,
+   без ленты и стрелок: листать нечего. */
+test('несколько концертов листаются, один — нет', async () => {
+  const { pageId } = await buildPage()
+
+  const alone = await createBlock({
+    pageId, type: 'concert', anchor: 'one',
+    settings: { ...defaultSettings('concert'), events: [{ date: '2026-10-16' }] }
+  })
+  assert.ok(alone)
+  invalidateCache()
+
+  let body = (await app.inject({ method: 'GET', url: '/' })).body
+  let section = /<section class="section wrap" id="one">[\s\S]*?<\/section>/.exec(body)[0]
+  assert.doesNotMatch(section, /gallery-frame--scrollable/)
+  assert.doesNotMatch(section, /gallery-arrow/)
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'two',
+    settings: {
+      ...defaultSettings('concert'),
+      events: [{ date: '2026-10-16' }, { date: '2026-11-20' }]
+    }
+  })
+  invalidateCache()
+
+  body = (await app.inject({ method: 'GET', url: '/' })).body
+  section = /<section class="section wrap" id="two">[\s\S]*?<\/section>/.exec(body)[0]
+  assert.match(section, /gallery-frame--scrollable/)
+  assert.match(section, /data-gallery-scroll/)
+  assert.match(section, /gallery-arrow--next/)
+  assert.equal((section.match(/class="concert-grid/g) || []).length, 2)
 })
 
 test('в head есть canonical и hreflang на обе версии', async () => {

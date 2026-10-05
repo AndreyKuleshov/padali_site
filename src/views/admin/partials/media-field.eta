@@ -1,0 +1,36 @@
+<% ;/* Поле картинки: выбранное, выбор из медиатеки и загрузка.
+       Одно и то же у полей блока и у строк повторителя — у вторых
+       имя составное, «events.0.poster». Скрипт находит поле по
+       data-media-field, поэтому разметка обязана быть одна: вторая
+       копия с другими атрибутами уже разъехалась с ним. */
+  var field = it.field
+  var name = it.name
+  var chosen = it.chosen || []
+%>
+<div class="field media-field<%= field.fallback === 'siteLogo' ? ' media-field--logo' : '' %>"
+     data-media-field="<%= name %>" data-multiple="<%= field.multiple ? '1' : '' %>">
+  <label><%= it.localize(field.label) %><%= field.required ? ' *' : '' %></label>
+  <div class="media-slots">
+    <% chosen.forEach(function (item) { %>
+    <div class="media-slot">
+      <img src="<%= item.thumb %>" alt="">
+      <input type="hidden" name="media[<%= name %>][]" value="<%= item.id %>">
+      <button type="button" class="media-remove" aria-label="<%= it.t('blockForm.remove') %>">×</button>
+    </div>
+    <% }) %>
+  </div>
+  <% if (it.inherited) { %>
+  <div class="media-inherited">
+    <div class="media-slot media-slot--preview<%= it.inherited.builtIn ? ' media-slot--invert' : '' %>"><img src="<%= it.inherited.thumb %>" alt=""></div>
+    <p class="hint"><%= it.inherited.builtIn ? it.t('blockForm.logoBuiltIn') : it.t('blockForm.logoFromSettings') %></p>
+  </div>
+  <% } %>
+  <div class="media-actions">
+    <button type="button" class="btn btn--small media-pick"><%= it.t('blockForm.pickFromMedia') %></button>
+    <label class="btn btn--small media-upload">
+      <%= it.t('blockForm.uploadNew') %>
+      <input type="file" accept="image/*"<%= field.multiple ? ' multiple' : '' %> hidden>
+    </label>
+    <span class="media-upload-note hint" hidden></span>
+  </div>
+</div>

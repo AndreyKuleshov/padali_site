@@ -358,6 +358,35 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
   padding: 10px;
 }
 
+/* Закладки повторителя: одна строка видна, остальные ждут. */
+.repeater-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+
+.repeater-tab {
+  font-family: var(--mono);
+  font-size: .8rem;
+  color: var(--soft);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.repeater-tab:hover { color: var(--ink); border-color: #444; }
+
+.repeater-tab.is-active {
+  color: var(--bg);
+  background: var(--neon);
+  border-color: var(--neon);
+}
+
+.repeater-tab--add { font-size: 1rem; line-height: 1; padding: 6px 12px; }
+
+/* Строка-закладка длинная: поля в столбик, а не в ряд. */
+.repeater--tabs .repeater-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.repeater--tabs .repeater-remove { justify-self: end; }
+.repeater--tabs .repeater-cell { flex: initial; }
+
 .repeater-cell { display: grid; gap: 3px; min-width: 0; flex: 0 1 150px; }
 
 /* Последнее поле строки — всегда ссылка, и она длиннее прочих. */

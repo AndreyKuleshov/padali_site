@@ -42,15 +42,21 @@ function viewMedia (media, textsByLocale, locale, defaultLocale) {
 
 /**
  * Строки повторителя: непереводимые значения лежат в settings,
- * переводимые — в block_texts по ключу `<поле>.<индекс>.<подполе>`.
+ * переводимые — в block_texts по ключу `<поле>.<индекс>.<подполе>`,
+ * картинки — в block_media под тем же составным именем.
  */
-function resolveRepeater (field, rawRows, blockTexts, locale, defaultLocale) {
+function resolveRepeater (field, rawRows, blockTexts, media, locale, defaultLocale) {
   const rows = Array.isArray(rawRows) ? rawRows : []
   return rows.map((row, index) => {
     const resolved = { ...row }
     for (const sub of field.fields) {
-      if (!sub.translatable) continue
-      resolved[sub.key] = pick(blockTexts, locale, defaultLocale, `${field.key}.${index}.${sub.key}`)
+      const key = `${field.key}.${index}.${sub.key}`
+      if (sub.translatable) {
+        resolved[sub.key] = pick(blockTexts, locale, defaultLocale, key)
+      } else if (sub.input === 'media') {
+        const views = media[key] ?? []
+        resolved[sub.key] = sub.multiple ? views : (views[0] ?? null)
+      }
     }
     return resolved
   })
@@ -113,17 +119,18 @@ async function composePage ({ slug = HOME_SLUG, locale }) {
     const blockTexts = textsByBlock.get(block.id)
     const text = resolveTexts(blockTexts, activeLocale, defaultLocale)
 
+    const media = {}
+    for (const [field, ids] of Object.entries(mediaByBlock.get(block.id) ?? {})) {
+      media[field] = ids.map(toView).filter(Boolean)
+    }
+
+    // Строки разбираем после картинок: у строки бывает своя.
     const settingsResolved = { ...block.settings }
     for (const field of descriptor?.settings ?? []) {
       if (field.input !== 'repeater') continue
       settingsResolved[field.key] = resolveRepeater(
-        field, block.settings?.[field.key], blockTexts, activeLocale, defaultLocale
+        field, block.settings?.[field.key], blockTexts, media, activeLocale, defaultLocale
       )
-    }
-
-    const media = {}
-    for (const [field, ids] of Object.entries(mediaByBlock.get(block.id) ?? {})) {
-      media[field] = ids.map(toView).filter(Boolean)
     }
 
     let gallery = null

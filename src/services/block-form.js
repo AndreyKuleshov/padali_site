@@ -141,7 +141,11 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
 
       const row = {}
       for (const sub of untranslatable) {
-        row[sub.key] = coerceScalar(sub, rawRow?.[sub.key])
+        // Картинка строки живёт не в settings, а в block_media.
+        if (sub.input === 'media') continue
+        row[sub.key] = sub.input === 'price'
+          ? joinPrice(rawRow?.[sub.key], rawRow?.[`${sub.key}_currency`])
+          : coerceScalar(sub, rawRow?.[sub.key])
       }
 
       const newIndex = rows.length
@@ -176,6 +180,32 @@ function parseBlockForm (descriptor, body = {}, locales = []) {
   }
 
   const mediaByField = {}
+
+  /* Картинки строк повторителя: имя составное, «events.0.poster».
+     Индекс берётся уже перенумерованный — тот же, что у текстов,
+     иначе после удаления строки афиша осталась бы у соседа. */
+  for (const field of descriptor.settings ?? []) {
+    if (field.input !== 'repeater') continue
+    const mediaSubs = field.fields.filter((sub) => sub.input === 'media')
+    if (mediaSubs.length === 0) continue
+
+    ;(settings[field.key] ?? []).forEach((_row, newIndex) => {
+      const oldIndex = [...textKeyRemap.entries()]
+        .find(([, to]) => to.startsWith(`${field.key}.${newIndex}.`))?.[0]
+        ?.split('.')[1]
+      const from = oldIndex ?? String(newIndex)
+
+      for (const sub of mediaSubs) {
+        const raw = body.media?.[`${field.key}.${from}.${sub.key}`]
+        const list = Array.isArray(raw) ? raw : (raw == null ? [] : [raw])
+        const ids = list
+          .map((value) => Number.parseInt(asString(value), 10))
+          .filter((id) => Number.isInteger(id) && id > 0)
+        mediaByField[`${field.key}.${newIndex}.${sub.key}`] = sub.multiple ? ids : ids.slice(0, 1)
+      }
+    })
+  }
+
   for (const field of descriptor.media ?? []) {
     const raw = body.media?.[field.key]
     const list = Array.isArray(raw) ? raw : (raw == null ? [] : [raw])

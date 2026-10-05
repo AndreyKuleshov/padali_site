@@ -31,6 +31,74 @@
     if (message && !window.confirm(message)) event.preventDefault()
   })
 
+  /* ── Закладки повторителя ─────────────────────────────────
+     Концерт — это афиша, две даты и тексты на двух языках. Подряд
+     несколько таких строк не прочитать, поэтому показываем по
+     одной, а переключают их закладки. Строки при этом остаются
+     обычными строками формы: уходят все разом, скрытая не теряется. */
+  function initRepeaterTabs () {
+    document.querySelectorAll('[data-repeater] [data-repeater-tabs]').forEach(function (bar) {
+      var repeater = bar.closest('[data-repeater]')
+      var rows = repeater.querySelector('.repeater-rows')
+      var template = repeater.querySelector('[data-repeater-template]')
+      var label = repeater.getAttribute('data-tab-label') || ''
+      var active = 0
+
+      function list () {
+        return Array.prototype.slice.call(rows.querySelectorAll('.repeater-row'))
+      }
+
+      function show (index) {
+        var all = list()
+        if (all.length === 0) { active = 0; draw(); return }
+        active = Math.max(0, Math.min(index, all.length - 1))
+        all.forEach(function (row, at) { row.hidden = at !== active })
+        draw()
+      }
+
+      function draw () {
+        var all = list()
+        bar.replaceChildren()
+
+        all.forEach(function (row, at) {
+          var tab = document.createElement('button')
+          tab.type = 'button'
+          tab.className = 'repeater-tab' + (at === active ? ' is-active' : '')
+          tab.setAttribute('role', 'tab')
+          tab.setAttribute('aria-selected', at === active ? 'true' : 'false')
+          tab.textContent = label + ' ' + (at + 1)
+          tab.addEventListener('click', function () { show(at) })
+          bar.appendChild(tab)
+        })
+
+        var add = document.createElement('button')
+        add.type = 'button'
+        add.className = 'repeater-tab repeater-tab--add'
+        add.setAttribute('aria-label', repeater.getAttribute('data-add-label') || '+')
+        add.textContent = '+'
+        add.addEventListener('click', function () {
+          // Индексы могут быть разрежены после удалений — берём следующий.
+          var used = list().map(function (row) { return Number(row.getAttribute('data-index')) || 0 })
+          var next = used.length > 0 ? Math.max.apply(null, used) + 1 : 0
+
+          var holder = document.createElement('div')
+          holder.innerHTML = template.innerHTML.split('__INDEX__').join(String(next))
+          rows.appendChild(holder.firstElementChild)
+          show(list().length - 1)
+        })
+        bar.appendChild(add)
+      }
+
+      rows.addEventListener('click', function (event) {
+        if (!event.target.closest('.repeater-remove')) return
+        // Строку уже убрал общий обработчик повторителя.
+        setTimeout(function () { show(active) }, 0)
+      })
+
+      show(0)
+    })
+  }
+
   /* ── Поле цены ────────────────────────────────────────────
      Валюта обязательна ровно тогда, когда вписана сумма: без неё
      цена ничего не значит, а пустое поле не должно мешать
@@ -1349,4 +1417,5 @@
   initAlbumPanels()
   initHeatmap()
   initPriceFields()
+  initRepeaterTabs()
 })()

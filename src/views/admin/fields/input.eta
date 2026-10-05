@@ -51,9 +51,13 @@
   </div>
 
 <% } else if (field.input === 'price') { %>
+  <% ;/* Имя валюты берём переданное, если оно есть: в строке
+         повторителя это «settings[events][1][price_currency]», и
+         собственное «settings[price_currency]» склеило бы валюту
+         всех строк в одно поле. */ %>
   <%~ include('/admin/partials/price-input', Object.assign({}, it, {
         id: id,
-        currencyName: 'settings[' + field.key + '_currency]'
+        currencyName: it.currencyName || ('settings[' + field.key + '_currency]')
       })) %>
 
 <% } else if (field.input === 'url') { %>
