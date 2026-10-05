@@ -59,6 +59,24 @@ test('пустые строки повторителя выбрасываютс�
   assert.equal(parsed.settings.items[1].label, 'YouTube')
 })
 
+/* Строку судят по смысловому подполю. Раньше смотрели на все
+   сразу: заполнив одну подпись, редактор получал выжившую строку
+   без адреса, и на сайте появлялась иконка с href="" — нажатие
+   перезагружало страницу саму в себя. */
+test('строка без ссылки выбрасывается, даже если подпись заполнена', () => {
+  const parsed = parseBlockForm(links, {
+    settings: {
+      items: {
+        0: { icon: 'instagram', label: 'Instagram', handle: '@a', url: 'https://instagram.com/a' },
+        1: { icon: 'youtube', label: 'Наш канал', handle: '@b', url: '' }
+      }
+    }
+  }, ['en'])
+
+  assert.equal(parsed.settings.items.length, 1)
+  assert.equal(parsed.settings.items[0].label, 'Instagram')
+})
+
 test('чужие текстовые ключи в форму не проходят', () => {
   const parsed = parseBlockForm(gallery, {
     text: { en: { heading: 'ok', password_hash: 'взлом' } },

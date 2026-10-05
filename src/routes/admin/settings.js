@@ -11,8 +11,11 @@ import { logoFromSettings, builtInLogo } from '../../services/site-logo.js'
 
 async function settingsRoutes (app) {
   app.get('/settings', async (request, reply) => {
-    const [settings, locales, page, library] = await Promise.all([
-      getAllSettings(), listLocales(), getPageBySlug(HOME_SLUG), listMediaForPicker()
+    const settings = await getAllSettings()
+    const [locales, page, library] = await Promise.all([
+      listLocales(),
+      getPageBySlug(HOME_SLUG),
+      listMediaForPicker([Number(settings.logo_id), Number(settings.og_image_id)])
     ])
     const pageTexts = page ? await getPageTexts(page.id) : {}
     // Логотип разрешаем той же цепочкой, что и сайт: свой из
@@ -62,13 +65,19 @@ async function settingsRoutes (app) {
       }))
       .filter((row) => row.icon && row.url)
 
-    const ogImageId = Number.parseInt(asString(request.body?.og_image_id), 10)
-    const logoId = Number.parseInt(asString(request.body?.logo_id), 10)
+    /* Поля нет в теле — настройку не трогаем. Пустое значение это
+       «очистить», а отсутствие поля — признак, что форма пришла
+       неполной, и стирать по нему нечего. */
+    async function saveMediaSetting (key) {
+      if (!Object.hasOwn(request.body ?? {}, key)) return
+      const id = Number.parseInt(asString(request.body[key]), 10)
+      await setSetting(key, Number.isInteger(id) && id > 0 ? id : null)
+    }
 
     await setSetting('social', social)
     await setSetting('footer_note', asString(request.body?.footer_note))
-    await setSetting('og_image_id', Number.isInteger(ogImageId) && ogImageId > 0 ? ogImageId : null)
-    await setSetting('logo_id', Number.isInteger(logoId) && logoId > 0 ? logoId : null)
+    await saveMediaSetting('og_image_id')
+    await saveMediaSetting('logo_id')
 
     const page = await getPageBySlug(HOME_SLUG)
     if (page) {

@@ -43,6 +43,21 @@
      своя, поэтому два альбома на странице не перемешиваются.
      Одиночная картинка (обложка, афиша) группы не имеет — тогда
      стрелки и счётчик не показываются. */
+  /**
+   * Прячет страницу под открытым окном.
+   *
+   * `aria-modal` сам по себе ничего не закрывает: без этого Tab и
+   * чтение экрана уходили на содержимое под просмотром и под
+   * боковым меню. `inert` снимает и фокус, и доступность разом.
+   */
+  function shutOut (on) {
+    var zones = document.querySelectorAll('header.topbar, main, .site-footer')
+    for (var i = 0; i < zones.length; i += 1) {
+      if (on) zones[i].setAttribute('inert', '')
+      else zones[i].removeAttribute('inert')
+    }
+  }
+
   function initLightbox () {
     var lightbox = document.getElementById('lightbox')
     var track = document.getElementById('lightboxTrack')
@@ -187,6 +202,7 @@
 
       lightbox.hidden = false
       document.body.classList.add('no-scroll')
+      shutOut(true)
       // Ширину ленты видно только после показа: у скрытого нуль.
       goTo(start, false)
       if (closeButton) closeButton.focus()
@@ -199,6 +215,7 @@
       count = 0
       index = 0
       document.body.classList.remove('no-scroll')
+      shutOut(false)
       if (lastFocused && lastFocused.focus) lastFocused.focus()
     }
 
@@ -228,6 +245,15 @@
     // Повернули телефон — ширина кадра другая, лента уехала бы вбок.
     window.addEventListener('resize', function () {
       if (!lightbox.hidden) goTo(index, false)
+    })
+
+    // Клавиатура: у картинки роль кнопки, значит Enter и пробел.
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      var trigger = event.target.closest && event.target.closest('img[data-lightbox]')
+      if (!trigger) return
+      event.preventDefault()
+      open(trigger)
     })
 
     document.addEventListener('click', function (event) {
@@ -461,7 +487,14 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind: kind ? kind.value : '', value: value.value })
     })
-      .then(function (response) { return response.json() })
+      /* Отказ по лимиту — это 429 с телом {error}, и `ok` в нём нет.
+         Посетителю говорили «неверный адрес», и форма не уходила
+         вовсе. Проверка — помощник, а не вахтёр: не ответили
+         по делу, значит пропускаем. */
+      .then(function (response) {
+        if (!response.ok) return { ok: true }
+        return response.json()
+      })
       .then(function (result) {
         note.hidden = result.ok
         if (!result.ok) {
@@ -538,6 +571,7 @@
       menu.hidden = false
       toggle.setAttribute('aria-expanded', 'true')
       document.body.classList.add('no-scroll')
+      shutOut(true)
       if (closeButton) closeButton.focus()
     }
 
@@ -549,6 +583,7 @@
       menu.hidden = true
       toggle.setAttribute('aria-expanded', 'false')
       document.body.classList.remove('no-scroll')
+      shutOut(false)
       if (returnFocus) toggle.focus()
     }
 
@@ -562,7 +597,17 @@
     })
 
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') close(true)
+      if (menu.hidden) return
+      if (event.key === 'Escape') { close(true); return }
+
+      // Tab не должен уводить из открытой панели на страницу под ней.
+      if (event.key !== 'Tab') return
+      var stops = menu.querySelectorAll('button, a[href]')
+      if (stops.length === 0) return
+      var at = Array.prototype.indexOf.call(stops, document.activeElement)
+      var next = event.shiftKey ? at - 1 : at + 1
+      event.preventDefault()
+      stops[(next + stops.length) % stops.length].focus()
     })
 
     // Экран расширили — полоса разделов вернулась, меню лишнее.

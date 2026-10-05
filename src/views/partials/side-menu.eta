@@ -8,7 +8,7 @@
 <div class="side-menu" id="sideMenu" data-block="menu" hidden>
   <div class="side-menu-backdrop" data-menu-backdrop></div>
   <aside class="side-menu-panel" role="dialog" aria-modal="true"
-         aria-label="<%= it.s('nav.sections') %>">
+         aria-label="<%= it.s('nav.menu') %>">
     <div class="side-menu-head">
       <button type="button" class="side-menu-close" data-menu-close
               aria-label="<%= it.s('common.close') %>"><%~ it.h.icon('close') %></button>

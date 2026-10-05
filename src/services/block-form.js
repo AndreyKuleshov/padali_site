@@ -88,6 +88,12 @@ function coerceScalar (field, raw) {
  * перезагружает текущую страницу.
  */
 function isEmptySubmission (rawRow, fields) {
+  /* Смысловое подполе, если дескриптор его назвал: у ссылки это
+     url. Заполнив одну подпись, редактор получал выжившую строку
+     с пустым адресом — на сайте иконка, ведущая в никуда. */
+  const key = fields.find((sub) => sub.required)?.key
+  if (key) return asString(rawRow?.[key]) === ''
+
   const typed = fields.filter((sub) => sub.input !== 'select')
   // Строка из одних выпадаек: судить не по чему, оставляем как есть.
   if (typed.length === 0) return false

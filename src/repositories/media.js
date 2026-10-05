@@ -55,8 +55,20 @@ async function listMedia ({ limit = 200, offset = 0 } = {}, conn) {
  * Вся медиатека для окна выбора: оно рисуется разом, без страниц.
  * Предел тот же, что у списка, — выше него выборка не поднимется.
  */
-async function listMediaForPicker (conn) {
-  return listMedia({ limit: MEDIA_LIMIT_MAX }, conn)
+async function listMediaForPicker (keep = [], conn) {
+  const items = await listMedia({ limit: MEDIA_LIMIT_MAX }, conn)
+
+  /* Выбранное добавляем отдельно, даже если оно не попало в окно.
+     Окно — 500 самых свежих, а логотип грузят один раз в начале:
+     после пятисотого файла его варианта в списке не было, браузер
+     слал пустое значение, и сохранение настроек стирало логотип. */
+  const shown = new Set(items.map((item) => item.id))
+  const missing = [...new Set(keep)]
+    .filter((id) => Number.isInteger(id) && id > 0 && !shown.has(id))
+  if (missing.length === 0) return items
+
+  const byId = await getMediaByIds(missing, conn)
+  return [...missing.map((id) => byId.get(id)).filter(Boolean), ...items]
 }
 
 async function countMedia (conn) {

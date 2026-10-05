@@ -10,5 +10,7 @@
   alt="<%= media.alt %>"
   loading="<%= loading %>" decoding="async"
   <% if (className) { %>class="<%= className %>"<% } %>
-  <% if (it.lightbox) { %>data-lightbox="<%= media.original %>"<% } %>
+  <% ;/* Открывается не только мышью: без tabindex и роли альбом
+         нельзя было открыть с клавиатуры вовсе. */ %>
+  <% if (it.lightbox) { %>data-lightbox="<%= media.original %>" tabindex="0" role="button"<% } %>
 ><% } %>

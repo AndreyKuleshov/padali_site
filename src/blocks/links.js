@@ -26,7 +26,8 @@ export default {
         { key: 'icon',   label: { en: 'Icon', sr: 'Ikona' },   input: 'select', options: ICON_NAMES },
         { key: 'label',  label: { en: 'Name', sr: 'Naziv' }, input: 'text' },
         { key: 'handle', label: { en: 'Text on the right', sr: 'Tekst desno' }, input: 'text' },
-        { key: 'url',    label: { en: 'Link', sr: 'Link' },   input: 'url' }
+        // Смысловое подполе строки: без адреса строка пустая.
+        { key: 'url',    label: { en: 'Link', sr: 'Link' },   input: 'url', required: true }
       ],
       default: []
     }

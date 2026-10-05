@@ -147,6 +147,36 @@ test('загрузка из формы возвращает готовую ка�
   assert.match(result.items[0].thumb, /^\/uploads\//)
 })
 
+/* Окно выбора — 500 самых свежих файлов, а логотип грузят один раз
+   в начале. После пятисотого файла его варианта в списке не было,
+   браузер слал пустое значение, и первое же сохранение настроек
+   стирало логотип вместе с картинкой для соцсетей. */
+test('логотип остаётся в списке, даже когда он старше пятисот файлов', async () => {
+  const { listMediaForPicker } = await import('../src/repositories/media.js')
+
+  const { media: oldest } = await processUpload({
+    buffer: await makeImage({ width: 400, height: 120, seed: 801 }),
+    originalName: 'логотип.png', mime: 'image/png'
+  })
+  await setSetting('logo_id', oldest.id)
+
+  // Подпираем выборку: запись должна выпасть из окна по дате.
+  const { query } = await import('../src/db/pool.js')
+  await query('UPDATE media SET created_at = now() - interval \'5 years\' WHERE id = ?', [oldest.id])
+
+  const plain = await listMediaForPicker()
+  const kept = await listMediaForPicker([oldest.id])
+
+  assert.equal(plain.some((item) => item.id === oldest.id), true,
+    'на маленькой медиатеке он и так в списке')
+  assert.equal(kept.filter((item) => item.id === oldest.id).length, 1,
+    'и не задваивается, когда уже есть')
+
+  const away = await listMediaForPicker([999999])
+  assert.equal(away.some((item) => item.id === 999999), false,
+    'несуществующий id список не ломает')
+})
+
 test('загрузка без токена отклоняется', async () => {
   const body = await multipart({}, {
     buffer: await makeImage({ width: 300, height: 100, seed: 15 }),
