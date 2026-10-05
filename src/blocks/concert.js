@@ -21,8 +21,32 @@ export default {
   ],
 
   settings: [
-    { key: 'date',       label: { en: 'Concert date', sr: 'Datum koncerta' },   input: 'date' },
-    { key: 'ticket_url', label: { en: 'Ticket link', sr: 'Link za karte' }, input: 'url' }
+    { key: 'date', label: { en: 'Concert date', sr: 'Datum koncerta' }, input: 'date' },
+    {
+      key: 'tickets',
+      label: { en: 'Tickets', sr: 'Karte' },
+      input: 'select',
+      options: ['link', 'door'],
+      optionLabels: {
+        link: { en: 'Sold by a link', sr: 'Prodaju se preko linka' },
+        door: { en: 'At the door', sr: 'Na ulazu' }
+      },
+      default: 'link',
+      hint: {
+        en: 'With «at the door» the link below is not shown, even if filled.',
+        sr: 'Uz «na ulazu» link ispod se ne prikazuje, čak i ako je popunjen.'
+      }
+    },
+    { key: 'ticket_url', label: { en: 'Ticket link', sr: 'Link za karte' }, input: 'url' },
+    {
+      key: 'price',
+      label: { en: 'Price', sr: 'Cena' },
+      input: 'text',
+      hint: {
+        en: 'As people should read it: «800 RSD», «€7». Leave empty to hide.',
+        sr: 'Onako kako se čita: «800 RSD», «7 €». Ostavite prazno da se sakrije.'
+      }
+    }
   ],
 
   template: 'blocks/concert'

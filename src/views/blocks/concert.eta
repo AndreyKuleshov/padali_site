@@ -1,6 +1,9 @@
 <%
   var block = it.block
   var poster = block.first('poster')
+  /* Билеты на входе: ссылку не показываем, даже если она осталась
+     заполненной с прошлого концерта. */
+  var atDoor = block.settings.tickets === 'door'
 %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
@@ -16,9 +19,17 @@
       <% } %>
       <% if (block.text.venue) { %><p class="concert-venue"><%= block.text.venue %></p><% } %>
       <% if (block.text.note) { %><p class="note"><%= block.text.note %></p><% } %>
-      <% if (block.settings.ticket_url) { %>
+      <% ;/* Цена нужна в обоих случаях: и когда билеты продают по
+             ссылке, и когда их берут на входе. */ %>
+      <% if (block.settings.price) { %>
+      <p class="concert-price"><%= block.settings.price %></p>
+      <% } %>
+
+      <% if (atDoor) { %>
+      <p class="concert-door"><%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.atDoor') %></p>
+      <% } else if (block.settings.ticket_url) { %>
       <a class="button" href="<%= block.settings.ticket_url %>" target="_blank" rel="noopener">
-        <%~ it.h.icon('ticket') %><%= block.text.ticket_label || 'Tickets' %>
+        <%~ it.h.icon('ticket') %><%= block.text.ticket_label || it.s('concert.tickets') %>
       </a>
       <% } %>
       <% if (block.text.tag) { %><p><span class="concert-tag"><%= block.text.tag %></span></p><% } %>

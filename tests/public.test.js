@@ -173,6 +173,44 @@ test('кнопка отправки стоит в строке связи, а в
   assert.doesNotMatch(order, /type="submit"/, 'в окне заказа кнопка ниже, а не в строке')
 })
 
+/* Два способа попасть на концерт: купить по ссылке или взять на
+   входе. Ссылка остаётся в настройках от прошлого концерта, и при
+   «на входе» её показывать нельзя — поведут не туда. */
+test('билеты: по ссылке — кнопка, на входе — строка без ссылки', async () => {
+  const { pageId } = await buildPage()
+
+  const link = await createBlock({
+    pageId, type: 'concert', anchor: 'byLink',
+    settings: {
+      ...defaultSettings('concert'),
+      tickets: 'link', ticket_url: 'https://tickets.example/padali', price: '800 RSD'
+    }
+  })
+  const door = await createBlock({
+    pageId, type: 'concert', anchor: 'atDoor',
+    settings: {
+      ...defaultSettings('concert'),
+      tickets: 'door', ticket_url: 'https://tickets.example/старый', price: '600 RSD'
+    }
+  })
+  assert.ok(link && door)
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const section = (id) => /<section class="section wrap" id="SECTION">[\s\S]*?<\/section>/
+    .source.replace('SECTION', id)
+
+  const byLink = new RegExp(section('byLink')).exec(body)[0]
+  assert.match(byLink, /href="https:\/\/tickets\.example\/padali"/)
+  assert.match(byLink, /800 RSD/)
+
+  const atDoor = new RegExp(section('atDoor')).exec(body)[0]
+  assert.doesNotMatch(atDoor, /tickets\.example/, 'ссылка прошлого концерта не показывается')
+  assert.match(atDoor, /concert-door/)
+  assert.match(atDoor, /Tickets at the door/)
+  assert.match(atDoor, /600 RSD/)
+})
+
 test('в head есть canonical и hreflang на обе версии', async () => {
   await buildPage()
   const response = await app.inject({ method: 'GET', url: '/' })

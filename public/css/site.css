@@ -410,6 +410,31 @@ body.no-scroll { overflow: hidden; }
 
 .concert-venue { font-size: 1.02rem; margin-bottom: 10px; }
 
+/* Цена заметнее прочего в карточке: её ищут глазами. */
+.concert-price {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  color: var(--neon);
+  margin-bottom: 10px;
+}
+
+/* Билеты на входе: строка, а не кнопка — жать не на что. */
+.concert-door {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 10px 18px;
+  margin-bottom: 14px;
+}
+
+.concert-door svg { width: 16px; height: 16px; }
+
 .concert-tag {
   display: inline-block;
   font-family: var(--display);
