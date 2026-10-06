@@ -54,6 +54,72 @@ async function photo (seed) {
 
 /* ─── Приём сообщений ────────────────────────────────────── */
 
+/* Капча включается ключами и проверяется ДО записи в базу:
+   пропущенный робот стоит нам строки в таблице и письма. В сеть
+   тест не ходит — Cloudflare подменяется на время проверки. */
+test('капча отсекает отправку без токена и пропускает с токеном', async () => {
+  const config = (await import('../src/config.js')).default
+  const было = { ...config.turnstile }
+  const настоящийFetch = globalThis.fetch
+  const запросы = []
+
+  config.turnstile = { siteKey: 'site', secretKey: 'secret' }
+  globalThis.fetch = async (url, options) => {
+    запросы.push(Object.fromEntries(options.body))
+    return { ok: true, json: async () => ({ success: Object.fromEntries(options.body).response === 'хороший' }) }
+  }
+
+  try {
+    const без = await send({ kind: 'contact', message: 'Привет', contact_kind: 'email', contact: 'a@b.rs' })
+    assert.equal(без.statusCode, 400, 'без токена не принимаем')
+    assert.equal(без.json().reason, 'captcha')
+    assert.equal(запросы.length, 0, 'до Cloudflare такое даже не доходит')
+
+    const плохой = await send({
+      kind: 'contact', message: 'Привет', contact_kind: 'email', contact: 'a@b.rs',
+      'cf-turnstile-response': 'плохой'
+    })
+    assert.equal(плохой.statusCode, 400)
+    assert.deepEqual(await listMessages(), [], 'в базу ничего не легло')
+
+    const хороший = await send({
+      kind: 'contact', message: 'Прошло', contact_kind: 'email', contact: 'a@b.rs',
+      'cf-turnstile-response': 'хороший'
+    })
+    assert.equal(хороший.statusCode, 200)
+    const [saved] = await listMessages()
+    assert.equal(saved.body, 'Прошло')
+  } finally {
+    config.turnstile = было
+    globalThis.fetch = настоящийFetch
+  }
+})
+
+/* Молчание Cloudflare — не повод отказать: политика та же, что у
+   проверки контактов. Приманка и ограничение частоты при этом
+   никуда не делись. */
+test('когда капча недоступна, письмо всё равно принимается', async () => {
+  const config = (await import('../src/config.js')).default
+  const было = { ...config.turnstile }
+  const настоящийFetch = globalThis.fetch
+
+  config.turnstile = { siteKey: 'site', secretKey: 'secret' }
+  globalThis.fetch = async () => { throw new Error('сеть недоступна') }
+
+  try {
+    const ответ = await send({
+      kind: 'contact', message: 'Сквозь молчание', contact_kind: 'email', contact: 'a@b.rs',
+      'cf-turnstile-response': 'любой'
+    })
+    assert.equal(ответ.statusCode, 200)
+    const [saved] = await listMessages()
+    assert.equal(saved.body, 'Сквозь молчание')
+  } finally {
+    config.turnstile = было
+    globalThis.fetch = настоящийFetch
+  }
+})
+
 test('сообщение из формы связи сохраняется', async () => {
   const response = await send({
     kind: 'contact', message: 'Привет, хотим вас на фестиваль',

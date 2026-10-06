@@ -15,6 +15,7 @@ import {
 import { createMessage, markMailed } from '../repositories/messages.js'
 import { sendMessage } from '../services/mail.js'
 import { checkContact } from '../services/contact-check.js'
+import { verifyTurnstile } from '../services/turnstile.js'
 import { siteTranslator } from '../i18n/site.js'
 import { buildJsonLd } from '../services/json-ld.js'
 
@@ -151,6 +152,24 @@ async function publicRoutes (app) {
        подберёт форму ответа и попробует снова. */
     if (String(body.website ?? '') !== '') {
       return wantsPage ? reply.redirect(backTo, 303) : reply.send({ ok: true })
+    }
+
+    /* Капча — до записи в базу: пропущенный робот стоит нам строки
+       в таблице и письма. Отсутствие токена это не «сеть моргнула»,
+       а запрос мимо формы, и он отклоняется; а вот молчание самого
+       Cloudflare пропускаем — политика та же, что у проверки
+       контактов: потерять настоящее письмо хуже. */
+    const captcha = await verifyTurnstile(body['cf-turnstile-response'], {
+      ip: request.headers['cf-connecting-ip'] || request.ip
+    })
+    if (!captcha.ok) {
+      request.log.warn({ reason: captcha.reason }, 'Отправка не прошла капчу')
+      return wantsPage
+        ? reply.redirect(backTo, 303)
+        : reply.code(400).send({ ok: false, reason: 'captcha' })
+    }
+    if (captcha.reason === 'unreachable') {
+      request.log.warn('Капча недоступна — сообщение принято без неё')
     }
 
     const kind = body.kind === 'order' ? 'order' : 'contact'

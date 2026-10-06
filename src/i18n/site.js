@@ -47,6 +47,7 @@ const DICTIONARY = {
     'merch.failed': 'Not sent. Please try again.',
 
     'nav.skipToContent': 'Skip to content',
+    'form.captchaFailed': 'The anti-spam check did not pass. Please try again.',
     'concert.priceFrom': 'from',
     'concert.tickets': 'Tickets',
     'concert.atDoor': 'Tickets at the door',
@@ -88,6 +89,7 @@ const DICTIONARY = {
     'merch.failed': 'Nije poslato. Pokušajte ponovo.',
 
     'nav.skipToContent': 'Pređi na sadržaj',
+    'form.captchaFailed': 'Provera protiv spama nije prošla. Pokušajte ponovo.',
     'concert.priceFrom': 'od',
     'concert.tickets': 'Karte',
     'concert.atDoor': 'Karte na ulazu',

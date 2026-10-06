@@ -21,7 +21,8 @@
          оказывался в адресной строке, в истории и в журналах. */ %>
   <form class="contact-form" action="/send" method="post" data-send-form data-kind="contact"
         data-sent="<%= block.text.sent || it.s('contact.sent') %>"
-        data-failed="<%= block.text.failed || it.s('contact.failed') %>">
+        data-failed="<%= block.text.failed || it.s('contact.failed') %>"
+        data-captcha-failed="<%= it.s('form.captchaFailed') %>">
     <label class="field">
       <span><%= labelMessage %></span>
       <textarea name="message" rows="5" required maxlength="4000"></textarea>
@@ -39,6 +40,8 @@
     <div class="honeypot" aria-hidden="true">
       <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
     </div>
+
+    <%~ include('/partials/turnstile', it) %>
 
     <p class="form-note" data-send-note hidden></p>
   </form>

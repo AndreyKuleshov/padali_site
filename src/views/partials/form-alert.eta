@@ -1,0 +1,8 @@
+<% ;/* Отказ показываем окном, а не строкой под формой: строку под
+       кнопкой не замечают — на этом уже споткнулись с подписями
+       полей. Удача по-прежнему строкой: там форма исчезает, и
+       заметить нечего. Одно окно на все формы страницы. */ %>
+<dialog class="form-alert" id="formAlert" aria-labelledby="formAlertText">
+  <p class="form-alert-text" id="formAlertText"></p>
+  <button type="button" class="button" data-alert-close><%= it.s('common.close') %></button>
+</dialog>

@@ -50,7 +50,8 @@
   <dialog class="order-dialog" data-order-dialog>
     <form class="contact-form" data-send-form data-kind="order"
           data-sent="<%= block.text.sent || it.s('merch.sent') %>"
-          data-failed="<%= block.text.failed || it.s('merch.failed') %>">
+          data-failed="<%= block.text.failed || it.s('merch.failed') %>"
+          data-captcha-failed="<%= it.s('form.captchaFailed') %>">
       <header class="order-head">
         <strong><%= formTitle %></strong>
         <button type="button" class="button button--ghost button--small" data-order-close><%= close %></button>
@@ -79,6 +80,8 @@
       <div class="honeypot" aria-hidden="true">
         <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
       </div>
+
+      <%~ include('/partials/turnstile', it) %>
 
       <button type="submit" class="button"><%= submit %></button>
       <p class="form-note" data-send-note hidden></p>

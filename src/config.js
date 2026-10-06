@@ -51,6 +51,13 @@ function readEnv (env = process.env) {
       timeoutMs: Number(env.OPENAI_TIMEOUT_MS ?? 20000)
     },
 
+    /* Капча на формах. Нет ключей — капчи нет, формы работают как
+       раньше: сайт не должен ломаться оттого, что её ещё не завели. */
+    turnstile: {
+      siteKey: env.CF_SITE_KEY ?? '',
+      secretKey: env.CF_SECRET_KEY ?? ''
+    },
+
     /**
      * Почта для форм на сайте.
      *

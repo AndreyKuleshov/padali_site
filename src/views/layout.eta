@@ -63,9 +63,15 @@
 
 <% if (!it.hasFooterBlock) { %><%~ include('/partials/footer', it) %><% } %>
 <%~ include('/partials/lightbox', it) %>
+<%~ include('/partials/form-alert', it) %>
 
 <% ;/* Граница узкого экрана приходит разметкой: в скрипте она
        была написана числом и разъехалась бы со стилями молча. */ %>
+<% ;/* Скрипт капчи грузим только когда ключ задан: без него на
+       странице нет и виджета, а лишний чужой скрипт ни к чему. */ %>
+<% if (it.h.turnstileSiteKey) { %>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<% } %>
 <script src="<%= it.h.asset('/js/site.js') %>" data-narrow="<%= it.h.layout.narrow %>" defer></script>
 <script src="<%= it.h.asset('/js/analytics.js') %>" defer></script>
 </body>

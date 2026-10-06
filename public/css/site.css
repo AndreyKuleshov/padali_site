@@ -1223,6 +1223,28 @@ img[data-lightbox] { cursor: zoom-in; }
 
 .order-dialog::backdrop { background: rgba(0, 0, 0, .7); }
 
+/* Окно отказа. Те же рамка и подложка, что у окна заказа: это одно
+   и то же по сути, и разной внешности у них быть не должно. */
+.form-alert {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: inherit;
+  padding: 24px;
+  width: min(92vw, 420px);
+  text-align: center;
+}
+
+.form-alert::backdrop { background: rgba(0, 0, 0, .7); }
+
+.form-alert-text {
+  margin: 0 0 18px;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.form-alert .button { margin-bottom: 0; }
+
 .order-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 .order-item { color: var(--neon); margin: 0; }
 .order-dialog .contact-form { margin-top: 0; max-width: none; }

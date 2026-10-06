@@ -380,6 +380,21 @@
      Отправляем из скрипта, чтобы остаться на странице: перезагрузка
      ради одной строки «спасибо» уводит человека из того места, где
      он читал. */
+  /* Одно окно на все формы страницы: вторая копия разметки уже
+     однажды разъехалась с первой. */
+  function alertBox (text) {
+    var box = document.getElementById('formAlert')
+    if (!box || !box.showModal) { window.alert(text); return }
+
+    box.querySelector('.form-alert-text').textContent = text
+    var close = box.querySelector('[data-alert-close]')
+    if (close && !close.dataset.wired) {
+      close.dataset.wired = '1'
+      close.addEventListener('click', function () { box.close() })
+    }
+    try { box.showModal() } catch (error) { console.error('padali: окно отказа не открылось', error) }
+  }
+
   function initSendForms () {
     document.addEventListener('submit', function (event) {
       var form = event.target.closest('[data-send-form]')
@@ -393,7 +408,12 @@
       var payload = { kind: form.getAttribute('data-kind'), locale: document.documentElement.lang }
       data.forEach(function (value, key) { payload[key] = value })
 
+      /* Удача — строкой на месте формы: форма исчезает, и строка
+         оказывается там, куда человек и смотрит. Отказ — окном:
+         строку под кнопкой не замечают, на этом уже споткнулись с
+         подписями полей. */
       function say (text, state) {
+        if (state === 'error') { alertBox(text); return }
         if (!note) return
         note.hidden = false
         note.setAttribute('data-state', state)
@@ -424,15 +444,29 @@
       })
         .then(function (response) { return response.json().catch(function () { return {} }) })
         .then(function (result) {
-          if (!result.ok) { say(form.getAttribute('data-failed'), 'error'); return }
+          if (!result.ok) {
+            /* Токен капчи одноразовый: после отказа он уже потрачен,
+               и вторая попытка упёрлась бы в «уже использован».
+               Поэтому перед повтором виджет сбрасываем. */
+            resetCaptcha()
+            say(form.getAttribute(result.reason === 'captcha' ? 'data-captcha-failed' : 'data-failed'), 'error')
+            return
+          }
           // Форму убираем: повторная отправка того же — обычно промах.
           say(form.getAttribute('data-sent'), 'ok')
           form.reset()
           var fields = form.querySelectorAll('.field, button[type="submit"]')
           for (var i = 0; i < fields.length; i += 1) fields[i].hidden = true
         })
-        .catch(function () { say(form.getAttribute('data-failed'), 'error') })
+        .catch(function () { resetCaptcha(); say(form.getAttribute('data-failed'), 'error') })
         .finally(done)
+      }
+
+      function resetCaptcha () {
+        var widget = form.querySelector('.cf-turnstile')
+        if (widget && window.turnstile) {
+          try { window.turnstile.reset(widget) } catch (error) { console.error('padali: капчу не сбросить', error) }
+        }
       }
     })
   }
