@@ -80,6 +80,9 @@
     }
 
     function captionOf (node) {
+      var own = node.getAttribute('data-caption')
+      if (own) return own.trim()
+      // Запасной путь: подпись, уже нарисованная под снимком.
       var figure = node.closest('figure')
       var text = figure && figure.querySelector('figcaption')
       return text ? text.textContent.trim() : ''
@@ -159,20 +162,27 @@
         var slide = document.createElement('figure')
         slide.className = 'lightbox-slide'
 
+        /* Обёртка по размеру кадра: сам слайд во всю ширину окна, и
+           подпись в его углу легла бы на край экрана, а не на
+           фотографию. */
+        var shot = document.createElement('div')
+        shot.className = 'lightbox-shot'
+
         var picture = document.createElement('img')
         picture.alt = node.alt || ''
         picture.loading = Math.abs(position - start) <= 1 ? 'eager' : 'lazy'
         picture.decoding = 'async'
         picture.src = sourceOf(node)
-        slide.appendChild(picture)
+        shot.appendChild(picture)
 
         var text = captionOf(node)
         if (text) {
           var label = document.createElement('figcaption')
           label.textContent = text
-          slide.appendChild(label)
+          shot.appendChild(label)
         }
 
+        slide.appendChild(shot)
         frame.appendChild(slide)
       })
 

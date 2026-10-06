@@ -8,6 +8,7 @@ import { createBlock, updateBlock, saveBlockTexts, saveBlockMedia } from '../src
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../src/repositories/galleries.js'
 import { setSetting } from '../src/repositories/settings.js'
 import { processUpload } from '../src/services/media-processor.js'
+import { saveMediaTexts } from '../src/repositories/media.js'
 import { defaultSettings } from '../src/blocks/index.js'
 import { invalidateCache } from '../src/services/cache.js'
 
@@ -219,6 +220,47 @@ test('в переключателе видно оба языка, текущий
     assert.match(nav, new RegExp(`<a class="lang-btn"[^>]*>${other}</a>`),
       'второй язык остаётся ссылкой')
   }
+})
+
+/* Подпись доезжает до просмотрщика, даже когда под миниатюрами её
+   не показывают: в ленте она мешает, а в просмотрщике место есть и
+   человек смотрит один снимок. Раньше просмотрщик брал её только из
+   <figcaption> на странице — при выключенных подписях её не было
+   нигде, хотя у снимка она есть. */
+test('подпись едет в просмотрщик даже при выключенных подписях в ленте', async () => {
+  const { pageId } = await buildPage()
+
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 400, height: 300, seed: 61 }),
+    originalName: 'shot.png', mime: 'image/png'
+  })
+  await saveMediaTexts(media.id, { en: { caption: 'Подпись к снимку' } })
+
+  const album = await createGallery('shots')
+  await setGalleryItems(album, [media.id])
+
+  await createBlock({
+    pageId, type: 'gallery', anchor: 'shots',
+    settings: { ...defaultSettings('gallery'), gallery_id: album, show_captions: false }
+  })
+  await createBlock({
+    pageId, type: 'gallery', anchor: 'shots-captioned',
+    settings: { ...defaultSettings('gallery'), gallery_id: album, show_captions: true }
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const cut = (id) => new RegExp(`<section class="section wrap" id="${id}">[\\s\\S]*?<\\/section>`).exec(body)[0]
+
+  const quiet = cut('shots')
+  assert.doesNotMatch(quiet, /<figcaption/, 'под миниатюрой подписи нет — так и просили')
+  assert.match(quiet, /data-caption="Подпись к снимку"/, 'а просмотрщику она передана')
+
+  /* С включёнными подписями видно и то, и другое: одно другому не
+     мешает, и просмотрщик по-прежнему берёт свою. */
+  const loud = cut('shots-captioned')
+  assert.match(loud, /<figcaption>Подпись к снимку<\/figcaption>/)
+  assert.match(loud, /data-caption="Подпись к снимку"/)
 })
 
 /* Соцсети в подвале живут в своём поле блока, но те же три адреса
