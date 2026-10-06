@@ -1,5 +1,5 @@
 import {
-  listMessages, countMessages, countUnread, markRead, deleteMessage
+  listMessages, countMessages, countUnread, markRead, markAllRead, deleteMessage
 } from '../../repositories/messages.js'
 import { isMailConfigured } from '../../services/mail.js'
 import { setFlash } from '../../services/auth.js'
@@ -30,6 +30,14 @@ async function messageRoutes (app) {
     const id = numericId(request)
     if (id === null) return reply.callNotFound()
     await markRead(id, String(request.body?.read ?? '') === 'on')
+    return reply.redirect('/admin/messages', 302)
+  })
+
+  /* Отметить всё разом. Адрес без :id намеренно отличается формой
+     от «/messages/:id/read» — иначе один маршрут ловил бы другой. */
+  app.post('/messages/read-all', async (request, reply) => {
+    const marked = await markAllRead()
+    setFlash(reply, 'success', request.t('messages.allRead', { count: marked }))
     return reply.redirect('/admin/messages', 302)
   })
 

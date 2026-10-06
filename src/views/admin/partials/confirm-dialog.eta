@@ -1,0 +1,15 @@
+<% ;/* Подтверждение удаления. Было окно браузера: оформить его
+       нельзя, выглядит оно чужим, а на телефоне показывает поверх
+       вопроса адрес сайта. Одно окно на всю админку — вторая копия
+       разметки уже однажды разъехалась с первой.
+
+       Подпись кнопки по умолчанию «Удалить»; где действие другое,
+       форма передаёт свою через data-confirm-action. */ %>
+<dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="confirmText">
+  <p class="confirm-text" id="confirmText"></p>
+  <div class="confirm-actions">
+    <button type="button" class="btn" data-confirm-cancel><%= it.t('common.cancel') %></button>
+    <button type="button" class="btn btn--danger" data-confirm-yes
+            data-default-label="<%= it.t('common.delete') %>"><%= it.t('common.delete') %></button>
+  </div>
+</dialog>

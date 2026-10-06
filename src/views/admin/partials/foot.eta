@@ -4,6 +4,8 @@
        он без проверки целостности. Файл обновляется вместе с
        зависимостью: npm i sortablejs && cp node_modules/sortablejs/
        Sortable.min.js public/vendor/sortable.min.js */ %>
+<%~ include('/admin/partials/confirm-dialog', it) %>
+
 <script src="<%= it.h.asset('/vendor/sortable.min.js') %>" defer></script>
 <script src="<%= it.h.asset('/js/admin.js') %>" defer></script>
 </body>

@@ -76,6 +76,57 @@ test('соцсети сохраняются и после удаления ср�
   assert.equal(saved[1].url, 'https://youtube.com/@padali')
 })
 
+/* О новом письме узнавали, только зайдя в раздел. Теперь число
+   непрочитанных стоит рядом с пунктом меню — на каждой странице
+   админки, не только на самих сообщениях. */
+test('непрочитанные показаны числом в меню и исчезают после «прочитать всё»', async () => {
+  const { createMessage } = await import('../src/repositories/messages.js')
+  await createMessage({ kind: 'contact', contact: 'a@b.rs', body: 'раз', locale: 'en' })
+  await createMessage({ kind: 'contact', contact: 'c@d.rs', body: 'два', locale: 'en' })
+
+  const badge = (body) => /<a href="\/admin\/messages"[^>]*>[^<]*<span class="nav-badge"[^>]*>(\d+)<\/span>/.exec(body)?.[1]
+
+  /* Не только на странице сообщений: счётчик для того и нужен, чтобы
+     увидеть его, занимаясь чем-то другим. */
+  for (const url of ['/admin/', '/admin/media']) {
+    const page = (await app.inject({ method: 'GET', url, cookies: session.cookies })).body
+    assert.equal(badge(page), '2', url)
+  }
+
+  const marked = await app.inject({
+    method: 'POST', url: '/admin/messages/read-all',
+    cookies: session.cookies, ...form({ _csrf: session.csrf })
+  })
+  assert.equal(marked.statusCode, 302)
+
+  const after = (await app.inject({ method: 'GET', url: '/admin/', cookies: session.cookies })).body
+  assert.equal(badge(after), undefined, 'читать нечего — и значка нет')
+
+  /* Кнопка тоже исчезает: вечно висящая и ничего не делающая учит
+     не нажимать. */
+  const page = (await app.inject({ method: 'GET', url: '/admin/messages', cookies: session.cookies })).body
+  assert.doesNotMatch(page, /action="\/admin\/messages\/read-all"/)
+})
+
+/* Подтверждения удаления были окнами браузера: оформить их нельзя,
+   выглядят чужими, а на телефоне показывают поверх вопроса адрес
+   сайта. Разметка окна должна быть на каждой админской странице —
+   без неё скрипт откатится к браузерному. */
+test('окно подтверждения есть на страницах с удалением', async () => {
+  for (const url of ['/admin/', '/admin/media', '/admin/users', '/admin/messages']) {
+    const page = (await app.inject({ method: 'GET', url, cookies: session.cookies })).body
+    assert.match(page, /<dialog class="confirm-dialog" id="confirmDialog"/, url)
+    assert.match(page, /data-confirm-yes/, url + ': кнопки согласия нет')
+    assert.match(page, /data-confirm-cancel/, url + ': кнопки отказа нет')
+  }
+
+  /* У блокировки учётки действие не «удалить», и подпись кнопки
+     форма передаёт свою. */
+  const users = (await app.inject({ method: 'GET', url: '/admin/users', cookies: session.cookies })).body
+  assert.match(users, /data-confirm-action="Block"/)
+  assert.doesNotMatch(users, /&quot;/, 'атрибуты не экранированы')
+})
+
 /* Та же ловушка, четвёртый раз: атрибут напечатан куском через
    <%=, кавычки экранировались, и в браузер приезжало
    class=&quot;active&quot; — текущий язык админки не подсвечивался

@@ -107,6 +107,25 @@ code { font-family: var(--mono); font-size: .9em; background: var(--panel-2); pa
 
 .admin-main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 80px; }
 
+/* Счётчик непрочитанных рядом с пунктом меню: число, а не точка —
+   про точку приходится гадать, сколько там писем. */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--neon);
+  color: var(--bg);
+  font-size: .72rem;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .page-head {
   display: flex;
   align-items: flex-start;
@@ -1078,6 +1097,29 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 }
 
 .album-dialog::backdrop { background: rgba(0, 0, 0, .66); }
+
+/* Окно подтверждения. Те же рамка и подложка, что у окна альбома:
+   по сути это одно и то же, и разной внешности у них быть не
+   должно. Отказ стоит первым и выглядит спокойнее согласия —
+   промахнуться по удалению не должно быть легче, чем отменить. */
+.confirm-dialog {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 22px;
+  width: min(92vw, 420px);
+}
+
+.confirm-dialog::backdrop { background: rgba(0, 0, 0, .66); }
+
+.confirm-text {
+  margin: 0 0 18px;
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
+.confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .album-dialog .field { margin-bottom: 14px; }
 .album-dialog .hint[data-state="error"] { color: var(--danger); }
 

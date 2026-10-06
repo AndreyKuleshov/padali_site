@@ -333,10 +333,19 @@
        */
       function step (direction) {
         var limit = scroller.scrollWidth - scroller.clientWidth
-        var target = scroller.scrollLeft + direction * scroller.clientWidth
-        if (target > limit + 2) target = 0
-        else if (target < -2) target = limit
-        scroller.scrollTo({ left: Math.max(0, Math.min(target, limit)) })
+        var at = scroller.scrollLeft
+        var target = at + direction * scroller.clientWidth
+
+        /* Заворачиваем, только если уже стоим у края. Раньше условие
+           смотрело на следующий ЦЕЛЫЙ экран: когда последний экран
+           неполный — семь снимков по три, — он выходил за край, и
+           лента прыгала в начало, ни разу не доехав до края. Семь
+           кадров при этом показывались как шесть: последний жил в
+           полосе, куда очередь не доходила. */
+        if (direction > 0) target = at >= limit - 2 ? 0 : Math.min(target, limit)
+        else target = at <= 2 ? limit : Math.max(target, 0)
+
+        scroller.scrollTo({ left: target })
       }
 
       if (prev) prev.addEventListener('click', function () { step(-1) })

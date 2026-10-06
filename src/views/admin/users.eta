@@ -34,7 +34,8 @@
     </form>
 
     <form method="post" action="/admin/users/<%= user.id %>/block"
-          <% if (!user.is_blocked) { %>data-confirm="<%= it.t('users.confirmBlock') %>"<% } %>>
+          <% if (!user.is_blocked) { %>data-confirm="<%= it.t('users.confirmBlock') %>"
+          data-confirm-action="<%= it.t('users.block') %>"<% } %>>
       <input type="hidden" name="_csrf" value="<%= it.csrf %>">
       <input type="hidden" name="blocked" value="<%= user.is_blocked ? '0' : '1' %>">
       <button type="submit" class="chip<%= user.is_blocked ? '' : ' chip--on' %>"

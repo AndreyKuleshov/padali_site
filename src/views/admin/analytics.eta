@@ -16,7 +16,7 @@
   </div>
   <nav class="period-switch" aria-label="<%= t('stats.period') %>">
     <% it.periods.forEach(function (days) { %>
-    <a href="<%= periodHref(days) %>"<%= days === it.days ? ' class="active"' : '' %>><%= t('stats.days' + days) %></a>
+    <a href="<%= periodHref(days) %>"<% if (days === it.days) { %> class="active"<% } %>><%= t('stats.days' + days) %></a>
     <% }) %>
   </nav>
 </div>
@@ -115,12 +115,12 @@
   <div class="heatmap-controls">
     <nav class="period-switch" aria-label="<%= t('stats.page') %>">
       <% it.pathsWithClicks.forEach(function (row) { %>
-      <a href="<%= heatHref({ path: row.path }) %>"<%= row.path === it.heatmap.path ? ' class="active"' : '' %>><%= row.path %></a>
+      <a href="<%= heatHref({ path: row.path }) %>"<% if (row.path === it.heatmap.path) { %> class="active"<% } %>><%= row.path %></a>
       <% }) %>
     </nav>
     <nav class="period-switch" aria-label="<%= t('stats.device') %>">
       <% it.heatmap.bands.forEach(function (band) { %>
-      <a href="<%= heatHref({ band: band.key }) %>"<%= band.key === it.heatmap.band ? ' class="active"' : '' %>><%= it.localize(band.label) %></a>
+      <a href="<%= heatHref({ band: band.key }) %>"<% if (band.key === it.heatmap.band) { %> class="active"<% } %>><%= it.localize(band.label) %></a>
       <% }) %>
     </nav>
     <span class="hint"><%= t('stats.clicksCount', { count: it.heatmap.points.length }) %></span>

@@ -58,11 +58,19 @@ async function markRead (id, isRead, conn) {
   await db(conn).run('UPDATE messages SET is_read = ? WHERE id = ?', [isRead, id])
 }
 
+/* Одним запросом, а не перебором: иначе сотня сообщений — сотня
+   походов в базу. Возвращаем, скольких это коснулось: редактор
+   должен видеть, что именно произошло. */
+async function markAllRead (conn) {
+  const rows = await db(conn).all('UPDATE messages SET is_read = TRUE WHERE NOT is_read RETURNING id')
+  return rows.length
+}
+
 async function deleteMessage (id, conn) {
   await db(conn).run('DELETE FROM messages WHERE id = ?', [id])
 }
 
 export {
   createMessage, markMailed, listMessages, countMessages, countUnread,
-  markRead, deleteMessage
+  markRead, markAllRead, deleteMessage
 }

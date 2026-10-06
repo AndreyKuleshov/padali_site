@@ -173,6 +173,9 @@ const DICTIONARY = {
     'messages.markUnread': 'Mark unread',
     'messages.confirmDelete': 'Delete this message permanently?',
     'messages.deleted': 'Message deleted.',
+    'messages.markAllRead': 'Mark all as read',
+    'messages.unreadCount': 'unread: {count}',
+    'messages.allRead': 'Marked as read: {count}.',
 
     'settings.title': 'Site settings',
     'settings.meta': 'Home page meta tags',
@@ -421,6 +424,9 @@ const DICTIONARY = {
     'messages.markUnread': 'Označi kao nepročitano',
     'messages.confirmDelete': 'Trajno obrisati ovu poruku?',
     'messages.deleted': 'Poruka obrisana.',
+    'messages.markAllRead': 'Označi sve kao pročitano',
+    'messages.unreadCount': 'nepročitano: {count}',
+    'messages.allRead': 'Označeno kao pročitano: {count}.',
 
     'settings.title': 'Podešavanja sajta',
     'settings.meta': 'Meta oznake početne strane',

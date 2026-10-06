@@ -3,6 +3,7 @@ import { ensureCsrfToken, takeFlash } from '../../services/auth.js'
 import { listLocales, getDefaultLocale } from '../../repositories/locales.js'
 import { invalidateCache } from '../../services/cache.js'
 import { adminTranslator, translatedLocales, localize } from '../../i18n/admin.js'
+import { countUnread } from '../../repositories/messages.js'
 import { siteTranslator } from '../../i18n/site.js'
 import { isConfigured } from '../../services/translate.js'
 import { thumbnailUrl } from '../../services/media-processor.js'
@@ -16,7 +17,9 @@ const NAV = [
   { href: '/admin/media', key: 'nav.media', match: /^\/admin\/media/ },
   { href: '/admin/settings', key: 'nav.settings', match: /^\/admin\/settings/ },
   { href: '/admin/users', key: 'nav.users', match: /^\/admin\/users/ },
-  { href: '/admin/messages', key: 'nav.messages', match: /^\/admin\/messages/ },
+  /* Непрочитанные показываем числом рядом с пунктом: иначе о новом
+     письме узнают, только зайдя в раздел, а узнать надо раньше. */
+  { href: '/admin/messages', key: 'nav.messages', match: /^\/admin\/messages/, badge: 'unread' },
   { href: '/admin/analytics', key: 'nav.analytics', match: /^\/admin\/analytics/ }
 ]
 
@@ -57,6 +60,9 @@ function languageUrl (currentUrl, code) {
 async function renderAdmin (request, reply, template, data = {}) {
   const locales = data.locales ?? await listLocales()
   const t = request.t ?? adminTranslator('en')
+  /* Один лишний счёт на страницу: запрос по индексу, и знать о новом
+     письме важнее, чем сэкономить его. */
+  const unread = await countUnread()
   const currentPath = request.url.split('?')[0]
 
   const html = render(template, {
@@ -83,7 +89,8 @@ async function renderAdmin (request, reply, template, data = {}) {
     nav: NAV.map((item) => ({
       href: item.href,
       label: t(item.key),
-      active: item.match.test(currentPath)
+      active: item.match.test(currentPath),
+      badge: item.badge === 'unread' ? unread : 0
     })),
     currentPath
   })

@@ -25,10 +25,55 @@
     return field ? field.value : ''
   }
 
-  /* ── Подтверждение удаления ─────────────────────────────── */
+  /* ── Подтверждение удаления ───────────────────────────────
+     Было окно браузера: оформить его нельзя, выглядит оно чужим, а
+     на телефоне показывает поверх вопроса адрес сайта. Своё окно
+     ещё и блокирует фокус само — это умеет <dialog>.
+
+     Браузерное остаётся запасным путём: если разметки окна на
+     странице нет, спросить всё равно надо. */
+  function askConfirm (message, actionLabel, onYes) {
+    var box = document.getElementById('confirmDialog')
+    if (!box || !box.showModal) {
+      if (window.confirm(message)) onYes()
+      return
+    }
+
+    var yes = box.querySelector('[data-confirm-yes]')
+    var cancel = box.querySelector('[data-confirm-cancel]')
+    box.querySelector('.confirm-text').textContent = message
+    yes.textContent = actionLabel || yes.getAttribute('data-default-label')
+
+    /* Обработчики вешаем заново на каждый вопрос: окно одно, а
+       согласие каждый раз ведёт к своему действию. */
+    function close () {
+      yes.removeEventListener('click', accept)
+      cancel.removeEventListener('click', close)
+      box.removeEventListener('close', close)
+      box.close()
+    }
+    function accept () { close(); onYes() }
+
+    yes.addEventListener('click', accept)
+    cancel.addEventListener('click', close)
+    // Esc закрывает окно сам — это отказ, и слушатель надо снять.
+    box.addEventListener('close', close)
+
+    try { box.showModal() } catch (error) { console.error('padali: окно подтверждения не открылось', error) }
+  }
+
   document.addEventListener('submit', function (event) {
-    var message = event.target.getAttribute('data-confirm')
-    if (message && !window.confirm(message)) event.preventDefault()
+    var form = event.target
+    var message = form.getAttribute('data-confirm')
+    // Второй заход после согласия: спрашивать уже не о чем.
+    if (!message || form.dataset.confirmed) return
+
+    event.preventDefault()
+    askConfirm(message, form.getAttribute('data-confirm-action'), function () {
+      form.dataset.confirmed = '1'
+      if (form.requestSubmit) form.requestSubmit()
+      else form.submit()
+    })
   })
 
   /* ── Закладки повторителя ─────────────────────────────────
@@ -331,9 +376,8 @@
            закладкой — это целый концерт с афишей и текстами на
            двух языках, а обычная строка — одна ссылка. */
         var ask = repeater.getAttribute('data-remove-confirm')
-        if (ask && !window.confirm(fill(ask, { label: rowLabel(repeater, row) }))) return
-
-        row.remove()
+        if (!ask) { row.remove(); return }
+        askConfirm(fill(ask, { label: rowLabel(repeater, row) }), null, function () { row.remove() })
       })
     })
   }

@@ -15,7 +15,12 @@
     <a class="admin-brand" href="/admin">PADALI<span><%= it.t('app.admin') %></span></a>
     <nav class="admin-nav">
       <% it.nav.forEach(function (item) { %>
-      <a href="<%= item.href %>"<%= item.active ? ' class="active"' : '' %>><%= item.label %></a>
+      <% ;/* Та же ловушка, что была у переключателя языка: атрибут,
+             напечатанный куском через <%=, приезжает как
+             class=&quot;active&quot;, и текущий раздел не
+             подсвечивался. Пятый случай — нашёл его тест, который
+             ищет экранированные кавычки по всей странице. */ %>
+      <a href="<%= item.href %>"<% if (item.active) { %> class="active"<% } %>><%= item.label %><% if (item.badge > 0) { %><span class="nav-badge" aria-label="<%= it.t('messages.unreadCount', { count: item.badge }) %>"><%= item.badge %></span><% } %></a>
       <% }) %>
     </nav>
     <div class="admin-top-right">

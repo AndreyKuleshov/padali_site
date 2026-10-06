@@ -8,6 +8,14 @@
     <p class="hint hint--warn"><%= it.t('messages.mailOff') %></p>
     <% } %>
   </div>
+  <% ;/* Кнопка появляется, только когда есть что отмечать: вечно
+         висящая и ничего не делающая кнопка учит не нажимать. */ %>
+  <% if (it.unread > 0) { %>
+  <form method="post" action="/admin/messages/read-all">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <button type="submit" class="btn"><%= it.t('messages.markAllRead') %></button>
+  </form>
+  <% } %>
 </div>
 
 <% if (it.items.length === 0) { %>
