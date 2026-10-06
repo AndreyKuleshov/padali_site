@@ -81,15 +81,20 @@ test('соцсети сохраняются и после удаления ср�
    class=&quot;active&quot; — текущий язык админки не подсвечивался
    вовсе, хотя в коде всё выглядело правильно. */
 test('текущий язык админки помечен настоящим классом', async () => {
-  const page = (await app.inject({
-    method: 'GET', url: '/admin/', cookies: session.cookies
-  })).body
+  /* Копий разметки было две — в шапке и на странице входа, — и
+     правку в одной вторая пережила незамеченной. Проверяем обе. */
+  const pages = [
+    (await app.inject({ method: 'GET', url: '/admin/', cookies: session.cookies })).body,
+    (await app.inject({ method: 'GET', url: '/admin/login' })).body
+  ]
 
-  const nav = /<nav class="admin-lang"[\s\S]*?<\/nav>/.exec(page)
-  assert.ok(nav, 'переключателя языка нет')
-  assert.doesNotMatch(nav[0], /&quot;/, 'кавычки в атрибуте настоящие')
-  assert.equal((nav[0].match(/class="active"/g) || []).length, 1,
-    'ровно один язык помечен текущим')
+  for (const page of pages) {
+    const nav = /<nav class="admin-lang[\s\S]*?<\/nav>/.exec(page)
+    assert.ok(nav, 'переключателя языка нет')
+    assert.doesNotMatch(nav[0], /&quot;/, 'кавычки в атрибуте настоящие')
+    assert.equal((nav[0].match(/class="active"/g) || []).length, 1,
+      'ровно один язык помечен текущим')
+  }
 })
 
 /* Печать экранирует кавычки: пустой data-album-id приезжал как

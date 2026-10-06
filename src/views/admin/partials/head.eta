@@ -19,16 +19,7 @@
       <% }) %>
     </nav>
     <div class="admin-top-right">
-      <% if ((it.languages || []).length > 1) { %>
-      <nav class="admin-lang" aria-label="<%= it.t('settings.language') %>">
-        <% it.languages.forEach(function (lang) { %>
-        <% ;/* Атрибут нельзя печатать куском: <%= экранирует кавычки,
-               и в браузер приезжает class=&quot;active&quot; — текущий
-               язык не подсвечивался вовсе. Четвёртый такой случай. */ %>
-        <a href="<%= lang.href %>"<% if (lang.active) { %> class="active"<% } %>><%= lang.code.toUpperCase() %></a>
-        <% }) %>
-      </nav>
-      <% } %>
+      <%~ include('/admin/partials/lang-switch', it) %>
       <a class="admin-view-site" href="/" target="_blank" rel="noopener"><%= it.t('nav.viewSite') %></a>
       <form method="post" action="/admin/logout">
         <input type="hidden" name="_csrf" value="<%= it.csrf %>">

@@ -14,12 +14,6 @@
     </label>
     <button type="submit" class="btn btn--primary"><%= it.t('login.submit') %></button>
   </form>
-  <% if ((it.languages || []).length > 1) { %>
-  <nav class="admin-lang login-lang">
-    <% it.languages.forEach(function (lang) { %>
-    <a href="<%= lang.href %>"<%= lang.active ? ' class="active"' : '' %>><%= lang.code.toUpperCase() %></a>
-    <% }) %>
-  </nav>
-  <% } %>
+  <%~ include('/admin/partials/lang-switch', Object.assign({}, it, { extra: 'login-lang' })) %>
 </div>
 <%~ include('/admin/partials/foot', it) %>

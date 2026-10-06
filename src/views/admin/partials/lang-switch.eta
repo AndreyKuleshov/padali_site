@@ -1,0 +1,16 @@
+<% ;/* Переключатель языка админки. Копий было две — в шапке и на
+       странице входа, — и обе печатали атрибут куском через <%=:
+       кавычки экранировались, в браузер приезжало
+       class=&quot;active&quot;, и текущий язык не подсвечивался
+       нигде. Правку в одной копии вторая пережила незамеченной,
+       поэтому теперь разметка одна.
+
+       Ждёт languages (code, href, active) и необязательный extra —
+       добавочный класс для страницы входа. */ %>
+<% if ((it.languages || []).length > 1) { %>
+<nav class="admin-lang<%= it.extra ? ' ' + it.extra : '' %>" aria-label="<%= it.t('settings.language') %>">
+  <% it.languages.forEach(function (lang) { %>
+  <a href="<%= lang.href %>"<% if (lang.active) { %> class="active"<% } %>><%= lang.code.toUpperCase() %></a>
+  <% }) %>
+</nav>
+<% } %>
