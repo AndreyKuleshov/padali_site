@@ -42,6 +42,10 @@ export default {
       key: 'links',
       label: { en: 'Links', sr: 'Veze' },
       input: 'repeater',
+      hint: {
+        en: 'Empty — the footer shows the social links from site settings.',
+        sr: 'Prazno — podnožje prikazuje mreže iz podešavanja sajta.'
+      },
       addLabel: { en: 'Add link', sr: 'Dodaj vezu' },
       fields: [
         { key: 'icon', label: { en: 'Icon', sr: 'Ikona' }, input: 'select', options: ICON_NAMES },

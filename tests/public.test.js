@@ -4,7 +4,7 @@ import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage, closePool
 } from './helpers.js'
 import { createPage, savePageTexts } from '../src/repositories/pages.js'
-import { createBlock, saveBlockTexts, saveBlockMedia } from '../src/repositories/blocks.js'
+import { createBlock, updateBlock, saveBlockTexts, saveBlockMedia } from '../src/repositories/blocks.js'
 import { createGallery, saveGalleryTexts, setGalleryItems } from '../src/repositories/galleries.js'
 import { setSetting } from '../src/repositories/settings.js'
 import { processUpload } from '../src/services/media-processor.js'
@@ -202,6 +202,41 @@ test('билеты: по ссылке — кнопка, на входе — ст
   assert.match(cards[2], /concert-door/)
   assert.match(cards[2], /Tickets at the door/)
   assert.match(cards[2], /600 RSD/)
+})
+
+/* Соцсети в подвале живут в своём поле блока, но те же три адреса
+   уже лежат в настройках сайта — и когда поле забывали заполнить,
+   подвал молча пустел. Пустое поле подхватывает настройки, как это
+   давно делает логотип; своё заполненное главнее. */
+test('подвал берёт соцсети из настроек, пока своих нет', async () => {
+  const { pageId } = await buildPage()
+  await setSetting('social', [
+    { icon: 'instagram', label: 'Instagram', url: 'https://instagram.com/padali.band' },
+    { icon: 'youtube', label: 'YouTube', url: 'https://youtube.com/@PADALIband' }
+  ])
+
+  const block = await createBlock({
+    pageId, type: 'footer', settings: { ...defaultSettings('footer'), links: [] }
+  })
+  invalidateCache()
+
+  const footerOf = (body) => /<footer[\s\S]*?<\/footer>/.exec(body)[0]
+  let footer = footerOf((await app.inject({ method: 'GET', url: '/' })).body)
+  assert.match(footer, /instagram\.com\/padali\.band/, 'взял из настроек')
+  assert.match(footer, /youtube\.com\/@PADALIband/)
+
+  /* Своё поле главнее: иначе редактор не смог бы показать в подвале
+     что-то одно, не трогая настройки всего сайта. */
+  await updateBlock(block, {
+    settings: { ...defaultSettings('footer'), links: [{ icon: 'telegram', label: 'Telegram', url: 'https://t.me/padali' }] },
+    anchor: null,
+    isVisible: true
+  })
+  invalidateCache()
+
+  footer = footerOf((await app.inject({ method: 'GET', url: '/' })).body)
+  assert.match(footer, /t\.me\/padali/, 'показывает своё')
+  assert.doesNotMatch(footer, /instagram\.com/, 'и только своё')
 })
 
 /* Раздел на странице есть, а в меню его нет — так выпадали «Мерч»

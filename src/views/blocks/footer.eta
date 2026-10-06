@@ -1,7 +1,12 @@
 <%
   var block = it.block
   var logo = block.first('logo') || it.siteLogo
-  var links = block.settings.links || []
+  ;/* Своё поле главнее, пустое подхватывает настройки сайта — так
+     же, как логотип. Иначе одни и те же три адреса приходится
+     держать в двух местах, и подвал молча пустеет, когда их забыли
+     вписать второй раз. */
+  var own = block.settings.links || []
+  var links = own.length > 0 ? own : (it.settings.social || [])
 %>
 <footer class="wrap site-footer"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.settings.show_logo) { %>
