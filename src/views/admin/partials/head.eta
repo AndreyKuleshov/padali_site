@@ -22,7 +22,10 @@
       <% if ((it.languages || []).length > 1) { %>
       <nav class="admin-lang" aria-label="<%= it.t('settings.language') %>">
         <% it.languages.forEach(function (lang) { %>
-        <a href="<%= lang.href %>"<%= lang.active ? ' class="active"' : '' %>><%= lang.code.toUpperCase() %></a>
+        <% ;/* Атрибут нельзя печатать куском: <%= экранирует кавычки,
+               и в браузер приезжает class=&quot;active&quot; — текущий
+               язык не подсвечивался вовсе. Четвёртый такой случай. */ %>
+        <a href="<%= lang.href %>"<% if (lang.active) { %> class="active"<% } %>><%= lang.code.toUpperCase() %></a>
         <% }) %>
       </nav>
       <% } %>

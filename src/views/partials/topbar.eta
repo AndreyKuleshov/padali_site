@@ -26,9 +26,17 @@
       </nav>
       <% } %>
       <% if (it.locales.length > 1) { %>
+      <% ;/* Показываем оба языка, текущий помечен. Прежде стояла
+             одна кнопка с тем языком, на который переключишься, и
+             читалась она как «вы сейчас здесь»: по ней судили о
+             текущем языке и ошибались. */ %>
       <nav class="lang-switch" aria-label="Language">
-        <% it.locales.filter(function (l) { return l.code !== it.locale }).forEach(function (locale) { %>
+        <% it.locales.forEach(function (locale) { %>
+        <% if (locale.code === it.locale) { %>
+        <span class="lang-btn" aria-current="true"><%= locale.code.toUpperCase() %></span>
+        <% } else { %>
         <a class="lang-btn" href="<%= it.h.localeUrl(locale.code, it.defaultLocale) %>" hreflang="<%= locale.code %>"><%= locale.code.toUpperCase() %></a>
+        <% } %>
         <% }) %>
       </nav>
       <% } %>

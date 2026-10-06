@@ -169,6 +169,15 @@ ul { list-style: none; margin: 0; padding: 0; }
   cursor: pointer;
 }
 
+/* Текущий язык: не ссылка и выделен заливкой. Без этого оба кода
+   выглядели одинаково, и какой из них сейчас — приходилось гадать. */
+.lang-btn[aria-current] {
+  color: var(--bg);
+  background: var(--neon);
+  border-color: var(--neon);
+  cursor: default;
+}
+
 .lang-btn:hover { color: var(--ink); border-color: var(--soft); }
 
 /* ─── Шапка-экран ────────────────────────────────────────── */
@@ -1104,7 +1113,15 @@ img[data-lightbox] { cursor: zoom-in; }
 .contact-form { display: grid; gap: 14px; margin-top: 18px; }
 
 .contact-form .field { display: grid; gap: 6px; }
-.contact-form .field > span { color: var(--soft); font-size: .9rem; }
+/* Подписи полей были мельче и бледнее всего вокруг, и их просто не
+   замечали: тестировщица не увидела «как с тобой связаться» и не
+   поняла, что выбор там вообще есть. Это название поля, а не
+   пояснение к нему. */
+.contact-form .field > span {
+  color: var(--ink);
+  font-size: .95rem;
+  font-weight: 500;
+}
 
 .contact-form input[type="text"], .contact-form textarea {
   width: 100%;
@@ -1224,7 +1241,13 @@ img[data-lightbox] { cursor: zoom-in; }
    помещался и уезжал под поле ввода. */
 .contact-row { display: grid; gap: 8px; }
 
-.contact-pick > span { color: var(--soft); font-size: .9rem; display: block; margin-bottom: 6px; }
+.contact-pick > span {
+  color: var(--ink);
+  font-size: .95rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
 .contact-pick .form-note { margin-top: 6px; }
 
 .contact-send { margin-bottom: 0; }

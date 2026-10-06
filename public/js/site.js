@@ -659,9 +659,23 @@
       }
     }
 
-    var observer = new window.IntersectionObserver(function (entries) {
-      for (var k = 0; k < entries.length; k += 1) {
-        visible[entries[k].target.id] = entries[k].isIntersecting
+    /* Последний раздел до полосы отсчёта не доходит: страница
+       упирается в низ раньше. Нажав «Контакты», человек оказывался
+       внизу, а подсвечен оставался предыдущий пункт. Поэтому у низа
+       страницы ответ один — последний раздел, и спорить тут не с
+       чем: ниже ничего нет. */
+    function atBottom () {
+      var doc = document.documentElement
+      // Страница короче экрана не «внизу»: иначе последний пункт
+      // горел бы всегда, даже когда прокручивать нечего.
+      if (doc.scrollHeight <= window.innerHeight + 4) return false
+      return window.innerHeight + window.scrollY >= doc.scrollHeight - 2
+    }
+
+    function decide () {
+      if (sections.length > 0 && atBottom()) {
+        mark(sections[sections.length - 1].id)
+        return
       }
       // Из пересекающих полосу берём самый верхний — тот, к которому подошли.
       var found = ''
@@ -669,9 +683,21 @@
         if (visible[sections[m].id]) { found = sections[m].id; break }
       }
       mark(found)
+    }
+
+    var observer = new window.IntersectionObserver(function (entries) {
+      for (var k = 0; k < entries.length; k += 1) {
+        visible[entries[k].target.id] = entries[k].isIntersecting
+      }
+      decide()
     }, { rootMargin: '-15% 0px -80% 0px' })
 
     for (var n = 0; n < sections.length; n += 1) observer.observe(sections[n])
+
+    /* Наблюдатель молчит, когда прокрутка идёт, а пересечения не
+       меняются — у самого низа это как раз тот случай. */
+    window.addEventListener('scroll', decide, { passive: true })
+    window.addEventListener('resize', decide)
   }
 
   /* Страница лежит в кэше сервера до первой правки в админке, и
