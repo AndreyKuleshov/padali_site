@@ -11,9 +11,10 @@ import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, closePool
 } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
-import { createBlock, getBlock } from '../src/repositories/blocks.js'
+import { createBlock, getBlock, saveBlockTexts } from '../src/repositories/blocks.js'
 import { defaultSettings, getBlockType } from '../src/blocks/index.js'
 import { parseVideoId, lookupVideo, embedUrl } from '../src/services/youtube.js'
+import { linkify } from '../src/services/renderer.js'
 
 const ID = 'dQw4w9WgXcQ'
 
@@ -193,4 +194,55 @@ test('заголовок переводится', async () => {
   const descriptor = getBlockType('youtube')
   assert.ok(descriptor.title.en && descriptor.title.sr)
   assert.ok(descriptor.settings.find((field) => field.key === 'url').required)
+})
+
+/* Подпись под роликом — простая textarea, и адрес в ней редактор
+   пишет текстом. Разметку собирает linkify, поэтому экранирование
+   с него и спрашиваем: он печатается через <%~, шаблон уже не
+   поможет. */
+test('адрес в подписи становится ссылкой, остальное экранируется', () => {
+  assert.equal(
+    linkify('Subscribe! https://www.youtube.com/@PADALIband'),
+    'Subscribe! <a href="https://www.youtube.com/@PADALIband" target="_blank" ' +
+    'rel="noopener">https://www.youtube.com/@PADALIband</a>'
+  )
+
+  /* Кавычка не должна выводить чужой текст из атрибута. */
+  const quoted = linkify('тут https://example.com/a" onmouseover=beda')
+  assert.match(quoted, /href="https:\/\/example\.com\/a"/, 'адрес кончается на кавычке')
+  assert.match(quoted, /<\/a>&quot; onmouseover=beda$/, 'хвост остался текстом за пределами ссылки')
+
+  /* Разметка в тексте остаётся текстом — и до ссылки, и после:
+     это два разных куска внутри linkify, экранировать надо оба. */
+  assert.equal(linkify('<b>жир</b>'), '&lt;b&gt;жир&lt;/b&gt;')
+  assert.match(linkify('<b>тут</b> https://example.com/ <i>там</i>'),
+    /^&lt;b&gt;тут&lt;\/b&gt; <a [^>]*>.*<\/a> &lt;i&gt;там&lt;\/i&gt;$/)
+
+  /* Ссылкой становится только то, что ей объявлено: javascript:
+     мимо такого разбора не проходит. */
+  assert.equal(linkify('javascript:alert(1)'), 'javascript:alert(1)')
+
+  /* Точка в конце предложения — не часть адреса. */
+  assert.match(linkify('см. https://example.com/page.'), />https:\/\/example\.com\/page<\/a>\.$/)
+
+  /* «&» в запросе уезжает в разметку как &amp; — браузер вернёт
+     его обратно, адрес от этого не меняется. */
+  assert.match(linkify('https://example.com/?a=1&b=2'), /href="https:\/\/example\.com\/\?a=1&amp;b=2"/)
+})
+
+test('подпись под роликом на сайте — со ссылкой', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  const id = await createBlock({
+    pageId,
+    type: 'youtube',
+    isVisible: true,
+    settings: { ...defaultSettings('youtube'), url: `https://www.youtube.com/watch?v=${ID}` }
+  })
+  await saveBlockTexts(id, { en: { note: 'Subscribe! https://www.youtube.com/@PADALIband' } })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const note = /<p class="video-note">[\s\S]*?<\/p>/.exec(body)[0]
+
+  assert.match(note, /<a href="https:\/\/www\.youtube\.com\/@PADALIband"/)
+  assert.match(note, /rel="noopener"/, 'чужая вкладка не получает доступ к нашей')
 })

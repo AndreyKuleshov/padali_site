@@ -32,6 +32,53 @@ function sanitize (html) {
   return sanitizeHtml(html ?? '', SANITIZE_OPTIONS)
 }
 
+/** Экранирование для своей разметки: linkify печатается через <%~. */
+function escapeHtml (value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/* Схемы только http и https — те же, что пропускает asUrl, минус
+   mailto и tel: в подписи их не пишут. Кавычки и угловые скобки в
+   адрес не берём, иначе чужой текст залезет в атрибут. */
+const LINK_IN_TEXT = /https?:\/\/[^\s<>"']+/g
+
+/* Точка, запятая или скобка в конце — это почти всегда конец
+   предложения, а не часть адреса. Ссылка внутри скобок от этого
+   теряет закрывающую — такую цену платим сознательно: точка в
+   хвосте встречается несравнимо чаще. */
+const SENTENCE_TAIL = /[.,;:!?)\]]+$/
+
+/**
+ * Ссылка в обычном тексте становится ссылкой.
+ *
+ * Подпись под роликом — простая textarea, редактор вставляет туда
+ * адрес как есть, и на сайте он лежал мёртвым текстом. Разметку
+ * собираем здесь, а не в шаблоне: раз результат печатается через
+ * <%~, экранировать всё до единого куска должен тот, кто эту
+ * разметку и делает.
+ */
+function linkify (text) {
+  const source = String(text ?? '')
+  let out = ''
+  let at = 0
+
+  for (const match of source.matchAll(LINK_IN_TEXT)) {
+    const tail = SENTENCE_TAIL.exec(match[0])
+    const url = tail ? match[0].slice(0, -tail[0].length) : match[0]
+    if (url === '') continue
+
+    out += escapeHtml(source.slice(at, match.index))
+    out += `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`
+    at = match.index + url.length
+  }
+
+  return out + escapeHtml(source.slice(at))
+}
+
 /** Дата хранится как YYYY-MM-DD, показывается как ДД.ММ.ГГГГ. */
 function formatDate (value) {
   if (!value) return ''
@@ -95,6 +142,7 @@ const helpers = {
   youtube: { id: parseVideoId, thumbnail: thumbnailFor, embed: embedUrl, watch: watchUrl },
   iconNames: ICON_NAMES,
   sanitize,
+  linkify,
   formatDate,
   formatDateTime,
   localeUrl,
@@ -117,5 +165,5 @@ function render (template, data = {}) {
 }
 
 export {
-  render, helpers, sanitize, formatDate, formatDateTime, localeUrl, eta, LAYOUT, VIEWS_DIR
+  render, helpers, sanitize, linkify, formatDate, formatDateTime, localeUrl, eta, LAYOUT, VIEWS_DIR
 }

@@ -21,5 +21,9 @@
   </noscript>
   <% } %>
 
-  <% if (block.text.note) { %><p class="video-note"><%= block.text.note %></p><% } %>
+  <% ;/* Подпись — обычный текст, но адрес в ней должен работать:
+         редактор вставляет ссылку на канал, и мёртвой строкой она
+         бесполезна. Разметку целиком собирает h.linkify, он же всё
+         и экранирует. */ %>
+  <% if (block.text.note) { %><p class="video-note"><%~ it.h.linkify(block.text.note) %></p><% } %>
 </section>

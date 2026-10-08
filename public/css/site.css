@@ -1124,7 +1124,14 @@ img[data-lightbox] { cursor: zoom-in; }
 .video-play:hover .video-play-mark::after,
 .video-play:focus-visible .video-play-mark::after { border-left-color: #111; }
 
-.video-note { color: var(--soft); margin-top: 12px; }
+/* Последний абзац секции не должен добавлять свой нижний отступ:
+   у всех остальных блоков под последним элементом ровно padding
+   секции, а здесь выходило на 17 px больше. */
+.video-note { color: var(--soft); margin-top: 12px; margin-bottom: 0; }
+
+.video-note a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.video-note a:hover,
+.video-note a:focus-visible { color: var(--neon); }
 
 /* ─── Контакты и мерч ────────────────────────────────────── */
 
