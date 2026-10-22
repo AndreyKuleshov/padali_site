@@ -228,6 +228,8 @@ const DICTIONARY = {
     'pages.homeLocked': 'The home page lives at the root: it has no address of its own and cannot be deleted.',
     'pages.openSite': 'Open ↗',
     'pages.meta': 'Title and description',
+    'pages.metaTitle': 'Meta tags of this page',
+    'pages.blocksTitle': 'Blocks on this page',
 
     'users.title': 'Admin accounts',
     'users.subtitle': 'Everyone here has full access: there are no roles. Block an account instead of deleting it if the person may come back.',
@@ -507,6 +509,8 @@ const DICTIONARY = {
     'pages.homeLocked': 'Početna živi u korenu: nema svoju adresu i ne može se obrisati.',
     'pages.openSite': 'Otvori ↗',
     'pages.meta': 'Naslov i opis',
+    'pages.metaTitle': 'Meta oznake ove strane',
+    'pages.blocksTitle': 'Blokovi na ovoj strani',
 
     'users.title': 'Administratorski nalozi',
     'users.subtitle': 'Svi ovde imaju pun pristup: uloga nema. Ako se osoba možda vraća, blokirajte nalog umesto brisanja.',

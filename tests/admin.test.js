@@ -700,8 +700,17 @@ test('блок заводится на выбранной странице, а �
   const { createPage: makePage } = await import('../src/repositories/pages.js')
   const landing = await makePage({ slug: 'pocetak', isPublished: false })
 
-  const list = await app.inject({ method: 'GET', url: `/admin/pages/${landing.id ?? landing}/blocks`, cookies: session.cookies })
-  assert.equal(list.statusCode, 200)
+  /* Правка страницы — один экран: адрес, заголовок и блоки. Три
+     перехода до добавления блока были тремя поводами передумать. */
+  const screen = await app.inject({ method: 'GET', url: `/admin/pages/${landing}`, cookies: session.cookies })
+  assert.equal(screen.statusCode, 200)
+  assert.match(screen.body, /name="slug"/, 'адрес правится здесь же')
+  assert.match(screen.body, /name="text\[en\]\[title\]"/, 'и заголовок страницы')
+  assert.match(screen.body, /id="blockList"|class="empty"/, 'и блоки здесь же')
+
+  // Прежний адрес списка блоков уводит на этот экран, а не в 404.
+  const old = await app.inject({ method: 'GET', url: `/admin/pages/${landing}/blocks`, cookies: session.cookies })
+  assert.equal(old.statusCode, 301)
 
   await app.inject({
     method: 'POST', url: '/admin/blocks', cookies: session.cookies,

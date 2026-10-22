@@ -1,5 +1,9 @@
 <%
-  var pageText = it.pageText || {}
+  ;/* Значения берутся функцией, а не объектом: так их ждёт
+     locale-field, и так же их отдаёт экран настроек. */
+  function pageText (locale, key) {
+    return (it.pageText[locale] && it.pageText[locale][key]) || ''
+  }
 %>
 <%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: '/' + it.page.slug })) %>
 
@@ -8,9 +12,12 @@
     <p class="breadcrumb"><a href="/admin/pages">← <%= it.t('nav.pages') %></a></p>
     <h1>/<%= it.page.slug %></h1>
   </div>
+  <% if (it.page.is_published) { %>
+  <a class="btn btn--small" href="/<%= it.page.slug %>" target="_blank" rel="noopener"><%= it.t('pages.openSite') %></a>
+  <% } %>
 </div>
 
-<form method="post" action="/admin/pages/<%= it.page.id %>">
+<form method="post" action="/admin/pages/<%= it.page.id %>" class="block-form">
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 
   <section class="card">
@@ -33,7 +40,7 @@
          предпросмотре ссылки. Для страницы, которую рассылают,
          это не мелочь: в чате человек видит сперва их. */ %>
   <section class="card">
-    <h2><%= it.t('settings.meta') %></h2>
+    <h2><%= it.t('pages.metaTitle') %></h2>
     <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
           label: it.t('settings.pageTitle'),
           prefix: 'text', key: 'title',
@@ -48,8 +55,30 @@
 
   <div class="form-actions">
     <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
-    <a class="btn" href="/admin/pages/<%= it.page.id %>/blocks"><%= it.t('pages.editBlocks') %></a>
   </div>
 </form>
+
+<% ;/* Блоки — на том же экране. Отдельная страница под список
+       стоила трёх переходов до добавления блока, и каждый из них
+       был поводом передумать. */ %>
+<div class="page-head">
+  <h2><%= it.t('pages.blocksTitle') %></h2>
+  <form method="post" action="/admin/blocks" class="inline-form">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <input type="hidden" name="page_id" value="<%= it.page.id %>">
+    <select name="type" aria-label="<%= it.t('blocks.type') %>">
+      <% it.blockTypes.forEach(function (type) { %>
+      <option value="<%= type.type %>"><%= it.localize(type.title) %></option>
+      <% }) %>
+    </select>
+    <button type="submit" class="btn btn--primary"><%= it.t('blocks.add') %></button>
+  </form>
+</div>
+
+<% if (it.blocks.length === 0) { %>
+<p class="empty"><%= it.t('blocks.empty') %></p>
+<% } else { %>
+<%~ include('/admin/partials/block-list', it) %>
+<% } %>
 
 <%~ include('/admin/partials/foot', it) %>

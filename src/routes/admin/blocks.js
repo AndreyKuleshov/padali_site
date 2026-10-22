@@ -49,41 +49,55 @@ function cleanTitles (fields) {
 }
 
 /*
- * Адрес списка блоков. У главной он остался прежним: на «/admin»
+ * Адрес правки страницы. У главной он остался прежним: на «/admin»
  * ведут закладки, ссылки из писем и привычка — менять его только
- * потому, что страниц стало больше, незачем.
+ * потому, что страниц стало больше, незачем. У остальных страниц
+ * адрес, слаг, мета и блоки живут на одном экране: три перехода
+ * ради добавления блока — это три повода передумать.
  */
+/**
+ * Список блоков страницы для экрана правки.
+ *
+ * Нужен и панели главной, и экрану остальных страниц, поэтому
+ * собирается отдельно: два места, считающие подпись блока
+ * по-своему, разойдутся на первой же правке.
+ */
+async function blockListView (page) {
+  const blocks = page ? await listBlocks(page.id) : []
+  const locales = await listLocales()
+
+  // Подпись блока в списке — заголовок на языке по умолчанию.
+  // Тексты всех блоков берём одним запросом, а не по запросу на блок.
+  const defaultLocale = locales.find((row) => row.is_default)?.code ?? locales[0]?.code
+  const textsByBlock = await textsForBlocks(blocks.map((block) => block.id))
+  // Тот же порядок, что и на сайте: закреплённые по краям.
+  const summaries = sortBlocks(blocks).map((block) => {
+    const byLocale = textsByBlock.get(block.id)?.[defaultLocale] ?? {}
+    return {
+      ...block,
+      descriptor: getBlockType(block.type),
+      pinned: pinOf(block.type),
+      label: byLocale.heading || byLocale.title || byLocale.tagline || byLocale.nav_label || ''
+    }
+  })
+
+  return {
+    page,
+    isHome: !page || page.slug === HOME_SLUG,
+    blocks: summaries,
+    blockTypes: listBlockTypes(blocks.map((block) => block.type)),
+    locales
+  }
+}
+
 function dashboardUrl (page) {
-  return !page || page.slug === HOME_SLUG ? '/admin' : `/admin/pages/${page.id}/blocks`
+  return !page || page.slug === HOME_SLUG ? '/admin' : `/admin/pages/${page.id}`
 }
 
 async function blockRoutes (app) {
   async function renderBlockList (request, reply, page) {
-    const blocks = page ? await listBlocks(page.id) : []
-    const locales = await listLocales()
-
-    // Подпись блока в списке — заголовок на языке по умолчанию.
-    // Тексты всех блоков берём одним запросом, а не по запросу на блок.
-    const defaultLocale = locales.find((row) => row.is_default)?.code ?? locales[0]?.code
-    const textsByBlock = await textsForBlocks(blocks.map((block) => block.id))
-    // Тот же порядок, что и на сайте: закреплённые по краям.
-    const summaries = sortBlocks(blocks).map((block) => {
-      const byLocale = textsByBlock.get(block.id)?.[defaultLocale] ?? {}
-      return {
-        ...block,
-        descriptor: getBlockType(block.type),
-        pinned: pinOf(block.type),
-        label: byLocale.heading || byLocale.title || byLocale.tagline || byLocale.nav_label || ''
-      }
-    })
-
-    return renderAdmin(request, reply, 'admin/dashboard', {
-      page,
-      isHome: !page || page.slug === HOME_SLUG,
-      blocks: summaries,
-      blockTypes: listBlockTypes(blocks.map((block) => block.type)),
-      locales
-    })
+    const view = await blockListView(page)
+    return renderAdmin(request, reply, 'admin/dashboard', view)
   }
 
   /* ─── Список блоков главной ─────────────────────────────── */
@@ -91,13 +105,12 @@ async function blockRoutes (app) {
     return renderBlockList(request, reply, await getPageBySlug(HOME_SLUG))
   })
 
-  /* ─── Список блоков любой другой страницы ───────────────── */
+  /* Прежний адрес списка блоков страницы: правка собрана на одном
+     экране, и отдельному списку места не осталось. */
   app.get('/pages/:id/blocks', async (request, reply) => {
     const id = numericId(request)
     if (id === null) return reply.callNotFound()
-    const page = await getPage(id)
-    if (!page) return reply.callNotFound()
-    return renderBlockList(request, reply, page)
+    return reply.redirect(`/admin/pages/${id}`, 301)
   })
 
   /* ─── Создание ──────────────────────────────────────────── */
@@ -339,3 +352,4 @@ async function blockRoutes (app) {
 }
 
 export default blockRoutes
+export { blockListView }

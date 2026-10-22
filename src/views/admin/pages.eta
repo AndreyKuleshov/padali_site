@@ -30,20 +30,20 @@
       <span class="block-label"><%= it.t('pages.blocks', { count: page.blockCount }) %></span>
     </span>
     <% } else { %>
-    <form method="post" action="/admin/pages/<%= page.id %>" class="inline-form">
-      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
-      <input type="hidden" name="is_published" value="<%= page.is_published ? '1' : '0' %>">
-      <input type="text" name="slug" value="<%= page.slug %>"
-             maxlength="<%= it.slugMax %>" pattern="[a-z0-9]+(-[a-z0-9]+)*" required autocomplete="off">
-      <button type="submit" class="btn btn--small"><%= it.t('common.save') %></button>
+    <% ;/* Имя страницы — ссылка на её правку: это то, зачем в
+           список и заходят. Поле адреса отсюда убрано, оно там
+           же, на экране правки. */ %>
+    <a class="block-main" href="/admin/pages/<%= page.id %>">
+      <span class="block-type">/<%= page.slug %></span>
       <span class="block-label"><%= it.t('pages.blocks', { count: page.blockCount }) %></span>
-    </form>
+      <span class="block-anchor"><%= page.is_published ? it.t('pages.published') : it.t('pages.draft') %></span>
+    </a>
     <% } %>
 
-    <% if (!page.isHome) { %>
-    <a class="btn btn--small" href="/admin/pages/<%= page.id %>/edit"><%= it.t('pages.meta') %></a>
-    <% } %>
-    <a class="btn btn--small" href="/admin/pages/<%= page.id %>/blocks"><%= it.t('pages.editBlocks') %></a>
+    <% ;/* Одна кнопка вместо двух: адрес, заголовок и блоки
+           правятся на одном экране. У главной блоки остались на
+           «/admin» — туда ведут закладки и привычка. */ %>
+    <a class="btn btn--small" href="<%= page.isHome ? '/admin' : '/admin/pages/' + page.id %>"><%= it.t('pages.editBlocks') %></a>
 
     <% if (page.is_published) { %>
     <a class="btn btn--small" href="<%= page.isHome ? '/' : '/' + page.slug %>" target="_blank" rel="noopener"><%= it.t('pages.openSite') %></a>

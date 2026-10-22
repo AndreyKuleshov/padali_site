@@ -6,6 +6,7 @@ import { listBlocks } from '../../repositories/blocks.js'
 import { listLocales } from '../../repositories/locales.js'
 import { setFlash } from '../../services/auth.js'
 import { renderAdmin, afterWrite, numericId, textsFromBody } from './helpers.js'
+import { blockListView } from './blocks.js'
 
 /*
  * Слаг — это адрес, а не название: он уезжает в ссылку, в письмо и
@@ -55,20 +56,23 @@ async function pageRoutes (app) {
     return renderAdmin(request, reply, 'admin/pages', { pages: withCounts, slugMax: SLUG_MAX })
   })
 
-  /* Заголовок и описание правятся на своём экране, а не строкой в
-     списке: на двух языках это четыре поля, и в ряду с кнопками им
-     не поместиться. У главной те же поля живут в настройках сайта —
-     туда за ними и ходят. */
-  app.get('/pages/:id/edit', async (request, reply) => {
+  /* Вся правка страницы на одном экране: адрес, заголовок с
+     описанием и блоки. Разносить это по трём было ошибкой — до
+     добавления блока выходило три перехода, и каждый из них повод
+     передумать. У главной блоки остались на «/admin»: туда ведут
+     закладки и привычка. */
+  app.get('/pages/:id', async (request, reply) => {
     const id = numericId(request)
     if (id === null) return reply.callNotFound()
     const page = await getPage(id)
-    if (!page || page.slug === HOME_SLUG) return reply.callNotFound()
+    if (!page) return reply.callNotFound()
+    // У главной свой экран, заводить ей второй незачем.
+    if (page.slug === HOME_SLUG) return reply.redirect('/admin', 302)
 
     return renderAdmin(request, reply, 'admin/page-form', {
+      ...await blockListView(page),
       page,
       pageText: await getPageTexts(id),
-      locales: await listLocales(),
       slugMax: SLUG_MAX
     })
   })
@@ -124,7 +128,7 @@ async function pageRoutes (app) {
 
     afterWrite()
     setFlash(reply, 'success', request.t('pages.saved'))
-    return reply.redirect(request.body?.text ? `/admin/pages/${id}/edit` : '/admin/pages', 302)
+    return reply.redirect(request.body?.text ? `/admin/pages/${id}` : '/admin/pages', 302)
   })
 
   app.post('/pages/:id/delete', async (request, reply) => {
