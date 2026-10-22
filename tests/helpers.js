@@ -105,7 +105,33 @@ async function makeImage ({ width = 800, height = 600, seed = 1 } = {}) {
   }).png().toBuffer()
 }
 
+/**
+ * Дата концерта через `days` дней от сегодняшнего.
+ *
+ * Числом её писать нельзя: прошедшие концерты блок отбрасывает,
+ * и вписанная однажды дата тихо протухает. Три теста позеленели
+ * в начале октября и упали сами собой девятнадцатого — 16-е
+ * наступило, концерт стал прошлым, и в разметке оказался не тот
+ * карточка. Выглядело как поломка кода, которого никто не трогал.
+ *
+ * Части берём местные: toISOString переводит в UTC и у половины
+ * часовых поясов сдвигает день.
+ */
+function soon (days) {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(date.getDate() + days)
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** Та же дата, как её показывает сайт: ДД.ММ.ГГГГ. */
+function asShown (iso) {
+  const [year, month, day] = iso.split('-')
+  return `${day}.${month}.${year}`
+}
+
 export {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage,
-  closePool, TEST_ADMIN
+  closePool, soon, asShown, TEST_ADMIN
 }

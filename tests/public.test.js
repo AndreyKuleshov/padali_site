@@ -1,7 +1,8 @@
 import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage, closePool
+  resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage,
+  closePool, soon, asShown
 } from './helpers.js'
 import { createPage, savePageTexts } from '../src/repositories/pages.js'
 import { createBlock, updateBlock, saveBlockTexts, saveBlockMedia } from '../src/repositories/blocks.js'
@@ -185,8 +186,8 @@ test('билеты: по ссылке — кнопка, на входе — ст
     settings: {
       ...defaultSettings('concert'),
       events: [
-        { date: '2026-10-16', tickets: 'link', ticket_url: 'https://tickets.example/padali', price: '800 RSD' },
-        { date: '2026-11-20', tickets: 'door', ticket_url: 'https://tickets.example/старый', price: '600 RSD' }
+        { date: soon(7), tickets: 'link', ticket_url: 'https://tickets.example/padali', price: '800 RSD' },
+        { date: soon(40), tickets: 'door', ticket_url: 'https://tickets.example/старый', price: '600 RSD' }
       ]
     }
   })
@@ -389,7 +390,7 @@ test('«цена от» переводится, а не набирается в 
     pageId, type: 'concert', anchor: 'shows',
     settings: {
       ...defaultSettings('concert'),
-      events: [{ date: '2026-12-05', tickets: 'door', price: '1000 RSD', price_from: true }]
+      events: [{ date: soon(40), tickets: 'door', price: '1000 RSD', price_from: true }]
     }
   })
   invalidateCache()
@@ -464,13 +465,14 @@ test('отправка формы без скрипта возвращает н�
    показать их значило бы продать билет, которого нет. */
 test('пока неизвестно — ни кнопки, ни цены', async () => {
   const { pageId } = await buildPage()
+  const show = soon(7)
 
   await createBlock({
     pageId, type: 'concert', anchor: 'tba',
     settings: {
       ...defaultSettings('concert'),
       events: [{
-        date: '2026-10-16',
+        date: show,
         tickets: 'unknown',
         ticket_url: 'https://tickets.example/старое',
         price: '800 RSD'
@@ -482,7 +484,7 @@ test('пока неизвестно — ни кнопки, ни цены', async
   const body = (await app.inject({ method: 'GET', url: '/' })).body
   const section = /<section class="section wrap" id="tba">[\s\S]*?<\/section>/.exec(body)[0]
 
-  assert.match(section, /16\.10\.2026/, 'дата остаётся')
+  assert.ok(section.includes(asShown(show)), 'дата остаётся')
   assert.doesNotMatch(section, /tickets\.example/, 'прежняя ссылка не всплывает')
   assert.doesNotMatch(section, /800 RSD/, 'прежняя цена не всплывает')
   assert.doesNotMatch(section, /concert-tickets/, 'строки билетов нет вовсе')
@@ -495,7 +497,7 @@ test('несколько концертов листаются, один — н�
 
   const alone = await createBlock({
     pageId, type: 'concert', anchor: 'one',
-    settings: { ...defaultSettings('concert'), events: [{ date: '2026-10-16' }] }
+    settings: { ...defaultSettings('concert'), events: [{ date: soon(7) }] }
   })
   assert.ok(alone)
   invalidateCache()
@@ -509,7 +511,7 @@ test('несколько концертов листаются, один — н�
     pageId, type: 'concert', anchor: 'two',
     settings: {
       ...defaultSettings('concert'),
-      events: [{ date: '2026-10-16' }, { date: '2026-11-20' }]
+      events: [{ date: soon(7) }, { date: soon(40) }]
     }
   })
   invalidateCache()
