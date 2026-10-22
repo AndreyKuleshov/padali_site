@@ -1,0 +1,55 @@
+<%
+  var pageText = it.pageText || {}
+%>
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: '/' + it.page.slug })) %>
+
+<div class="page-head">
+  <div>
+    <p class="breadcrumb"><a href="/admin/pages">← <%= it.t('nav.pages') %></a></p>
+    <h1>/<%= it.page.slug %></h1>
+  </div>
+</div>
+
+<form method="post" action="/admin/pages/<%= it.page.id %>">
+  <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+
+  <section class="card">
+    <div class="field">
+      <label for="slug"><%= it.t('pages.slug') %></label>
+      <input id="slug" type="text" name="slug" value="<%= it.page.slug %>"
+             maxlength="<%= it.slugMax %>" pattern="[a-z0-9]+(-[a-z0-9]+)*" required autocomplete="off">
+      <p class="hint"><%= it.t('pages.slugHint') %></p>
+    </div>
+
+    <div class="field">
+      <label class="checkbox">
+        <input type="checkbox" name="is_published" value="1"<% if (it.page.is_published) { %> checked<% } %>>
+        <span><%= it.t('pages.published') %></span>
+      </label>
+    </div>
+  </section>
+
+  <% ;/* Заголовок и описание — то, что видно в выдаче и в
+         предпросмотре ссылки. Для страницы, которую рассылают,
+         это не мелочь: в чате человек видит сперва их. */ %>
+  <section class="card">
+    <h2><%= it.t('settings.meta') %></h2>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.t('settings.pageTitle'),
+          prefix: 'text', key: 'title',
+          field: { input: 'text' }, values: pageText
+        })) %>
+    <%~ include('/admin/partials/locale-field', Object.assign({}, it, {
+          label: it.t('settings.pageDescription'),
+          prefix: 'text', key: 'description',
+          field: { input: 'textarea', rows: 2 }, values: pageText
+        })) %>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
+    <a class="btn" href="/admin/pages/<%= it.page.id %>/blocks"><%= it.t('pages.editBlocks') %></a>
+  </div>
+</form>
+
+<%~ include('/admin/partials/foot', it) %>

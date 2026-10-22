@@ -2,6 +2,7 @@ import { currentUser, verifyCsrf } from '../../services/auth.js'
 import { resolveAdminLocale } from './helpers.js'
 import authRoutes, { sessionRoutes } from './auth.js'
 import blockRoutes from './blocks.js'
+import pageRoutes from './pages.js'
 import mediaRoutes from './media.js'
 import galleryRoutes from './galleries.js'
 import settingsRoutes from './settings.js'
@@ -53,6 +54,7 @@ async function adminRoutes (app) {
     scope.addHook('preHandler', guard)
     await scope.register(sessionRoutes)
     await scope.register(blockRoutes)
+    await scope.register(pageRoutes)
     await scope.register(mediaRoutes)
     await scope.register(galleryRoutes)
     await scope.register(settingsRoutes)

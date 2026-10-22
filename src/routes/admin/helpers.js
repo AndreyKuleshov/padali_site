@@ -13,6 +13,7 @@ const LANG_COOKIE = 'padali_admin_lang'
 
 const NAV = [
   { href: '/admin', key: 'nav.blocks', match: /^\/admin\/?$|^\/admin\/blocks/ },
+  { href: '/admin/pages', key: 'nav.pages', match: /^\/admin\/pages/ },
   { href: '/admin/galleries', key: 'nav.galleries', match: /^\/admin\/galleries/ },
   { href: '/admin/media', key: 'nav.media', match: /^\/admin\/media/ },
   { href: '/admin/settings', key: 'nav.settings', match: /^\/admin\/settings/ },

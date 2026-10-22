@@ -1,0 +1,69 @@
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('pages.title') })) %>
+
+<div class="page-head">
+  <div>
+    <h1><%= it.t('pages.title') %></h1>
+    <p class="hint"><%= it.t('pages.subtitle') %></p>
+  </div>
+</div>
+
+<section class="card">
+  <form method="post" action="/admin/pages" class="inline-form">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <input type="text" name="slug" placeholder="<%= it.t('pages.slug') %>"
+           maxlength="<%= it.slugMax %>" pattern="[a-z0-9]+(-[a-z0-9]+)*" required autocomplete="off">
+    <button type="submit" class="btn btn--primary"><%= it.t('pages.add') %></button>
+  </form>
+  <p class="hint"><%= it.t('pages.slugHint') %></p>
+</section>
+
+<ul class="block-list page-list">
+  <% it.pages.forEach(function (page) { %>
+  <li class="block-row<% if (!page.is_published) { %> block-row--hidden<% } %>">
+    <% ;/* Адрес главной не правится и не показывается полем: она
+           живёт в корне, и слаг ей нужен только чтобы найти её в
+           базе. Строкой — чтобы в списке было видно, что это она. */ %>
+    <% if (page.isHome) { %>
+    <span class="block-main">
+      <span class="block-type"><%= it.t('pages.home') %></span>
+      <span class="block-anchor">/</span>
+      <span class="block-label"><%= it.t('pages.blocks', { count: page.blockCount }) %></span>
+    </span>
+    <% } else { %>
+    <form method="post" action="/admin/pages/<%= page.id %>" class="inline-form">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <input type="hidden" name="is_published" value="<%= page.is_published ? '1' : '0' %>">
+      <input type="text" name="slug" value="<%= page.slug %>"
+             maxlength="<%= it.slugMax %>" pattern="[a-z0-9]+(-[a-z0-9]+)*" required autocomplete="off">
+      <button type="submit" class="btn btn--small"><%= it.t('common.save') %></button>
+      <span class="block-label"><%= it.t('pages.blocks', { count: page.blockCount }) %></span>
+    </form>
+    <% } %>
+
+    <% if (!page.isHome) { %>
+    <a class="btn btn--small" href="/admin/pages/<%= page.id %>/edit"><%= it.t('pages.meta') %></a>
+    <% } %>
+    <a class="btn btn--small" href="/admin/pages/<%= page.id %>/blocks"><%= it.t('pages.editBlocks') %></a>
+
+    <% if (page.is_published) { %>
+    <a class="btn btn--small" href="<%= page.isHome ? '/' : '/' + page.slug %>" target="_blank" rel="noopener"><%= it.t('pages.openSite') %></a>
+    <% } %>
+
+    <form method="post" action="/admin/pages/<%= page.id %>">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <input type="hidden" name="slug" value="<%= page.slug %>">
+      <input type="hidden" name="is_published" value="<%= page.is_published ? '0' : '1' %>">
+      <button type="submit" class="btn btn--small"><%= page.is_published ? it.t('pages.unpublish') : it.t('pages.publish') %></button>
+    </form>
+
+    <% if (!page.isHome) { %>
+    <form method="post" action="/admin/pages/<%= page.id %>/delete" data-confirm="<%= it.t('pages.confirmDelete') %>">
+      <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+      <button type="submit" class="btn btn--small btn--danger"><%= it.t('common.delete') %></button>
+    </form>
+    <% } %>
+  </li>
+  <% }) %>
+</ul>
+
+<%~ include('/admin/partials/foot', it) %>

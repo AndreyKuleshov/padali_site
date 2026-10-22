@@ -326,7 +326,13 @@
         fetch('/admin/blocks/reorder', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order: order, _csrf: csrfToken(list) })
+          /* Номер страницы — отсюда: один и тот же список
+             обслуживает и главную, и остальные страницы. */
+          body: JSON.stringify({
+            order: order,
+            page_id: list.getAttribute('data-page') || '',
+            _csrf: csrfToken(list)
+          })
         }).then(function (response) {
           if (!response.ok) window.alert(list.getAttribute('data-error'))
         })

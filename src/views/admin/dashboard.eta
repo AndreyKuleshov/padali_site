@@ -1,9 +1,18 @@
 <%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('blocks.title') })) %>
 
 <div class="page-head">
-  <h1><%= it.t('blocks.title') %></h1>
+  <div>
+    <h1><%= it.t('blocks.title') %></h1>
+    <% ;/* Какой странице принадлежит список. У главной подписи
+           нет: там и так понятно, а лишняя строка на каждом
+           заходе в админку — шум. */ %>
+    <% if (!it.isHome) { %>
+    <p class="breadcrumb"><a href="/admin/pages">← <%= it.t('nav.pages') %></a> · /<%= it.page.slug %></p>
+    <% } %>
+  </div>
   <form method="post" action="/admin/blocks" class="inline-form">
     <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <% if (it.page) { %><input type="hidden" name="page_id" value="<%= it.page.id %>"><% } %>
     <select name="type" aria-label="<%= it.t('blocks.type') %>">
       <% it.blockTypes.forEach(function (type) { %>
       <option value="<%= type.type %>"><%= it.localize(type.title) %></option>
@@ -21,6 +30,7 @@
 
 <ul class="block-list" id="blockList"
     data-csrf="<%= it.csrf %>"
+    <% if (it.page) { %>data-page="<%= it.page.id %>"<% } %>
     data-error="<%= it.t('blocks.reorderFailed') %>">
   <% it.blocks.forEach(function (block) { %>
   <li class="block-row<%= block.isVisible ? '' : ' block-row--hidden' %><%= block.pinned ? ' block-row--pinned' : '' %>"

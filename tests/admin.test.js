@@ -617,3 +617,97 @@ test('нечисловой id в пути даёт 404, а не ошибку б�
     assert.doesNotMatch(response.body, /invalid input syntax|NaN/, 'внутренности базы наружу не уходят')
   }
 })
+
+/* ─── Страницы ──────────────────────────────────────────────
+   Слаг — это адрес, а не название: он уезжает в ссылку, в письмо
+   и в питч. Поэтому проверяем его на входе и держим скучным. */
+test('страница заводится, переименовывается и удаляется', async () => {
+  const { listPages, getPageBySlug } = await import('../src/repositories/pages.js')
+
+  const created = await app.inject({
+    method: 'POST', url: '/admin/pages', cookies: session.cookies,
+    ...form({ _csrf: session.csrf, slug: 'pocetak' })
+  })
+  assert.equal(created.statusCode, 302)
+
+  const page = await getPageBySlug('pocetak')
+  assert.ok(page, 'страница появилась')
+  assert.equal(page.is_published, false,
+    'новая не публикуется сразу: наполнять её ещё нечем, а пустой адрес в карте сайта — приглашение на страницу ни с чем')
+
+  await app.inject({
+    method: 'POST', url: `/admin/pages/${page.id}`, cookies: session.cookies,
+    ...form({ _csrf: session.csrf, slug: 'pocetak-2026', is_published: '1' })
+  })
+  const renamed = await getPageBySlug('pocetak-2026')
+  assert.ok(renamed, 'адрес сменился')
+  assert.equal(renamed.is_published, true)
+
+  await app.inject({
+    method: 'POST', url: `/admin/pages/${page.id}/delete`, cookies: session.cookies,
+    ...form({ _csrf: session.csrf })
+  })
+  assert.equal(await getPageBySlug('pocetak-2026'), null, 'страница удалена')
+  assert.ok((await listPages()).some((row) => row.slug === 'home'), 'главная на месте')
+})
+
+/* Адрес из одного отрезка разбирается сперва как язык. Страница
+   с именем языка была бы недостижима — её перехватил бы
+   переключатель, и редактор чинил бы «пропавшую страницу»,
+   которой некуда было деться. Поэтому запрещаем на входе. */
+test('адрес страницы проверяется: мусор, занятое и имена языков', async () => {
+  const { listPages } = await import('../src/repositories/pages.js')
+
+  /* Судим по числу страниц, а не по поиску слага: «home» и так
+     есть, и поиск сказал бы «создалась», ничего не создав. */
+  async function created (slug) {
+    const before = (await listPages()).length
+    await app.inject({
+      method: 'POST', url: '/admin/pages', cookies: session.cookies,
+      ...form({ _csrf: session.csrf, slug })
+    })
+    return (await listPages()).length > before
+  }
+
+  assert.equal(await created('Нет Кириллицы'), false, 'кириллица и пробелы не проходят')
+  assert.equal(await created('two words'), false, 'пробел не проходит')
+  assert.equal(await created('-dash-first'), false, 'дефис по краям не проходит')
+  assert.equal(await created('sr'), false, 'имя языка занято переключателем')
+  assert.equal(await created('admin'), false, 'служебный адрес занят')
+  assert.equal(await created('home'), false, 'главная живёт в корне')
+
+  assert.equal(await created('pocetak'), true, 'нормальный адрес проходит')
+  assert.equal(await created('pocetak'), false, 'повтор не создаёт второй страницы')
+})
+
+/* Главная живёт в корне: адреса у неё нет, и без неё сайт
+   перестаёт существовать — корень отдаёт 404. */
+test('главную нельзя удалить', async () => {
+  const { getPageBySlug } = await import('../src/repositories/pages.js')
+  const home = await getPageBySlug('home')
+
+  const response = await app.inject({
+    method: 'POST', url: `/admin/pages/${home.id}/delete`, cookies: session.cookies,
+    ...form({ _csrf: session.csrf })
+  })
+  assert.equal(response.statusCode, 302)
+  assert.ok(await getPageBySlug('home'), 'главная на месте')
+})
+
+/* Один и тот же список блоков обслуживает все страницы, и блок
+   обязан лечь на ту, с которой его завели. */
+test('блок заводится на выбранной странице, а не всегда на главной', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  const landing = await makePage({ slug: 'pocetak', isPublished: false })
+
+  const list = await app.inject({ method: 'GET', url: `/admin/pages/${landing.id ?? landing}/blocks`, cookies: session.cookies })
+  assert.equal(list.statusCode, 200)
+
+  await app.inject({
+    method: 'POST', url: '/admin/blocks', cookies: session.cookies,
+    ...form({ _csrf: session.csrf, type: 'richtext', page_id: landing })
+  })
+
+  assert.equal((await listBlocks(landing)).length, 1, 'блок лёг на лендинг')
+  assert.equal((await listBlocks(pageId)).length, 0, 'на главную не попал')
+})

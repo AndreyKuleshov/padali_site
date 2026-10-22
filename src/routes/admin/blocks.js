@@ -2,7 +2,7 @@ import { transaction } from '../../db/pool.js'
 import {
   getBlockType, listBlockTypes, hasBlockType, defaultSettings, sortBlocks, pinOf, nextAnchor
 } from '../../blocks/index.js'
-import { getPageBySlug, HOME_SLUG } from '../../repositories/pages.js'
+import { getPageBySlug, getPage, HOME_SLUG } from '../../repositories/pages.js'
 import {
   listBlocks, getBlock, createBlock, updateBlock, setBlockVisibility,
   deleteBlock, reorderBlocks, getBlockTexts, textsForBlocks,
@@ -48,10 +48,17 @@ function cleanTitles (fields) {
   return fields
 }
 
+/*
+ * Адрес списка блоков. У главной он остался прежним: на «/admin»
+ * ведут закладки, ссылки из писем и привычка — менять его только
+ * потому, что страниц стало больше, незачем.
+ */
+function dashboardUrl (page) {
+  return !page || page.slug === HOME_SLUG ? '/admin' : `/admin/pages/${page.id}/blocks`
+}
+
 async function blockRoutes (app) {
-  /* ─── Список блоков главной ─────────────────────────────── */
-  app.get('/', async (request, reply) => {
-    const page = await getPageBySlug(HOME_SLUG)
+  async function renderBlockList (request, reply, page) {
     const blocks = page ? await listBlocks(page.id) : []
     const locales = await listLocales()
 
@@ -72,21 +79,46 @@ async function blockRoutes (app) {
 
     return renderAdmin(request, reply, 'admin/dashboard', {
       page,
+      isHome: !page || page.slug === HOME_SLUG,
       blocks: summaries,
       blockTypes: listBlockTypes(blocks.map((block) => block.type)),
       locales
     })
+  }
+
+  /* ─── Список блоков главной ─────────────────────────────── */
+  app.get('/', async (request, reply) => {
+    return renderBlockList(request, reply, await getPageBySlug(HOME_SLUG))
+  })
+
+  /* ─── Список блоков любой другой страницы ───────────────── */
+  app.get('/pages/:id/blocks', async (request, reply) => {
+    const id = numericId(request)
+    if (id === null) return reply.callNotFound()
+    const page = await getPage(id)
+    if (!page) return reply.callNotFound()
+    return renderBlockList(request, reply, page)
   })
 
   /* ─── Создание ──────────────────────────────────────────── */
   app.post('/blocks', async (request, reply) => {
     const type = String(request.body?.type ?? '')
+
+    /* Страница приходит формой: один и тот же список блоков
+       обслуживает и главную, и лендинг. Нет номера — значит
+       форма со старой вкладки, когда страница была одна. */
+    const pageId = Number(request.body?.page_id)
+    const page = Number.isInteger(pageId) && pageId > 0
+      ? await getPage(pageId)
+      : await getPageBySlug(HOME_SLUG)
+    const back = dashboardUrl(page)
+
+    if (!page) return reply.callNotFound()
+
     if (!hasBlockType(type)) {
       setFlash(reply, 'error', request.t('blocks.unknownTypeError', { type }))
-      return reply.redirect('/admin', 302)
+      return reply.redirect(back, 302)
     }
-
-    const page = await getPageBySlug(HOME_SLUG)
 
     // Из выпадайки такой тип уже убран, но запрос мог прийти и
     // мимо неё — со старой открытой вкладки или вручную.
@@ -96,7 +128,7 @@ async function blockRoutes (app) {
         setFlash(reply, 'error', request.t('blocks.alreadyOnPage', {
           title: localize(getBlockType(type).title, request.adminLocale)
         }))
-        return reply.redirect('/admin', 302)
+        return reply.redirect(back, 302)
       }
     }
 
@@ -158,7 +190,9 @@ async function blockRoutes (app) {
     const siteLogo = inherits ? await currentSiteLogo() : null
 
     return renderAdmin(request, reply, 'admin/block-form', {
-      block, descriptor, texts, previews, galleries, locales, siteLogo
+      block, descriptor, texts, previews, galleries, locales, siteLogo,
+      // Возврат — к списку той страницы, которой блок принадлежит.
+      backUrl: dashboardUrl(await getPage(block.pageId))
     })
   })
 
@@ -254,7 +288,7 @@ async function blockRoutes (app) {
 
     await setBlockVisibility(id, !block.isVisible)
     afterWrite()
-    return reply.redirect('/admin', 302)
+    return reply.redirect(dashboardUrl(await getPage(block.pageId)), 302)
   })
 
   app.post('/blocks/:id/delete', async (request, reply) => {
@@ -272,17 +306,21 @@ async function blockRoutes (app) {
       setFlash(reply, 'error', request.t('blocks.cannotDeletePinned', {
         title: localize(getBlockType(block.type)?.title ?? block.type, request.adminLocale)
       }))
-      return reply.redirect('/admin', 302)
+      return reply.redirect(dashboardUrl(await getPage(block.pageId)), 302)
     }
 
+    const back = dashboardUrl(await getPage(block.pageId))
     await deleteBlock(id)
     afterWrite()
     setFlash(reply, 'success', request.t('blocks.deleted'))
-    return reply.redirect('/admin', 302)
+    return reply.redirect(back, 302)
   })
 
   app.post('/blocks/reorder', async (request, reply) => {
-    const page = await getPageBySlug(HOME_SLUG)
+    const pageId = Number(request.body?.page_id)
+    const page = Number.isInteger(pageId) && pageId > 0
+      ? await getPage(pageId)
+      : await getPageBySlug(HOME_SLUG)
     // Страницы нет только до первого запуска сидирования; порядок
     // блоков в этот момент сохранять нечему.
     if (!page) return reply.callNotFound()
