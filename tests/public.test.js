@@ -1116,3 +1116,75 @@ test('canonical и og:url второй страницы ведут на неё �
   assert.match(home, /<link rel="canonical" href="[^"]*\/">/, 'главная осталась в корне')
   assert.doesNotMatch(home, /canonical[^>]*pocetak/, 'и чужого слага не подхватила')
 })
+
+/* Редактор пишет путь один раз, а читатель приходит на сербскую
+   главную — и должен попасть на сербский лендинг, а не на
+   английский. Внешние адреса не трогаем: чужому сайту наш
+   префикс не нужен. */
+test('внутренняя ссылка уводит на страницу своего языка', async () => {
+  const { pageId } = await buildPage()
+
+  const own = await createBlock({
+    pageId, type: 'release', anchor: 'own',
+    settings: {
+      ...defaultSettings('release'),
+      release_date: '2026-10-22',
+      more_url: '/pocetak',
+      platforms: [{ icon: 'spotify', label: 'Spotify', url: 'https://open.spotify.test/x' }]
+    }
+  })
+  await saveBlockTexts(own, { en: { more_label: '+ more' }, sr: { more_label: '+ još' } })
+
+  const away = await createBlock({
+    pageId, type: 'release', anchor: 'away',
+    settings: {
+      ...defaultSettings('release'),
+      release_date: '2026-10-22',
+      more_url: 'https://hearnow.test/padali',
+      platforms: [{ icon: 'spotify', label: 'Spotify', url: 'https://open.spotify.test/x' }]
+    }
+  })
+  await saveBlockTexts(away, { en: { more_label: '+ more' }, sr: { more_label: '+ još' } })
+  invalidateCache()
+
+  const en = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(en, /<a class="more" href="\/pocetak">/, 'на языке по умолчанию префикса нет')
+
+  const sr = (await app.inject({ method: 'GET', url: '/sr' })).body
+  assert.match(sr, /<a class="more" href="\/sr\/pocetak">/, 'на сербской странице — сербский лендинг')
+
+  assert.match(sr, /href="https:\/\/hearnow\.test\/padali"/, 'чужой адрес остался как был')
+})
+
+/* Купить пока негде, но ссылка у редактора уже есть. Тумблер
+   отдельно от адреса: выключенная кнопка хранит его и
+   возвращается целиком, когда появится где. */
+test('кнопку покупки на лендинге включает отдельный тумблер', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+
+  async function landing (slug, showBuy) {
+    const pageId = await makePage({ slug })
+    const id = await createBlock({
+      pageId, type: 'landing', anchor: 'listen', isVisible: true,
+      settings: {
+        ...defaultSettings('landing'),
+        show_buy: showBuy,
+        buy_url: 'https://padali.bandcamp.test/'
+      }
+    })
+    await saveBlockTexts(id, { en: { buy_label: 'Buy from artist' } })
+  }
+
+  await landing('on', true)
+  await landing('off', false)
+  invalidateCache()
+
+  const on = (await app.inject({ method: 'GET', url: '/on' })).body
+  assert.match(on, /class="landing-buy"/)
+  assert.match(on, /Buy from artist/)
+
+  const off = (await app.inject({ method: 'GET', url: '/off' })).body
+  assert.doesNotMatch(off, /class="landing-buy"/, 'кнопки нет')
+  assert.doesNotMatch(off, /bandcamp\.test/, 'и адрес на страницу не попал')
+})

@@ -73,9 +73,12 @@
           <% if (block.settings.more_url) { %>
           <% ;/* Своя страница открывается в этой же вкладке: новая
                  нужна, чтобы не терять наш сайт, а тут мы с него и
-                 не уходим. */ %>
+                 не уходим. И на языке читателя: он пришёл на
+                 сербскую главную и должен попасть на сербский
+                 лендинг, а не на английский. */ %>
           <% var away = !String(block.settings.more_url).startsWith('/') %>
-          <a class="more" href="<%= block.settings.more_url %>"<% if (away) { %> target="_blank" rel="noopener"<% } %>><%= block.text.more_label %></a>
+          <% var moreHref = it.h.inside(block.settings.more_url, it.locale, it.defaultLocale) %>
+          <a class="more" href="<%= moreHref %>"<% if (away) { %> target="_blank" rel="noopener"<% } %>><%= block.text.more_label %></a>
           <% } else { %>
           <span class="more more--flat"><%= block.text.more_label %></span>
           <% } %>

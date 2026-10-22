@@ -8,7 +8,7 @@
  * мерч и фото со страницы, которая продаёт один трек, незачем.
  */
 const PLATFORMS = [
-  'spotify', 'apple-music', 'youtube-music', 'deezer',
+  'spotify', 'apple-music', 'youtube-music', 'amazon-music', 'deezer', 'tidal',
   'youtube', 'tiktok', 'bandcamp', 'soundcloud', 'vk'
 ]
 
@@ -40,7 +40,7 @@ export default {
         sr: 'Na primer «Preuzmi muziku».'
       }
     },
-    { key: 'buy_label', label: { en: '«Buy» button', sr: 'Dugme «kupi»' }, input: 'text' },
+    { key: 'buy_label', label: { en: '«Buy» button label', sr: 'Tekst dugmeta «kupi»' }, input: 'text' },
     {
       key: 'note',
       label: { en: 'Note under the buttons', sr: 'Napomena ispod dugmadi' },
@@ -69,13 +69,20 @@ export default {
       }
     },
     {
+      key: 'show_buy',
+      label: { en: 'Show the «buy» button', sr: 'Prikaži dugme «kupi»' },
+      input: 'checkbox',
+      default: false,
+      hint: {
+        en: 'Off while there is nowhere to buy yet. The link below keeps its value and comes back with the toggle.',
+        sr: 'Isključeno dok nema gde da se kupi. Link ispod ostaje zapisan i vraća se sa prekidačem.'
+      }
+    },
+    {
       key: 'buy_url',
       label: { en: '«Buy» link', sr: 'Link za «kupi»' },
       input: 'url',
-      hint: {
-        en: 'Without it the button is not shown at all.',
-        sr: 'Bez njega se dugme uopšte ne prikazuje.'
-      }
+      showIf: { field: 'show_buy', value: true }
     },
     {
       key: 'platforms',

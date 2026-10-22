@@ -108,6 +108,19 @@ function localeUrl (code, defaultLocale, path = '') {
 }
 
 /**
+ * Ссылка внутрь сайта — на странице своего языка.
+ *
+ * Редактор пишет путь один раз («/pocetak»), а читатель приходит на
+ * сербскую главную и должен попасть на сербский лендинг. Внешние
+ * адреса не трогаем: чужому сайту наш префикс не нужен.
+ */
+function insideUrl (url, locale, defaultLocale) {
+  const text = String(url ?? '')
+  if (!text.startsWith('/') || text.startsWith('//')) return text
+  return localeUrl(locale, defaultLocale, text.replace(/^\/+/, ''))
+}
+
+/**
  * Числа раскладки, которые нужны и шаблону, и стилям.
  *
  * Шаблон галереи считает по ним атрибут sizes: браузер выбирает
@@ -149,6 +162,7 @@ const helpers = {
   formatDate,
   formatDateTime,
   localeUrl,
+  inside: insideUrl,
   publicUrl: config.publicUrl,
   /* Открытый ключ капчи: он и так виден в разметке. Пусто — капчи
      на странице не будет вовсе. */

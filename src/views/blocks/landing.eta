@@ -62,7 +62,10 @@
     </ul>
     <% } %>
 
-    <% if (block.settings.buy_url && block.text.buy_label) { %>
+    <% ;/* Тумблер отдельно от адреса: купить пока негде, а ссылку
+           редактор уже вписал — выключенная кнопка хранит её и
+           возвращается целиком, когда появится где. */ %>
+    <% if (block.settings.show_buy && block.settings.buy_url && block.text.buy_label) { %>
     <p class="landing-buy">
       <a class="button" href="<%= block.settings.buy_url %>" target="_blank" rel="noopener"><%= block.text.buy_label %></a>
     </p>
