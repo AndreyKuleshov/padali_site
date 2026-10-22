@@ -31,13 +31,31 @@ export function isTelegramConfigured (settings = config.telegram) {
  * посетитель, просто написав «*» в поле. Без parse_mode текст
  * уходит как есть и экранировать нечего.
  */
-function compose (message, { siteUrl }) {
-  const title = message.kind === 'order' ? 'Заказ мерча' : 'Сообщение с сайта'
-  const lines = [title, '']
+/*
+ * Подписи по-сербски и одним языком.
+ *
+ * Отбивку читает группа, а не посетитель, и язык у неё один —
+ * подстраиваться под язык отправителя здесь не за чем: сообщение
+ * от англоязычного и от сербского читает тот же человек. Поэтому
+ * это не словарь в i18n, а четыре строки на месте.
+ *
+ * Слова взяты те же, что стоят на сайте: «Porudžbina» из заголовка
+ * формы заказа, «Grad» из её поля. Расходиться им незачем.
+ */
+const LABELS = {
+  order: 'Porudžbina merča',
+  contact: 'Poruka sa sajta',
+  item: 'Artikal',
+  city: 'Grad',
+  contactField: 'Kontakt'
+}
 
-  if (message.item) lines.push(`Товар: ${message.item}`)
-  if (message.city) lines.push(`Город: ${message.city}`)
-  if (message.contact) lines.push(`Связь: ${message.contact}`)
+function compose (message, { siteUrl }) {
+  const lines = [message.kind === 'order' ? LABELS.order : LABELS.contact, '']
+
+  if (message.item) lines.push(`${LABELS.item}: ${message.item}`)
+  if (message.city) lines.push(`${LABELS.city}: ${message.city}`)
+  if (message.contact) lines.push(`${LABELS.contactField}: ${message.contact}`)
   if (message.body) lines.push('', message.body)
 
   /* Ссылка на админку последней строкой: отбивку читают с телефона,

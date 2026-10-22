@@ -54,7 +54,7 @@ test('сообщение уходит на адрес бота, с чатом и
   assert.equal(impl.calls.length, 1)
   assert.match(impl.calls[0].url, /^https:\/\/api\.telegram\.org\/bot123:ABC\/sendMessage$/)
   assert.equal(impl.calls[0].body.chat_id, '-100500')
-  assert.match(impl.calls[0].body.text, /когда концерт\?/)
+  assert.match(impl.calls[0].body.text, /когда концерт\?/, 'текст посетителя — как написан, на его языке')
   assert.match(impl.calls[0].body.text, /a@b\.test/)
   assert.match(impl.calls[0].body.text, /padali\.band\/admin\/messages/, 'отвечать всё равно идти в админку')
 })
@@ -74,18 +74,24 @@ test('разметка не включается, поэтому чужие си
   assert.ok(sent.text.includes(hostile), 'текст ушёл ровно таким, каким его написали')
 })
 
-test('заказ и вопрос различимы с первой строки', async () => {
-  const order = composeTelegram({ kind: 'order', item: 'Футболка', city: 'Novi Sad' }, {})
-  const contact = composeTelegram({ kind: 'contact', body: 'привет' }, {})
+/* Подписи по-сербски: отбивку читает группа, а не посетитель, и
+   язык у неё один. Слова те же, что стоят на сайте в форме
+   заказа, — расходиться им незачем. */
+test('заказ и вопрос различимы с первой строки, подписи по-сербски', async () => {
+  const order = composeTelegram({ kind: 'order', item: 'Majica', city: 'Novi Sad' }, {})
+  const contact = composeTelegram({ kind: 'contact', body: 'zdravo' }, {})
 
-  assert.match(order.split('\n')[0], /Заказ/)
-  assert.match(contact.split('\n')[0], /Сообщение/)
-  assert.match(order, /Товар: Футболка/)
-  assert.match(order, /Город: Novi Sad/)
+  assert.match(order.split('\n')[0], /^Porudžbina/)
+  assert.match(contact.split('\n')[0], /^Poruka sa sajta$/)
+  assert.match(order, /Artikal: Majica/)
+  assert.match(order, /Grad: Novi Sad/)
 
-  /* Пустые поля не печатаются: «Город:» с пустотой читается как
+  // Кириллицы в подписях нет вовсе — ни одной.
+  assert.doesNotMatch(order + contact, /[А-Яа-яЁё]/)
+
+  /* Пустые поля не печатаются: «Grad:» с пустотой читается как
      недоделка, а у письма с сайта города и нет. */
-  assert.doesNotMatch(contact, /Товар:|Город:/)
+  assert.doesNotMatch(contact, /Artikal:|Grad:/)
 })
 
 test('отказ Telegram не превращается в исключение', async () => {
