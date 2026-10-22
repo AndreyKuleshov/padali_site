@@ -38,6 +38,9 @@ const DICTIONARY = {
     'youtube.play': 'Play the video',
     'youtube.watch': 'Watch on YouTube',
 
+    'release.listen': 'Listen now',
+    'landing.home': 'To the band site',
+
     'merch.order': 'Order',
     'merch.formTitle': 'Order',
     'merch.city': 'City',
@@ -79,6 +82,9 @@ const DICTIONARY = {
 
     'youtube.play': 'Pusti video',
     'youtube.watch': 'Pogledaj na YouTube-u',
+
+    'release.listen': 'Slušaj odmah',
+    'landing.home': 'Na sajt benda',
 
     'merch.order': 'Poruči',
     'merch.formTitle': 'Porudžbina',

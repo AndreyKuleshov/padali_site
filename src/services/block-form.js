@@ -43,6 +43,13 @@ function asDate (value) {
 function asUrl (value) {
   const text = asString(value)
   if (text === '') return ''
+
+  /* Свой же адрес пишется путём, а не целиком: домен у этого сайта
+     уже менялся, и все вписанные целиком ссылки пришлось бы искать
+     по блокам руками. Две косые в начале не пускаем — это адрес на
+     чужой домен, только без указания протокола. */
+  if (text.startsWith('/') && !text.startsWith('//')) return text
+
   try {
     const url = new URL(text)
     return ['http:', 'https:', 'mailto:', 'tel:'].includes(url.protocol) ? text : ''

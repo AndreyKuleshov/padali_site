@@ -3,6 +3,14 @@
   var cover = block.first('cover')
   var sticker = block.first('sticker')
   var platforms = block.settings.platforms || []
+  ;/* Вышел ли релиз — решает дата, а не галочка: в полночь блок
+     переключается сам, и никому не надо помнить о правке именно в
+     этот день. «Сегодня» приходит от композитора, тем же, что стоит
+     в ключе кэша: решать по разным часам — значит разойтись с ним. */
+  var released = Boolean(block.settings.release_date) && block.settings.release_date <= it.today
+  var platformsLabel = released
+    ? (block.text.listen_label || it.s('release.listen'))
+    : block.text.platforms_label
 %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <div class="release-grid">
@@ -20,7 +28,10 @@
       <p class="release-date"><time datetime="<%= block.settings.release_date %>"><%= it.h.formatDate(block.settings.release_date) %></time></p>
       <% } %>
 
-      <% if (block.settings.show_countdown && block.settings.release_date && block.text.countdown_label) { %>
+      <% ;/* После выхода отсчёту считать нечего. Скрипт и сам
+             гасит его на нуле, но пустой абзац всё равно занимал
+             строку и двигал всё под собой. */ %>
+      <% if (!released && block.settings.show_countdown && block.settings.release_date && block.text.countdown_label) { %>
       <p class="countdown"
          data-countdown="<%= block.settings.release_date %>"
          data-countdown-template="<%= block.text.countdown_label %>"></p>
@@ -32,23 +43,43 @@
              где это будет», а без подписи читались как кнопки,
              которые не нажимаются. */ %>
       <% if (platforms.length > 0) { %>
-      <% if (block.text.platforms_label) { %>
-      <p class="platforms-label"><%= block.text.platforms_label %></p>
+      <% if (platformsLabel) { %>
+      <p class="platforms-label<% if (released) { %> platforms-label--out<% } %>"><%= platformsLabel %></p>
       <% } %>
-      <ul class="platform-icons">
+      <% ;/* До выхода значок говорит «вот где это будет», и ряду
+             хватает одних знаков. После выхода это главная кнопка
+             на странице, и знак без имени не зовёт никуда: рядом
+             встаёт название площадки. */ %>
+      <ul class="platform-icons<% if (released) { %> platform-icons--out<% } %>">
         <% platforms.forEach(function (platform) { %>
         <li>
           <% if (platform.url) { %>
           <a href="<%= platform.url %>" target="_blank" rel="noopener" title="<%= platform.label %>">
             <%~ it.h.icon(platform.icon, { title: platform.label }) %>
+            <% if (released) { %><span class="platform-name"><%= platform.label %></span><% } %>
           </a>
           <% } else { %>
           <span class="platform-soon" title="<%= platform.label %>"><%~ it.h.icon(platform.icon, { title: platform.label }) %></span>
           <% } %>
         </li>
         <% }) %>
+        <% ;/* Последняя кнопка ряда ведёт на страницу, где собраны
+               все площадки сразу. Без адреса остаётся подписью «и
+               другие»: среди живых кнопок неработающая шестая
+               читается как сломанная, но врать ссылкой в никуда
+               хуже. */ %>
         <% if (block.text.more_label) { %>
-        <li class="more"><%= block.text.more_label %></li>
+        <li>
+          <% if (block.settings.more_url) { %>
+          <% ;/* Своя страница открывается в этой же вкладке: новая
+                 нужна, чтобы не терять наш сайт, а тут мы с него и
+                 не уходим. */ %>
+          <% var away = !String(block.settings.more_url).startsWith('/') %>
+          <a class="more" href="<%= block.settings.more_url %>"<% if (away) { %> target="_blank" rel="noopener"<% } %>><%= block.text.more_label %></a>
+          <% } else { %>
+          <span class="more more--flat"><%= block.text.more_label %></span>
+          <% } %>
+        </li>
         <% } %>
       </ul>
       <% } %>

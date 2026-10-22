@@ -484,8 +484,12 @@ body.no-scroll { overflow: hidden; }
 
 .platform-icons { display: flex; flex-wrap: wrap; gap: 10px; }
 
+/* Селектор узкий намеренно. Общий `.platform-icons span` ловил и
+   название площадки рядом со знаком, делая из него коробку 34×34:
+   текст вылезал поверх значка. Перечисляем то, что действительно
+   должно быть квадратом. */
 .platform-icons a,
-.platform-icons span {
+.platform-icons .platform-soon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,7 +501,9 @@ body.no-scroll { overflow: hidden; }
   transition: color .15s, border-color .15s;
 }
 
-.platform-icons a { border-color: var(--line-strong); }
+/* Ссылка-значок не подчёркивается: пока внутри был один svg,
+   подчёркивание не было видно, а с названием вылезло. */
+.platform-icons a { border-color: var(--line-strong); text-decoration: none; }
 .platform-icons a:hover { color: var(--neon); border-color: var(--neon); }
 
 /* Площадка без ссылки — это «скоро здесь», а не выключенная
@@ -514,10 +520,40 @@ body.no-scroll { overflow: hidden; }
 }
 .platform-icons svg { width: 17px; height: 17px; }
 
+/* После выхода ряд — главная кнопка страницы, а не сноска: знаки
+   крупнее, рядом имя площадки, рамка заметнее. До выхода у тех же
+   значков работы нет, и шуметь им незачем. */
+.platform-icons--out a {
+  width: auto;
+  height: 42px;
+  gap: 8px;
+  padding: 0 14px;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.platform-icons--out a:hover { color: var(--neon); border-color: var(--neon); }
+
+.platform-icons--out svg { width: 20px; height: 20px; }
+
+.platform-name {
+  font-family: var(--display);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.platforms-label--out { color: var(--neon); }
+
+/* Высота задана, а не унаследована: раньше класс висел на самом
+   li и тот растягивался по ряду, а теперь внутри него ссылка —
+   растягивать её нечему, и кнопка выходила ниже соседних. */
 .platform-icons .more {
   display: flex;
   align-items: center;
   width: auto;
+  height: 34px;
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -526,7 +562,15 @@ body.no-scroll { overflow: hidden; }
   font-size: 0.72rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  text-decoration: none;
 }
+
+/* Без адреса это подпись «и другие», а не кнопка: ни руки на
+   наведении, ни обещания, что по ней куда-то попадёшь. */
+.platform-icons .more--flat { cursor: default; }
+
+/* После выхода — вровень с остальными кнопками ряда. */
+.platform-icons--out .more { height: 42px; font-size: 0.8rem; }
 
 /* ─── Концерт ────────────────────────────────────────────── */
 
@@ -1423,3 +1467,157 @@ img[data-lightbox] { cursor: zoom-in; }
 
 /* Копирайт в подвале: год подставляется сам. */
 .site-footer-copy { color: var(--soft); white-space: nowrap; }
+
+/* ─── Лендинг релиза ─────────────────────────────────────────
+   Самостоятельная страница: без шапки сайта, без меню, без
+   подвала. На ней одна запись и один вопрос — где её слушать.
+   Поэтому всё по центру и в одну колонку: выбирать глазу тут
+   нечего, кроме площадки. */
+
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(28px, 6vw, 72px) 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Обложка на своём же размытом увеличении: чем бы она ни была,
+   края кадра всегда сойдутся с фоном. Увеличение прячет за
+   кадром светлую кромку, которую даёт размытие. */
+.landing-blur {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(28px) brightness(0.4);
+  transform: scale(1.2);
+}
+
+.landing-stage {
+  position: relative;
+  max-width: 460px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.landing-cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(255, 255, 255, .14);
+}
+
+/* Высота плеера задана им самим, а не нашей вёрсткой: внутри
+   чужая разметка, и подобранное на глаз число режет управление. */
+.landing-player iframe {
+  display: block;
+  width: 100%;
+  height: 152px;
+  border: 0;
+  border-radius: 12px;
+}
+
+.landing-body {
+  padding-block: clamp(28px, 5vw, 56px);
+  text-align: center;
+}
+
+.landing-title {
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  margin: 0 0 4px;
+}
+
+.landing-by { color: var(--soft); margin: 0 0 28px; }
+
+.landing-label {
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--soft);
+  margin: 0 0 12px;
+}
+
+/* В две колонки, как на макете: столбик из восьми кнопок растёт
+   на два экрана, а пара читается одним взглядом. На узком экране
+   колонка одна — две там дают кнопки в половину слова. */
+.landing-platforms {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-width: 460px;
+  margin: 0 auto 28px;
+}
+
+.landing-platforms a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: color .15s, border-color .15s;
+}
+
+.landing-platforms a:hover,
+.landing-platforms a:focus-visible { color: var(--neon); border-color: var(--neon); }
+
+.landing-platforms svg { width: 20px; height: 20px; flex: none; }
+
+.landing-platform-name {
+  font-family: var(--display);
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.landing-buy { margin: 0 0 28px; }
+
+.landing-note {
+  color: var(--soft);
+  max-width: 44ch;
+  margin: 0 auto 20px;
+}
+
+.landing-note a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.landing-note a:hover { color: var(--neon); }
+
+.landing-released {
+  color: var(--soft);
+  font-size: 0.9rem;
+  margin: 0 0 20px;
+}
+
+.landing-social {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.landing-social a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--soft);
+  transition: color .15s, border-color .15s;
+}
+
+.landing-social a:hover,
+.landing-social a:focus-visible { color: var(--neon); border-color: var(--neon); }
+
+.landing-social svg { width: 18px; height: 18px; }
+
+@media (min-width: 641px) {
+  .landing-platforms { grid-template-columns: 1fr 1fr; }
+}

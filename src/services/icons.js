@@ -71,6 +71,11 @@ const UI_ICONS = {
   close:
     '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round"/>',
+  /* Домик рисуем сами: это служебный знак навигации, а не чужая
+     марка, и выдуманный логотип ему не нужен. */
+  home:
+    '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1z" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
   'arrow-left':
     '<path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round"/>',

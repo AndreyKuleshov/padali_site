@@ -5,6 +5,7 @@ import links from './links.js'
 import gallery from './gallery.js'
 import richtext from './richtext.js'
 import youtube from './youtube.js'
+import landing from './landing.js'
 import merch from './merch.js'
 import contact from './contact.js'
 import footer from './footer.js'
@@ -19,7 +20,7 @@ const INPUT_TYPES = new Set([
 ])
 
 const DESCRIPTORS = [
-  hero, release, concert, links, gallery, youtube, merch, richtext, contact, footer
+  hero, release, concert, links, gallery, youtube, merch, richtext, contact, landing, footer
 ]
 
 /** Падаем на старте, а не на первом открытии формы в админке. */

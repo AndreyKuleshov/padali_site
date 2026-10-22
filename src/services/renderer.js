@@ -7,6 +7,7 @@ import { icon, ICON_NAMES } from './icons.js'
 import { assetUrl, BUILT_IN_LOGO } from './assets.js'
 import { CURRENCIES, PINNED, splitPrice } from './money.js'
 import { parseVideoId, thumbnailFor, embedUrl, watchUrl } from './youtube.js'
+import { parseSpotify, embedUrl as spotifyEmbed, listenUrl } from './spotify.js'
 
 const VIEWS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'views')
 
@@ -140,6 +141,8 @@ const helpers = {
   // Разбор ссылки один на админку и на сайт: иначе шаблон знал бы
   // про форматы адресов YouTube отдельно от того, кто их проверяет.
   youtube: { id: parseVideoId, thumbnail: thumbnailFor, embed: embedUrl, watch: watchUrl },
+  // Разбор ссылки один на админку и на сайт — по тем же причинам.
+  spotify: { parse: parseSpotify, embed: spotifyEmbed, listen: listenUrl },
   iconNames: ICON_NAMES,
   sanitize,
   linkify,

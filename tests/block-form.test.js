@@ -131,3 +131,17 @@ test('чужие текстовые ключи в форму не проходя
 
   assert.deepEqual(Object.keys(parsed.textsByLocale.en), ['heading'])
 })
+
+/* Свой же адрес пишется путём, а не целиком: домен у этого сайта
+   уже менялся, и вписанные целиком ссылки пришлось бы искать по
+   блокам руками. */
+test('внутренний путь в поле ссылки сохраняется, чужой без протокола — нет', () => {
+  assert.equal(asUrl('/pocetak'), '/pocetak')
+  assert.equal(asUrl('/sr/pocetak'), '/sr/pocetak')
+  assert.equal(asUrl('https://padali.band/pocetak'), 'https://padali.band/pocetak')
+
+  assert.equal(asUrl('//evil.example/x'), '',
+    'две косые — это чужой домен без протокола, а не свой путь')
+  assert.equal(asUrl('javascript:alert(1)'), '')
+  assert.equal(asUrl('pocetak'), '', 'без косой это не путь, а мусор')
+})

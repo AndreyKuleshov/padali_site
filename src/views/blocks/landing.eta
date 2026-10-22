@@ -1,0 +1,87 @@
+<%
+  var block = it.block
+  var cover = block.first('cover')
+  var platforms = block.settings.platforms || []
+  var player = it.h.spotify.embed(block.settings.spotify_url)
+  ;/* Соцсети берём из настроек сайта, а не заводим блоку свои:
+     те же три адреса в двух местах разъезжаются при первой же
+     правке — подвал это уже проходил. */
+  var social = it.settings.social || []
+%>
+<section class="landing"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
+  <% ;/* Шапка: обложка на своём же размытом увеличении. Чем бы ни
+         была обложка, края кадра на ней всегда сойдутся с фоном —
+         на макете ровно это и сделано. */ %>
+  <div class="landing-hero">
+    <% if (cover) { %>
+    <%~ include('/partials/picture', { media: cover, sizes: '100vw', eager: true, className: 'landing-blur', decorative: true }) %>
+    <% } %>
+
+    <div class="landing-stage">
+      <% if (cover) { %>
+      <div class="landing-cover">
+        <%~ include('/partials/picture', { media: cover, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 86vw, 420px', eager: true }) %>
+      </div>
+      <% } %>
+
+      <% ;/* Плеер — чужая рамка, и ставим её сразу: на лендинге
+             ради неё и приходят, а прятать проигрывание за второе
+             нажатие на странице из одного экрана незачем. */ %>
+      <% if (player) { %>
+      <div class="landing-player">
+        <iframe src="<%= player %>" title="<%= block.text.title || 'Spotify' %>"
+                loading="lazy" allowfullscreen
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="landing-body wrap">
+    <% if (block.text.title) { %><h1 class="landing-title"><%= block.text.title %></h1><% } %>
+    <% if (block.text.by) { %><p class="landing-by"><%= block.text.by %></p><% } %>
+
+    <% if (platforms.length > 0) { %>
+    <% if (block.text.platforms_label) { %>
+    <p class="landing-label"><%= block.text.platforms_label %></p>
+    <% } %>
+    <% ;/* В две колонки, как на макете: столбик из восьми кнопок
+           на телефоне растёт на два экрана, а глазу всё равно
+           удобнее пара. */ %>
+    <ul class="landing-platforms">
+      <% platforms.forEach(function (platform) { %>
+      <% if (platform.url) { %>
+      <li>
+        <a href="<%= platform.url %>" target="_blank" rel="noopener">
+          <%~ it.h.icon(platform.icon, { title: platform.label }) %>
+          <span class="landing-platform-name"><%= platform.label %></span>
+        </a>
+      </li>
+      <% } %>
+      <% }) %>
+    </ul>
+    <% } %>
+
+    <% if (block.settings.buy_url && block.text.buy_label) { %>
+    <p class="landing-buy">
+      <a class="button" href="<%= block.settings.buy_url %>" target="_blank" rel="noopener"><%= block.text.buy_label %></a>
+    </p>
+    <% } %>
+
+    <% ;/* Ссылку в заметке разбирает тот же помощник, что и в
+           подписи под роликом: адрес мёртвой строкой бесполезен
+           везде одинаково. */ %>
+    <% if (block.text.note) { %><p class="landing-note"><%~ it.h.linkify(block.text.note) %></p><% } %>
+
+    <% if (block.text.released_label) { %><p class="landing-released"><%= block.text.released_label %></p><% } %>
+
+    <% ;/* Домой — последней: со страницы, которую питчат, должен
+           быть выход на сайт, но не раньше, чем человек послушал. */ %>
+    <ul class="landing-social">
+      <% social.forEach(function (link) { %>
+      <li><a href="<%= link.url %>" target="_blank" rel="noopener" aria-label="<%= link.label %>"><%~ it.h.icon(link.icon) %></a></li>
+      <% }) %>
+      <li><a href="<%= it.h.localeUrl(it.locale, it.defaultLocale) %>" aria-label="<%= it.s('landing.home') %>"><%~ it.h.icon('home') %></a></li>
+    </ul>
+  </div>
+</section>

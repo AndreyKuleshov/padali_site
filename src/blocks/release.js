@@ -19,14 +19,31 @@ export default {
     { key: 'eyebrow', label: { en: 'Badge', sr: 'Oznaka' },      input: 'text' },
     { key: 'title',   label: { en: 'Title', sr: 'Naziv' },   input: 'text', general: true },
     { key: 'note',    label: { en: 'Note', sr: 'Napomena' }, input: 'textarea', rows: 2 },
-    { key: 'more_label', label: { en: '«More» label', sr: 'Naziv za «još»' }, input: 'text' },
     {
-      key: 'platforms_label',
-      label: { en: 'Label above the platforms', sr: 'Naslov iznad platformi' },
+      key: 'more_label',
+      label: { en: '«More» label', sr: 'Naziv za «još»' },
       input: 'text',
       hint: {
-        en: 'Without it a row of grey icons reads as broken buttons. Before release: «Soon on».',
-        sr: 'Bez njega red sivih ikona izgleda kao pokvarena dugmad. Pre izlaska: «Uskoro na».'
+        en: 'The last button of the row. Without a link below it is just a caption.',
+        sr: 'Poslednje dugme u redu. Bez linka ispod to je samo natpis.'
+      }
+    },
+    {
+      key: 'platforms_label',
+      label: { en: 'Label above the platforms, before release', sr: 'Naslov iznad platformi, pre izlaska' },
+      input: 'text',
+      hint: {
+        en: 'Without it a row of grey icons reads as broken buttons. For example «Soon on».',
+        sr: 'Bez njega red sivih ikona izgleda kao pokvarena dugmad. Na primer «Uskoro na».'
+      }
+    },
+    {
+      key: 'listen_label',
+      label: { en: 'Label above the platforms, after release', sr: 'Naslov iznad platformi, posle izlaska' },
+      input: 'text',
+      hint: {
+        en: 'Replaces the one above on the release date — the block switches by itself. Empty: «Listen now».',
+        sr: 'Zamenjuje gornji na dan izlaska — blok se prebacuje sam. Prazno: «Slušaj odmah».'
       }
     },
     {
@@ -47,7 +64,25 @@ export default {
 
   settings: [
     { key: 'release_date',   label: { en: 'Release date', sr: 'Datum izlaska' },          input: 'date' },
-    { key: 'show_countdown', label: { en: 'Show countdown', sr: 'Prikaži odbrojavanje' }, input: 'checkbox', default: true },
+    {
+      key: 'more_url',
+      label: { en: '«More» link', sr: 'Link za «još»' },
+      input: 'url',
+      hint: {
+        en: 'The page with every platform at once. Empty: the button stays a caption and leads nowhere.',
+        sr: 'Stranica sa svim platformama odjednom. Prazno: dugme ostaje natpis i ne vodi nikuda.'
+      }
+    },
+    {
+      key: 'show_countdown',
+      label: { en: 'Show countdown', sr: 'Prikaži odbrojavanje' },
+      input: 'checkbox',
+      default: true,
+      hint: {
+        en: 'Until the release date only. After it the block shows the platforms as links, on its own.',
+        sr: 'Samo do datuma izlaska. Posle njega blok sam prikazuje platforme kao linkove.'
+      }
+    },
     {
       key: 'platforms',
       label: { en: 'Platforms', sr: 'Platforme' },
