@@ -31,9 +31,33 @@ const LINK_ICONS = {
     '<circle cx="8.1" cy="15.8" r="1.7" fill="currentColor"/>' +
     '<circle cx="13.7" cy="14.1" r="1.7" fill="currentColor"/>',
 
+  /* Amazon Music: улыбка-стрелка и над ней треугольник
+     воспроизведения. Как и у соседей по этому списку, это не копия
+     чужой марки, а свой знак в одном с ними стиле — рисовать
+     товарный знак по памяти нельзя, а узнаваемость даёт форма. */
+  'amazon-music':
+    '<path d="M9.2 4.8v7l5.8-3.5z" fill="currentColor"/>' +
+    '<path d="M2.6 15.6c5 3.4 12.2 3.6 17.2.6" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.9" stroke-linecap="round"/>' +
+    '<path d="M18.4 16.9c1.6-1.5 2.3-2.6 2-3.1-.3-.5-1.4-.5-3.2.2" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+
   'youtube-music':
     '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
     '<path fill="currentColor" d="M10 8.7l6 3.3-6 3.3z"/>',
+
+  /* TIDAL: ромбы в ряд. Знак у них геометрический, и линией он
+     передаётся честнее прочих — рисовать тут нечего выдумывать,
+     форма и есть вся марка. */
+  tidal:
+    '<path d="M12 5.2 15.4 8.6 12 12 8.6 8.6z" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linejoin="round"/>' +
+    '<path d="M5.1 12 8.5 15.4 5.1 18.8 1.7 15.4z" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linejoin="round"/>' +
+    '<path d="M12 12 15.4 15.4 12 18.8 8.6 15.4z" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linejoin="round"/>' +
+    '<path d="M18.9 12 22.3 15.4 18.9 18.8 15.5 15.4z" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linejoin="round"/>',
 
   deezer:
     '<path fill="currentColor" d="M1.5 14h3v4.5h-3zM6 10.5h3v8H6zM10.5 7h3v11.5h-3zM15 10.5h3v8h-3zM19.5 14h3v4.5h-3z"/>',

@@ -1,5 +1,5 @@
 const PLATFORMS = [
-  'spotify', 'apple-music', 'youtube-music', 'deezer',
+  'spotify', 'apple-music', 'youtube-music', 'amazon-music', 'deezer', 'tidal',
   'youtube', 'tiktok', 'bandcamp', 'soundcloud', 'vk'
 ]
 

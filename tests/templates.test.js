@@ -79,3 +79,24 @@ test('атрибуты не печатаются куском через <%=', (
 
   assert.deepEqual(bad, [], bad.length ? `атрибут куском: ${bad.join(', ')}` : '')
 })
+
+/* Площадка в выпадайке без иконки не падает и не ругается — на
+   сайте просто выходит пустой кружок, и заметно это не сразу.
+   Список площадок и набор иконок живут в разных файлах, так что
+   разойтись им легко. */
+test('у каждой площадки в списке есть иконка', async () => {
+  const { ICON_NAMES } = await import('../src/services/icons.js')
+  const { listBlockTypes, getBlockType } = await import('../src/blocks/index.js')
+
+  const known = new Set(ICON_NAMES)
+  for (const { type } of listBlockTypes([])) {
+    const platforms = getBlockType(type).settings
+      ?.find((field) => field.key === 'platforms')
+      ?.fields?.find((sub) => sub.key === 'icon')?.options
+    if (!platforms) continue
+
+    for (const name of platforms) {
+      assert.ok(known.has(name), `блок «${type}»: у площадки «${name}» нет иконки в icons.js`)
+    }
+  }
+})
