@@ -246,3 +246,53 @@ test('подпись под роликом на сайте — со ссылко
   assert.match(note, /<a href="https:\/\/www\.youtube\.com\/@PADALIband"/)
   assert.match(note, /rel="noopener"/, 'чужая вкладка не получает доступ к нашей')
 })
+
+/* Плеер может не заиграть по причинам, до которых нам не
+   дотянуться: блокировщик у зрителя, фильтр в его сети,
+   ограниченный режим в его аккаунте. Выход на YouTube в этом
+   случае лежит готовым прямо в рамке, под атрибутом hidden —
+   скрипт его только показывает. Собирать такую ссылку в браузере
+   нечем: внутри значок, а разметку из строк мы там не клеим. */
+test('выход на YouTube лежит в рамке готовым и спрятанным', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  await createBlock({
+    pageId,
+    type: 'youtube',
+    isVisible: true,
+    settings: { ...defaultSettings('youtube'), url: `https://www.youtube.com/watch?v=${ID}` }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const frame = /<div class="video-frame"[\s\S]*?<\/div>/.exec(body)[0]
+
+  assert.match(frame, /data-src="[^"]*enablejsapi=1/, 'без этого плеер молчит и отказ не распознать')
+
+  const watch = /<p class="video-watch" hidden>[\s\S]*?<\/p>/.exec(frame)
+  assert.ok(watch, 'ссылка лежит внутри рамки и спрятана')
+  assert.match(watch[0], new RegExp(`href="https://www\\.youtube\\.com/watch\\?v=${ID}"`))
+  assert.match(watch[0], /rel="noopener"/)
+  assert.match(watch[0], />Watch on YouTube<svg/, 'подпись и сразу за ней значок')
+
+  const sr = (await app.inject({ method: 'GET', url: '/sr' })).body
+  assert.match(sr, />Pogledaj na YouTube-u<svg/, 'и на втором языке')
+})
+
+/* Без скрипта кнопка плеера не делает ничего, и показать
+   спрятанное некому — значит нужна отдельная, видимая сразу. */
+test('без скрипта ссылка на YouTube видна сразу', async () => {
+  const pageId = await createPage({ slug: 'home' })
+  await createBlock({
+    pageId,
+    type: 'youtube',
+    isVisible: true,
+    settings: { ...defaultSettings('youtube'), url: `https://www.youtube.com/watch?v=${ID}` }
+  })
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const fallback = /<noscript>[\s\S]*?<\/noscript>/.exec(body)
+
+  assert.ok(fallback, 'запасной выход для выключенного скрипта на месте')
+  assert.match(fallback[0], new RegExp(`href="https://www\\.youtube\\.com/watch\\?v=${ID}"`))
+  assert.doesNotMatch(fallback[0], /class="video-watch"/,
+    'у неё свой класс: та, что в рамке, лежит поверх плеера, а этой лежать не на чем')
+})

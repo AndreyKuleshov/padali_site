@@ -1129,9 +1129,56 @@ img[data-lightbox] { cursor: zoom-in; }
    секции, а здесь выходило на 17 px больше. */
 .video-note { color: var(--soft); margin-top: 12px; margin-bottom: 0; }
 
-.video-note a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+/* Выход на YouTube поверх рамки. Затемнение кроет её целиком, а не
+   полосой: под ним плеер рисует собственное «Video unavailable»
+   посередине, и две надписи друг на друге читаются как брак.
+   Смотреть там всё равно нечего — закрываем и говорим своё.
+
+   Сам слой кликов не ловит, ловит только ссылка: проба по обложке
+   может ошибиться (картинки YouTube режут чаще, чем плеер), и
+   накрыть рабочий ролик глухой кнопкой было бы хуже всего. */
+.video-watch {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: rgba(0, 0, 0, .82);
+  pointer-events: none;
+}
+
+.video-watch a {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-decoration: none;
+}
+
+.video-watch a svg { width: 1em; height: 1em; flex: none; }
+
+.video-watch a:hover,
+.video-watch a:focus-visible { color: var(--neon); }
+
+/* Та же ссылка для выключенного скрипта — под рамкой, обычной
+   строкой: класть её поверх обложки незачем, плеера там нет. */
+.video-watch-plain { margin: 10px 0 0; font-size: 0.9rem; }
+
+.video-note a,
+.video-watch-plain a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .video-note a:hover,
-.video-note a:focus-visible { color: var(--neon); }
+.video-note a:focus-visible,
+.video-watch-plain a:hover,
+.video-watch-plain a:focus-visible { color: var(--neon); }
 
 /* ─── Контакты и мерч ────────────────────────────────────── */
 

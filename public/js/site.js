@@ -374,7 +374,37 @@
      До клика на странице только обложка: iframe плеера тянет
      около мегабайта чужих скриптов, и платить за них при каждом
      открытии страницы незачем. */
+  /* Обложку всё равно грузим — значит она же и проба. Сломалась
+     загрузка: YouTube у зрителя перекрыт целиком (блокировщик,
+     фильтр в сети, провайдер), и плеер тоже не откроется. Пришла
+     заглушка 120×90 вместо кадра: ролика у YouTube больше нет.
+     В обоих случаях ждать клика по мёртвой кнопке незачем —
+     выход показываем сразу.
+
+     Чего так не узнать: закрыт ли ролик этому зрителю по региону
+     или ограниченным режимом его аккаунта. Это решает плеер при
+     воспроизведении, и спросить его можно только подняв — ровно
+     тот мегабайт, ради которого обложка и заведена. */
+  var PLACEHOLDER_WIDTH = 120
+
+  function checkThumbnail (frame) {
+    var shot = frame.querySelector('.video-play img')
+    if (!shot) return
+
+    function judge () {
+      if (!shot.naturalWidth || shot.naturalWidth <= PLACEHOLDER_WIDTH) showWatchLink(frame)
+    }
+
+    if (shot.complete) judge()
+    else {
+      shot.addEventListener('load', judge)
+      shot.addEventListener('error', function () { showWatchLink(frame) })
+    }
+  }
+
   function initVideoFacades () {
+    document.querySelectorAll('.video-frame').forEach(checkThumbnail)
+
     document.addEventListener('click', function (event) {
       var button = event.target.closest('.video-play')
       if (!button) return
@@ -384,15 +414,97 @@
       if (!source) return
 
       var player = document.createElement('iframe')
-      player.src = source
+      /* origin подставляем здесь, а не на сервере: домен сайта
+         менялся, и забытое старое значение закрыло бы плееру рот
+         ровно тогда, когда его ответ и нужен. */
+      player.src = source + '&origin=' + encodeURIComponent(window.location.origin)
       player.title = button.getAttribute('aria-label') || 'YouTube'
       player.allow = 'accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen'
       player.allowFullscreen = true
       player.loading = 'lazy'
       player.referrerPolicy = 'strict-origin-when-cross-origin'
 
+      /* Выход на YouTube остаётся в рамке: обложку плеер
+         закрывает, а запасную ссылку закрывать нечем. */
+      var watch = frame.querySelector('.video-watch')
       frame.replaceChildren(player)
+      if (watch) frame.appendChild(watch)
+
+      watchPlayer(frame, player)
     })
+  }
+
+  /* ── Плеер не заиграл ────────────────────────────────────
+     Внутрь чужого iframe заглянуть нельзя: onload наступает и на
+     странице с ошибкой, а «Video unavailable» нарисован там же
+     внутри. Зато плеер с enablejsapi разговаривает, и разговор
+     снят с живого: рабочий ролик присылает initialDelivery,
+     onReady и дальше поток infoDelivery; нерабочий — те же
+     initialDelivery и onReady, а затем onError. То есть onReady
+     про «всё хорошо» не говорит ничего, судить надо по onError.
+
+     Второй случай — когда не приходит вообще ничего: домен плеера
+     режет блокировщик, фильтр в сети или провайдер. Тогда молчание
+     и есть ответ.
+
+     Причина в обоих случаях вне нашей досягаемости. Починить
+     нельзя, вывести человека на YouTube — можно. */
+  var PLAYER_ORIGIN = 'https://www.youtube-nocookie.com'
+  var SILENCE_MS = 6000   /* столько ждём первого слова */
+  var LISTEN_MS = 20000   /* столько ещё слушаем, не придёт ли onError */
+
+  function watchPlayer (frame, player) {
+    var closed = false
+
+    function stop () {
+      closed = true
+      window.clearInterval(knock)
+      window.clearTimeout(silence)
+      window.clearTimeout(limit)
+      window.removeEventListener('message', hear)
+    }
+
+    function fail () {
+      if (closed) return
+      stop()
+      showWatchLink(frame)
+    }
+
+    function hear (event) {
+      if (closed || event.source !== player.contentWindow) return
+
+      /* Плеер отвечает строкой с JSON; чужие сообщения со
+         страницы сюда не доходят — источник сверен выше. */
+      var message = event.data
+      if (typeof message === 'string') {
+        try { message = JSON.parse(message) } catch (error) { return }
+      }
+      if (!message || !message.event) return
+
+      /* Первое слово сказано — значит рамка живая, и дальше
+         остаётся только дождаться, не пожалуется ли плеер. */
+      window.clearTimeout(silence)
+      window.clearInterval(knock)
+      if (message.event === 'onError') fail()
+    }
+
+    window.addEventListener('message', hear)
+
+    /* Плеер отвечает только тому, кто сам к нему постучался, и
+       слушать начинает не в первый миг — отсюда повтор. */
+    var knock = window.setInterval(function () {
+      if (player.contentWindow) {
+        player.contentWindow.postMessage('{"event":"listening"}', PLAYER_ORIGIN)
+      }
+    }, 400)
+
+    var silence = window.setTimeout(fail, SILENCE_MS)
+    var limit = window.setTimeout(stop, LISTEN_MS)
+  }
+
+  function showWatchLink (frame) {
+    var watch = frame.querySelector('.video-watch')
+    if (watch) watch.hidden = false
   }
 
   /* ── Формы: связь и заказ мерча ──────────────────────────

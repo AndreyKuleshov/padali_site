@@ -60,11 +60,22 @@ export function watchUrl (id) {
   return `https://www.youtube.com/watch?v=${id}`
 }
 
-/** Адрес плеера. Домен без кук — зритель не получает их до запуска. */
+/**
+ * Адрес плеера. Домен без кук — зритель не получает их до запуска.
+ *
+ * enablejsapi нужен не для управления плеером, а чтобы узнать, ожил
+ * ли он вообще: с ним плеер отвечает на postMessage, и молчание в
+ * ответ — единственный доступный извне признак того, что внутри
+ * рамки чужая надпись «Video unavailable». Содержимое iframe с
+ * другого домена нам не видно никак иначе.
+ */
 export function embedUrl (id, { autoplay = false } = {}) {
-  const query = autoplay ? '?autoplay=1&rel=0' : '?rel=0'
+  const query = autoplay ? '?autoplay=1&rel=0&enablejsapi=1' : '?rel=0&enablejsapi=1'
   return `https://www.youtube-nocookie.com/embed/${id}${query}`
 }
+
+/** Домен плеера — ему адресуется рукопожатие и от него ждём ответ. */
+export const PLAYER_ORIGIN = 'https://www.youtube-nocookie.com'
 
 /**
  * Существует ли ролик и можно ли его встроить.

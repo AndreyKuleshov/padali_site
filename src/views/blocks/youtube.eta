@@ -15,9 +15,20 @@
       <img src="<%= it.h.youtube.thumbnail(id) %>" alt="" width="480" height="360" loading="lazy">
       <span class="video-play-mark" aria-hidden="true"></span>
     </button>
+    <% ;/* Выход на YouTube поверх рамки. Лежит здесь, а не
+           собирается скриптом: внутри значок, а разметку из строк в
+           браузере мы не клеим. Скрипт только снимает hidden —
+           и только если плеер не заиграл. */ %>
+    <p class="video-watch" hidden>
+      <a href="<%= it.h.youtube.watch(id) %>" target="_blank" rel="noopener"><%= it.s('youtube.watch') %><%~ it.h.icon('youtube') %></a>
+    </p>
   </div>
+  <% ;/* Без скрипта кнопка плеера не работает вовсе, поэтому здесь
+         ссылка нужна сразу и безусловно. Класс другой: та, что в
+         рамке, лежит поверх плеера, а этой лежать не на чем —
+         рамка под ней пустая, с одной обложкой. */ %>
   <noscript>
-    <p><a href="<%= it.h.youtube.watch(id) %>" target="_blank" rel="noopener"><%= it.s('youtube.watch') %></a></p>
+    <p class="video-watch-plain"><a href="<%= it.h.youtube.watch(id) %>" target="_blank" rel="noopener"><%= it.s('youtube.watch') %></a></p>
   </noscript>
   <% } %>
 
