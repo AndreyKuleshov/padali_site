@@ -490,6 +490,58 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 .media-upload { cursor: pointer; }
 .media-upload-note { margin: 0; }
 
+/* Полоса загрузки альбома. Подпись и процент одной строкой над
+   дорожкой: читается слева направо, как и всё остальное в форме. */
+.upload-progress { margin: 10px 0 0; max-width: 420px; }
+
+.upload-progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+  font-size: .85rem;
+  color: var(--soft);
+}
+
+.upload-progress-percent { font-variant-numeric: tabular-nums; }
+
+.upload-progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--neon);
+  transition: width .2s ease;
+}
+
+/* Доля неизвестна — сервер режет размеры и о ходе не сообщает.
+   Полоса бежит сама: застывшая читается как «повисло». */
+.upload-progress-track.is-waiting .upload-progress-bar {
+  width: 35%;
+  transition: none;
+  animation: upload-waiting 1.1s ease-in-out infinite;
+}
+
+@keyframes upload-waiting {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(386%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-progress-track.is-waiting .upload-progress-bar {
+    width: 100%;
+    animation: none;
+    opacity: .5;
+  }
+}
+
 /* Плитка альбома выросла: под снимком строка цены для мерча.
    В обычном альбоме её просто оставляют пустой. */
 .gallery-chip {

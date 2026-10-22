@@ -21,4 +21,17 @@
     <button type="button" class="btn btn--small media-pick" data-album-pick data-multiple="1"><%= it.t('blockForm.pickFromMedia') %></button>
     <span class="media-upload-note hint" data-album-note hidden></span>
   </div>
+  <% ;/* Полоса загрузки. Подпись отдельно от процента: процент
+         известен только пока уходят байты, а дальше сервер режет
+         размеры, и честнее сказать, чего ждём, чем держать
+         застывшие сто. */ %>
+  <div class="upload-progress" data-album-progress hidden>
+    <p class="upload-progress-head">
+      <span data-album-progress-label></span>
+      <span class="upload-progress-percent" data-album-progress-percent></span>
+    </p>
+    <div class="upload-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-album-progress-track>
+      <span class="upload-progress-bar" data-album-progress-bar></span>
+    </div>
+  </div>
 </div>

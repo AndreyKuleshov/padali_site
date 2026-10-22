@@ -1500,29 +1500,97 @@
       if (select) select.addEventListener('change', refresh)
       refresh()
 
+      /* ── Полоса загрузки ──────────────────────────────────
+         Альбом набивают десятками снимков с телефона, по
+         несколько мегабайт каждый, и одно слово «Uploading…»
+         на всё это время не отличает «идёт» от «повисло».
+
+         Три ожидания подряд, и они разной природы: пока уходят
+         байты, доля известна точно; потом сервер режет размеры
+         и молчит; потом снимки привязываются к альбому. Поэтому
+         подпись меняется, а процент показывается только там,
+         где он честный. */
+      var progress = panel.querySelector('[data-album-progress]')
+      var progressLabel = panel.querySelector('[data-album-progress-label]')
+      var progressPercent = panel.querySelector('[data-album-progress-percent]')
+      var progressTrack = panel.querySelector('[data-album-progress-track]')
+      var progressBar = panel.querySelector('[data-album-progress-bar]')
+
+      function showProgress (label, percent) {
+        if (!progress) return
+        progress.hidden = false
+        progressLabel.textContent = label
+
+        /* percent === null — доля неизвестна. Полоса в этом
+           случае бежит сама: застывшая на месте читается как
+           «зависло», а выдуманный процент врёт. */
+        var known = typeof percent === 'number'
+        progressTrack.classList.toggle('is-waiting', !known)
+        progressPercent.textContent = known ? percent + '%' : ''
+        progressBar.style.width = known ? percent + '%' : ''
+        if (known) progressTrack.setAttribute('aria-valuenow', String(percent))
+        else progressTrack.removeAttribute('aria-valuenow')
+      }
+
+      function hideProgress () {
+        if (!progress) return
+        progress.hidden = true
+        progressBar.style.width = ''
+        progressTrack.classList.remove('is-waiting')
+      }
+
+      /** Выгрузка через XHR: fetch о ходе отправки не сообщает. */
+      function sendFiles (data, onProgress) {
+        return new Promise(function (resolve, reject) {
+          var request = new XMLHttpRequest()
+          request.open('POST', '/admin/media/upload.json')
+          request.upload.addEventListener('progress', function (event) {
+            if (event.lengthComputable) onProgress(Math.round(event.loaded / event.total * 100))
+          })
+          request.addEventListener('load', function () {
+            try { resolve(JSON.parse(request.responseText)) } catch (error) { reject(error) }
+          })
+          request.addEventListener('error', function () { reject(new Error('network')) })
+          request.addEventListener('abort', function () { reject(new Error('abort')) })
+          request.send(data)
+        })
+      }
+
       if (!input) return
       input.addEventListener('change', function () {
         if (input.files.length === 0 || !panel.albumId()) return
 
+        var total = input.files.length
         var data = new FormData()
         data.append('_csrf', csrfToken(panel))
-        for (var k = 0; k < input.files.length; k += 1) data.append('files', input.files[k])
+        for (var k = 0; k < total; k += 1) data.append('files', input.files[k])
         input.value = ''
 
-        say(strings.getAttribute('data-uploading'))
+        var sending = fill(strings.getAttribute('data-upload-sending'), { count: total })
+        say('')
+        showProgress(sending, 0)
         upload.classList.add('is-busy')
 
-        fetch('/admin/media/upload.json', { method: 'POST', body: data })
-          .then(function (response) { return response.json() })
+        sendFiles(data, function (percent) {
+          /* Сотня означает «байты ушли», а не «готово»: дальше
+             сервер делает деривативы, и это самая долгая часть
+             на крупных снимках. Подпись меняем сразу. */
+          if (percent < 100) showProgress(sending, percent)
+          else showProgress(strings.getAttribute('data-upload-processing'), null)
+        })
           .then(function (result) {
             var ids = (result.items || []).map(function (item) { return item.id })
             if (ids.length === 0) throw new Error('empty')
             // Медиатека пополнилась — список в выборе устарел.
             if (window.padaliMediaLibraryStale) window.padaliMediaLibraryStale()
+            showProgress(strings.getAttribute('data-upload-attaching'), null)
             return panel.albumAdd(ids)
           })
           .catch(function () { say(strings.getAttribute('data-failed'), 'error') })
-          .finally(function () { upload.classList.remove('is-busy') })
+          .finally(function () {
+            hideProgress()
+            upload.classList.remove('is-busy')
+          })
       })
     }
   }

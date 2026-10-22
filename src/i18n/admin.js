@@ -70,6 +70,12 @@ const DICTIONARY = {
     'blockForm.uploadNew': 'Upload a file',
     'blockForm.uploading': 'Uploading…',
     'blockForm.uploadFailed': 'The file could not be uploaded.',
+    /* Три подписи вместо одной: у загрузки альбома три разных
+       ожидания, и «Uploading…» на все три молчит о том, почему
+       полоса стоит на сотне, а дело не кончилось. */
+    'blockForm.uploadSending': 'Sending photos: {count}',
+    'blockForm.uploadProcessing': 'Preparing sizes on the server…',
+    'blockForm.uploadAttaching': 'Adding to the album…',
     'blockForm.logoBuiltIn': 'Now showing the built-in logo. Upload a file to replace it here only.',
     'blockForm.logoFromSettings': 'Now showing the logo from site settings. Upload a file to replace it here only.',
     'blockForm.remove': 'Remove',
@@ -321,6 +327,9 @@ const DICTIONARY = {
     'blockForm.uploadNew': 'Otpremi fajl',
     'blockForm.uploading': 'Otpremanje…',
     'blockForm.uploadFailed': 'Fajl nije otpremljen.',
+    'blockForm.uploadSending': 'Šaljem fotografije: {count}',
+    'blockForm.uploadProcessing': 'Pripremam veličine na serveru…',
+    'blockForm.uploadAttaching': 'Dodajem u album…',
     'blockForm.logoBuiltIn': 'Sada se prikazuje ugrađeni logotip. Otpremite fajl da ga zamenite samo ovde.',
     'blockForm.logoFromSettings': 'Sada se prikazuje logotip iz podešavanja sajta. Otpremite fajl da ga zamenite samo ovde.',
     'blockForm.remove': 'Ukloni',
