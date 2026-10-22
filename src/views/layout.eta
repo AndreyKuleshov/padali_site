@@ -10,16 +10,16 @@
 <link rel="icon" href="<%= it.h.asset('/brand/favicon.png') %>">
 <meta name="theme-color" content="#0A0A0A">
 
-<link rel="canonical" href="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale) %>">
+<link rel="canonical" href="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale, it.path) %>">
 <% it.locales.forEach(function (locale) { %>
-<link rel="alternate" hreflang="<%= locale.code %>" href="<%= it.h.publicUrl + it.h.localeUrl(locale.code, it.defaultLocale) %>">
+<link rel="alternate" hreflang="<%= locale.code %>" href="<%= it.h.publicUrl + it.h.localeUrl(locale.code, it.defaultLocale, it.path) %>">
 <% }) %>
-<link rel="alternate" hreflang="x-default" href="<%= it.h.publicUrl + it.h.localeUrl(it.defaultLocale, it.defaultLocale) %>">
+<link rel="alternate" hreflang="x-default" href="<%= it.h.publicUrl + it.h.localeUrl(it.defaultLocale, it.defaultLocale, it.path) %>">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="<%= it.meta.title %>">
 <meta property="og:description" content="<%= it.meta.description %>">
-<meta property="og:url" content="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale) %>">
+<meta property="og:url" content="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale, it.path) %>">
 <% if (it.ogImage) { %>
 <meta property="og:image" content="<%= it.h.publicUrl + it.ogImage %>">
 <% } %>
@@ -43,8 +43,15 @@
        переключатель языка. Ссылка видна только при фокусе. */ %>
 <a class="skip-link" href="#top"><%= it.s('nav.skipToContent') %></a>
 
+<% ;/* Самостоятельная страница — без шапки, меню и подвала сайта.
+       Это лендинг: он продаёт одну запись, и уводить с него
+       внимание в мерч и фотографии незачем. Признак объявлен в
+       дескрипторе блока, вёрстка его только спрашивает. */ %>
+<% var standalone = it.blocks.some(function (item) { return item.descriptor && item.descriptor.standalone }) %>
+<% if (!standalone) { %>
 <%~ include('/partials/topbar', it) %>
 <% if (it.quicknav.length > 0) { %><%~ include('/partials/side-menu', it) %><% } %>
+<% } %>
 
 <main id="top">
 <% it.blocks.forEach(function (block, index) {
@@ -52,16 +59,16 @@
   <% ;/* Обёртка нужна карте кликов: по ней клик привязывается
          к блоку и не зависит от размера окна посетителя. */ %>
   <div data-block="<%= block.id %>"><%~ include('/' + block.descriptor.template, Object.assign({}, it, { block: block })) %></div>
-<%   if (index === 0 && block.type === 'hero' && it.quicknav.length > 0) { %>
+<%   if (!standalone && index === 0 && block.type === 'hero' && it.quicknav.length > 0) { %>
   <%~ include('/partials/quicknav', it) %>
 <%   } %>
 <% }) %>
-<% if (it.quicknav.length > 0 && (it.blocks.length === 0 || it.blocks[0].type !== 'hero')) { %>
+<% if (!standalone && it.quicknav.length > 0 && (it.blocks.length === 0 || it.blocks[0].type !== 'hero')) { %>
   <%~ include('/partials/quicknav', it) %>
 <% } %>
 </main>
 
-<% if (!it.hasFooterBlock) { %><%~ include('/partials/footer', it) %><% } %>
+<% if (!standalone && !it.hasFooterBlock) { %><%~ include('/partials/footer', it) %><% } %>
 <%~ include('/partials/lightbox', it) %>
 <%~ include('/partials/form-alert', it) %>
 

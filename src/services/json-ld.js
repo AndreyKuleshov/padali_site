@@ -62,6 +62,8 @@ function buildJsonLd (view, today = new Date().toISOString().slice(0, 10)) {
   const band = {
     '@type': 'MusicGroup',
     name,
+    /* Адрес группы — всегда главная, а не та страница, где
+       разметка оказалась: лендинг релиза группой не является. */
     url: config.publicUrl + (view.h?.localeUrl?.(view.locale, view.defaultLocale) ?? '/')
   }
   if (view.meta.description) band.description = view.meta.description

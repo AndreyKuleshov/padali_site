@@ -5,7 +5,7 @@ import { listLocales, getDefaultLocale } from '../repositories/locales.js'
 import { getSetting } from '../repositories/settings.js'
 import { cacheKey, getCached, setCached } from '../services/cache.js'
 import { getMedia } from '../repositories/media.js'
-import { HOME_SLUG } from '../repositories/pages.js'
+import { HOME_SLUG, listPages } from '../repositories/pages.js'
 import { pictureSources } from '../services/media-processor.js'
 import config from '../config.js'
 import { recordView, recordClicks, isMobileWidth } from '../repositories/analytics.js'
@@ -37,6 +37,20 @@ async function resolveOgImage () {
   return media ? pictureSources(media).src : null
 }
 
+/**
+ * Картинка для ссылки на эту страницу.
+ *
+ * У лендинга это обложка релиза, а не общая картинка сайта: его
+ * кидают ссылкой в чат и в сторис, и там видно ровно её. Общая
+ * фотография группы на странице одного трека сбивает с толку —
+ * выглядит как ссылка на сайт вообще.
+ */
+function ogImageOf (page, fallback) {
+  const landing = page.blocks.find((block) => block.descriptor?.standalone)
+  const cover = landing?.media?.cover?.[0]
+  return cover?.src ?? fallback
+}
+
 async function renderLocalisedPage (slug, locale) {
   /* День в ключе: страница зависит от даты — прошедшие концерты с
      неё уходят, — а кэш сбрасывается только записью из админки и
@@ -49,7 +63,7 @@ async function renderLocalisedPage (slug, locale) {
   const page = await composePage({ slug, locale })
   if (!page) return null
 
-  const view = { ...page, ogImage: await resolveOgImage() }
+  const view = { ...page, ogImage: ogImageOf(page, await resolveOgImage()) }
   const html = render('layout', { ...view, jsonLd: buildJsonLd(view) })
   return setCached(key, { html, etag: etagOf(html) })
 }
@@ -235,10 +249,16 @@ async function publicRoutes (app) {
   app.get('/sitemap.xml', async (request, reply) => {
     const locales = await listLocales()
     const defaultLocale = await getDefaultLocale()
-    const urls = locales.map((locale) => {
-      const path = locale.code === defaultLocale ? '/' : `/${locale.code}`
+    const pages = (await listPages()).filter((page) => page.is_published)
+
+    /* Каждая страница на каждом языке. Главная живёт в корне, у
+       остальных слаг в адресе — и второй язык ставит свой префикс
+       перед слагом, а не вместо него. */
+    const urls = pages.flatMap((page) => locales.map((locale) => {
+      const prefix = locale.code === defaultLocale ? '' : `/${locale.code}`
+      const path = page.slug === HOME_SLUG ? (prefix || '/') : `${prefix}/${page.slug}`
       return `  <url><loc>${config.publicUrl}${path}</loc></url>`
-    })
+    }))
     reply.type('application/xml; charset=utf-8')
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`
   })
@@ -250,19 +270,47 @@ async function publicRoutes (app) {
     return sendHtml(request, reply, rendered)
   })
 
-  // Второй язык живёт в своём префиксе; язык по умолчанию — только в корне.
-  app.get('/:locale', async (request, reply) => {
-    const { locale } = request.params
-    if (!/^[a-z]{2}(-[a-z]{2})?$/i.test(locale)) return notFound(request, reply)
+  /* Один отрезок адреса — это либо язык, либо страница. Двух
+     маршрутов `/:что-то` рядом быть не может, поэтому решаем
+     здесь: сперва язык, потом слаг. Имена языков страницам брать
+     запрещено (RESERVED в репозитории), так что порядок разбора
+     ничего не отнимает. */
+  app.get('/:segment', async (request, reply) => {
+    const { segment } = request.params
+    const locales = await listLocales()
+    const defaultLocale = await getDefaultLocale()
+
+    const known = locales.find((row) => row.code === segment.toLowerCase())
+    if (known) {
+      // Язык по умолчанию живёт в корне: второго адреса у него нет.
+      if (known.code === defaultLocale) return reply.redirect('/', 301)
+      const rendered = await renderLocalisedPage(HOME_SLUG, known.code)
+      if (!rendered) return notFound(request, reply)
+      return sendHtml(request, reply, rendered)
+    }
+
+    /* Главная отзывается только из корня. Иначе та же страница
+       лежала бы по двум адресам, и поисковик считал бы их разными. */
+    if (segment === HOME_SLUG) return reply.redirect('/', 301)
+
+    const rendered = await renderLocalisedPage(segment, defaultLocale)
+    if (!rendered) return notFound(request, reply)
+    return sendHtml(request, reply, rendered)
+  })
+
+  // Страница на втором языке: префикс языка перед слагом.
+  app.get('/:locale/:slug', async (request, reply) => {
+    const { locale, slug } = request.params
 
     const locales = await listLocales()
     const known = locales.find((row) => row.code === locale.toLowerCase())
     if (!known) return notFound(request, reply)
 
     const defaultLocale = await getDefaultLocale()
-    if (known.code === defaultLocale) return reply.redirect('/', 301)
+    if (known.code === defaultLocale) return reply.redirect(`/${slug}`, 301)
+    if (slug === HOME_SLUG) return reply.redirect(`/${known.code}`, 301)
 
-    const rendered = await renderLocalisedPage(HOME_SLUG, known.code)
+    const rendered = await renderLocalisedPage(slug, known.code)
     if (!rendered) return notFound(request, reply)
     return sendHtml(request, reply, rendered)
   })
