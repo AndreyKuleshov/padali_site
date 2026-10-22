@@ -100,3 +100,36 @@ test('у каждой площадки в списке есть иконка', a
     }
   }
 })
+
+/* Поле ссылки объявлено type="text" с собственной проверкой, а не
+   type="url": тот требует адрес целиком и отклонял «/pocetak» со
+   словами «Please enter a URL». Свою же страницу правильно писать
+   путём — домен у этого сайта уже менялся.
+
+   Проверку браузера и проверку сервера держим в согласии: что
+   пропускает одна, то пропускает и другая. */
+test('поле ссылки принимает и полный адрес, и путь на этом сайте', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { asUrl } = await import('../src/services/block-form.js')
+
+  const template = await readFile('src/views/admin/fields/input.eta', 'utf8')
+  assert.doesNotMatch(template, /<input type="url"/, 'type="url" путь не пропускает')
+
+  const pattern = /pattern="([^"]+)"/.exec(template)
+  assert.ok(pattern, 'своя проверка объявлена')
+  /* Браузер якорит pattern сам и компилирует с флагом «v» —
+     собираем так же. Без флага недействительное выражение
+     компилируется как ни в чём не бывало, тест зеленеет, а
+     браузер проверку молча не применяет и пропускает всё. */
+  const browser = new RegExp(`^(?:${pattern[1]})$`, 'v')
+
+  for (const good of ['/pocetak', '/sr/pocetak', 'https://padali.band/x', 'http://x.test', 'mailto:a@b.test', 'tel:+381600000000']) {
+    assert.ok(browser.test(good), `браузер должен пропустить «${good}»`)
+    assert.equal(asUrl(good), good, `и сервер тоже: «${good}»`)
+  }
+
+  for (const bad of ['pocetak', '//evil.test/x', 'javascript:alert(1)', 'ftp://x.test/a']) {
+    assert.ok(!browser.test(bad), `браузер не должен пропустить «${bad}»`)
+    assert.equal(asUrl(bad), '', `и сервер тоже: «${bad}»`)
+  }
+})

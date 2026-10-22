@@ -32,6 +32,7 @@ const DICTIONARY = {
     'login.welcome': 'Welcome, {email}.',
 
     'common.save': 'Save',
+    'common.urlHint': 'A full address (https://…, mailto:…, tel:…) or a path on this site (/pocetak)',
     'common.cancel': 'Cancel',
     'common.delete': 'Delete',
     'common.close': 'Close',
@@ -316,6 +317,7 @@ const DICTIONARY = {
     'login.welcome': 'Dobro došli, {email}.',
 
     'common.save': 'Sačuvaj',
+    'common.urlHint': 'Pune adresa (https://…, mailto:…, tel:…) ili putanja na ovom sajtu (/pocetak)',
     'common.cancel': 'Otkaži',
     'common.delete': 'Obriši',
     'common.close': 'Zatvori',
