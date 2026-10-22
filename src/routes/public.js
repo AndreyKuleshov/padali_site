@@ -14,6 +14,7 @@ import {
 } from '../services/analytics.js'
 import { createMessage, markMailed } from '../repositories/messages.js'
 import { sendMessage } from '../services/mail.js'
+import { notifyTelegram } from '../services/telegram.js'
 import { checkContact } from '../services/contact-check.js'
 import { verifyTurnstile } from '../services/turnstile.js'
 import { siteTranslator } from '../i18n/site.js'
@@ -216,13 +217,25 @@ async function publicRoutes (app) {
       return reply.code(500).send({ ok: false, reason: 'failed' })
     }
 
-    const sent = await sendMessage(message)
+    /* Письмо и отбивка идут разом, а не по очереди: это две
+       независимые чужие службы, и складывать их таймауты в
+       ожидание посетителя незачем. Сообщение уже в базе, так что
+       провал любой из них ничего не теряет. */
+    const [sent, pinged] = await Promise.all([
+      sendMessage(message),
+      notifyTelegram(message)
+    ])
+
     try {
       await markMailed(id, sent.ok ? null : sent.error)
     } catch (error) {
       request.log.warn({ err: error }, 'Отметка об отправке не записана')
     }
     if (!sent.ok) request.log.warn({ id, error: sent.error }, 'Письмо не ушло, сообщение осталось в базе')
+    /* Неудачу отбивки в строку сообщения не пишем: та колонка про
+       доставку письма, и смешивать в ней два разных события
+       значит потом гадать, чего именно не случилось. */
+    if (!pinged.ok) request.log.warn({ id, error: pinged.error }, 'Отбивка в Telegram не ушла')
 
     return wantsPage ? reply.redirect(backTo, 303) : reply.send({ ok: true })
   })

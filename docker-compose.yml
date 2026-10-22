@@ -68,6 +68,12 @@ services:
       # Мёртвый SMTP не должен держать посетителя у формы минутами.
       SMTP_TIMEOUT_MS: ${SMTP_TIMEOUT_MS:-8000}
 
+      # Отбивка в Telegram о сообщении с сайта. Без токена и чата
+      # выключена; письма и админка работают как прежде.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TELEGRAM_TIMEOUT_MS: ${TELEGRAM_TIMEOUT_MS:-6000}
+
     volumes:
       # Загруженные изображения. В Coolify сюда монтируется persistent
       # storage: без него фотографии пропадут при следующем деплое.

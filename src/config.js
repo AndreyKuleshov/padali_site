@@ -75,6 +75,17 @@ function readEnv (env = process.env) {
       timeoutMs: Number(env.SMTP_TIMEOUT_MS ?? 8000)
     },
 
+    /*
+     * Отбивка в Telegram о сообщении с сайта. Письмо остаётся
+     * главным — оно хранит; Telegram только окликает. Без токена
+     * и адресата отбивка выключена, и сайт работает так же.
+     */
+    telegram: {
+      token: env.TELEGRAM_BOT_TOKEN ?? '',
+      chatId: env.TELEGRAM_CHAT_ID ?? '',
+      timeoutMs: Number(env.TELEGRAM_TIMEOUT_MS ?? 6000)
+    },
+
     sessionSecret: env.SESSION_SECRET,
     /** Срок жизни сессии администратора. */
     sessionTtlMs: 30 * 24 * 60 * 60 * 1000,
