@@ -1621,3 +1621,41 @@ img[data-lightbox] { cursor: zoom-in; }
 @media (min-width: 641px) {
   .landing-platforms { grid-template-columns: 1fr 1fr; }
 }
+
+/* Короткое сообщение «получилось». Прижато к низу и по центру:
+   палец на телефоне там же, где кнопка, и ответ видно, не уводя
+   взгляд. Поверх всего, но кликов не ловит — это сообщение, а не
+   кнопка. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  margin: 0;
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel, #1C1C1C);
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+
+.landing-share { margin: 0 0 24px; }
+
+/* Значок рядом с подписью, не вместо неё: стрелка одна читается
+   как «открыть в новом окне», а со словом сомнений не остаётся. */
+.landing-share .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.landing-share .button svg { width: 18px; height: 18px; flex: none; }

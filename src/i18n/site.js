@@ -40,6 +40,9 @@ const DICTIONARY = {
 
     'release.listen': 'Listen now',
     'landing.home': 'To the band site',
+    'landing.share': 'Share',
+    'landing.copied': 'Link copied',
+    'landing.copyFailed': 'Could not copy — take the address from the bar above',
 
     'merch.order': 'Order',
     'merch.formTitle': 'Order',
@@ -85,6 +88,9 @@ const DICTIONARY = {
 
     'release.listen': 'Slušaj odmah',
     'landing.home': 'Na sajt benda',
+    'landing.share': 'Podeli',
+    'landing.copied': 'Link je kopiran',
+    'landing.copyFailed': 'Kopiranje nije uspelo — uzmi adresu iz trake iznad',
 
     'merch.order': 'Poruči',
     'merch.formTitle': 'Porudžbina',

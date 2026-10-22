@@ -526,6 +526,67 @@
     try { box.showModal() } catch (error) { console.error('padali: окно отказа не открылось', error) }
   }
 
+  /* ── Короткое сообщение «получилось» ─────────────────────
+     Окно (form-alert) требует закрыть себя и годится для отказов,
+     которые пропускать нельзя. Для «скопировано» этого слишком
+     много: сообщить надо факт и исчезнуть. */
+  var toastTimer = null
+
+  function toast (text) {
+    var box = document.querySelector('[data-toast]')
+    if (!box) return
+
+    box.textContent = text
+    box.hidden = false
+    window.clearTimeout(toastTimer)
+    toastTimer = window.setTimeout(function () { box.hidden = true }, 3000)
+  }
+
+  /* ── Поделиться ссылкой ──────────────────────────────────
+     Адрес берём из разметки, а не из строки браузера: там бывают
+     метки перехода, якорь и наши же служебные параметры, и
+     отправлять такое друзьям незачем.
+
+     Буфер обмена работает только в защищённом соединении, и
+     браузер вправе отказать. Отказ показываем — молча
+     проглоченная неудача выглядит как сломанная кнопка. */
+  function initShare () {
+    document.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-share]')
+      if (!button) return
+
+      var url = button.getAttribute('data-share')
+      var done = function () { toast(button.getAttribute('data-copied')) }
+      var fail = function (error) {
+        console.error('padali: ссылку не удалось скопировать', error)
+        toast(button.getAttribute('data-failed'))
+      }
+
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        fail(new Error('буфер обмена недоступен'))
+        return
+      }
+
+      /* Срок на ответ. Обычно браузер отвечает сразу — успехом или
+         отказом, — но у окна без фокуса обещание может не
+         разрешиться вовсе. Тогда кнопка молчит, и для человека это
+         неотличимо от сломанной. Пусть лучше скажет, что не вышло. */
+      var answered = false
+      var once = function (action) {
+        return function (value) {
+          if (answered) return
+          answered = true
+          action(value)
+        }
+      }
+      var settled = once(done)
+      var failed = once(fail)
+      window.setTimeout(function () { failed(new Error('буфер обмена не ответил')) }, 2000)
+
+      navigator.clipboard.writeText(url).then(settled, failed)
+    })
+  }
+
   function initSendForms () {
     document.addEventListener('submit', function (event) {
       var form = event.target.closest('[data-send-form]')
@@ -877,6 +938,7 @@
   initLightbox()
   initGalleryScrollers()
   initVideoFacades()
+  initShare()
   initSendForms()
   initContactPick()
   initOrderDialog()

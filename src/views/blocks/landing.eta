@@ -76,6 +76,16 @@
            везде одинаково. */ %>
     <% if (block.text.note) { %><p class="landing-note"><%~ it.h.linkify(block.text.note) %></p><% } %>
 
+    <% ;/* Делимся не тем адресом, что в строке браузера, а своим
+           же каноническим: в строке бывают и метки перехода, и
+           якорь, и параметры — отправлять такое друзьям незачем.
+           Язык тот, на котором человек читает страницу. */ %>
+    <p class="landing-share">
+      <button type="button" class="button" data-share="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale, it.path) %>"
+              data-copied="<%= it.s('landing.copied') %>"
+              data-failed="<%= it.s('landing.copyFailed') %>"><%~ it.h.icon('share') %><%= it.s('landing.share') %></button>
+    </p>
+
     <% if (block.text.released_label) { %><p class="landing-released"><%= block.text.released_label %></p><% } %>
 
     <% ;/* Домой — последней: со страницы, которую питчат, должен

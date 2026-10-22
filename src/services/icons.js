@@ -100,6 +100,17 @@ const UI_ICONS = {
   home:
     '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1z" ' +
     'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  /* Поделиться: стрелка, выходящая из открытой коробки. Знак
+     служебный, не чужая марка, — рисуем сами, как домик и
+     конверт. */
+  share:
+    '<path d="M12 3.4v10.2" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+    'stroke-linecap="round"/>' +
+    '<path d="M8.4 7 12 3.4 15.6 7" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M7.6 10.4H5.8A1.8 1.8 0 0 0 4 12.2v6.4a1.8 1.8 0 0 0 1.8 1.8h12.4a1.8 1.8 0 0 0 1.8-1.8v-6.4a1.8 1.8 0 0 0-1.8-1.8h-1.8" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+
   'arrow-left':
     '<path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="2" ' +
     'stroke-linecap="round" stroke-linejoin="round"/>',

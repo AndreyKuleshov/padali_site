@@ -1188,3 +1188,39 @@ test('кнопку покупки на лендинге включает отд�
   assert.doesNotMatch(off, /class="landing-buy"/, 'кнопки нет')
   assert.doesNotMatch(off, /bandcamp\.test/, 'и адрес на страницу не попал')
 })
+
+/* Кнопка «поделиться» копирует адрес в буфер. Видимые строки
+   скрипт берёт из разметки: языка интерфейса он не знает и знать
+   не должен. Адрес тоже из разметки — свой канонический, а не тот,
+   что в строке браузера: там бывают метки перехода и якорь, и
+   отправлять такое друзьям незачем. */
+test('кнопка «поделиться» несёт канонический адрес и подписи на своём языке', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+  const pageId = await makePage({ slug: 'pocetak' })
+  await createBlock({
+    pageId, type: 'landing', anchor: 'listen', isVisible: true,
+    settings: defaultSettings('landing')
+  })
+  invalidateCache()
+
+  const en = (await app.inject({ method: 'GET', url: '/pocetak' })).body
+  const button = /<button[^>]*data-share[\s\S]*?<\/button>/.exec(en)
+  assert.ok(button, 'кнопка на странице есть')
+  assert.match(button[0], /data-share="[^"]*\/pocetak"/, 'адрес канонический, без лишнего')
+  assert.match(button[0], /data-copied="Link copied"/)
+  assert.match(button[0], /data-failed="[^"]+"/, 'отказ тоже назван: молчащая кнопка выглядит сломанной')
+  assert.match(button[0], /<svg/, 'со значком')
+  assert.match(button[0], />Share<\/button>/)
+
+  /* Своя страница на своём языке: сербский читатель делится
+     сербским адресом. */
+  const sr = (await app.inject({ method: 'GET', url: '/sr/pocetak' })).body
+  const srButton = /<button[^>]*data-share[\s\S]*?<\/button>/.exec(sr)[0]
+  assert.match(srButton, /data-share="[^"]*\/sr\/pocetak"/)
+  assert.match(srButton, /data-copied="Link je kopiran"/)
+  assert.match(srButton, />Podeli<\/button>/)
+
+  // Место, куда скрипт кладёт сообщение, тоже должно быть на странице.
+  assert.match(en, /data-toast[^>]*role="status"/, 'читалка экрана произнесёт появившееся')
+})
