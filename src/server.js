@@ -6,6 +6,7 @@ import cookie from '@fastify/cookie'
 import formbody from '@fastify/formbody'
 import multipart from '@fastify/multipart'
 import rateLimit from '@fastify/rate-limit'
+import { readdir } from 'node:fs/promises'
 import fastifyStatic from '@fastify/static'
 import qs from 'qs'
 
@@ -61,12 +62,34 @@ async function buildServer ({ logger = true } = {}) {
   await app.register(rateLimit, { global: false, max: 300, timeWindow: '1 minute' })
 
   // Статика проекта: css, js, брендовые ассеты.
-  await app.register(fastifyStatic, {
-    root: join(ROOT, 'public'),
-    prefix: '/',
-    index: false,
-    maxAge: config.isProduction ? '7d' : 0
-  })
+  /*
+   * Статику раздаём по папке на регистрацию, а не одной на корень.
+   *
+   * Причина в том, как find-my-way выбирает маршрут: точный отрезок
+   * важнее параметра, параметр важнее звёздочки. Страницы сайта
+   * живут по адресу «/:язык/:слаг», и он — параметр, а статика на
+   * корне — звёздочка. Поэтому «/css/admin.css» уезжал в разбор
+   * страниц и отдавал 404: язык «css», слаг «admin.css». Сайт
+   * оставался без стилей, и выглядело это как поломка вёрстки.
+   *
+   * Имя папки — точный отрезок, он выигрывает у параметра. Список
+   * читаем с диска, чтобы новая папка не пропала молча.
+   */
+  const publicRoot = join(ROOT, 'public')
+  const publicDirs = (await readdir(publicRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+
+  for (const [index, dir] of publicDirs.entries()) {
+    await app.register(fastifyStatic, {
+      root: join(publicRoot, dir),
+      prefix: `/${dir}/`,
+      index: false,
+      // Украшать reply может только одна регистрация.
+      decorateReply: index === 0,
+      maxAge: config.isProduction ? '7d' : 0
+    })
+  }
 
   // Загруженные картинки: имя содержит хеш, поэтому кэш вечный.
   await app.register(fastifyStatic, {

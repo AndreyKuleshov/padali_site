@@ -794,3 +794,325 @@ test('удаление блока тоже сбрасывает кэш', async (
 
   assert.doesNotMatch((await app.inject({ method: 'GET', url: '/' })).body, /Исчезнет/)
 })
+
+/* Сингл выходит ночью, а правит страницу человек утром. Поэтому
+   блок релиза переключается сам по дате: до выхода — отсчёт и
+   «скоро», после — «слушать» и площадки ссылками. Обе стороны
+   проверяем через composePage с подставленным «сегодня»: трогать
+   часы машины ради теста нельзя. */
+test('блок релиза сам переключается с «скоро» на «слушать»', async () => {
+  const { pageId } = await buildPage()
+
+  const id = await createBlock({
+    pageId, type: 'release', anchor: 'single',
+    settings: {
+      ...defaultSettings('release'),
+      release_date: '2026-10-22',
+      show_countdown: true,
+      platforms: [{ icon: 'spotify', label: 'Spotify', url: 'https://open.spotify.test/padali' }]
+    }
+  })
+  await saveBlockTexts(id, {
+    en: { platforms_label: 'Soon on', countdown_label: '{days} days until release' }
+  })
+  invalidateCache()
+
+  const { render } = await import('../src/services/renderer.js')
+  const { composePage } = await import('../src/services/page-composer.js')
+  const { buildJsonLd } = await import('../src/services/json-ld.js')
+
+  async function pageOn (today) {
+    const page = await composePage({ locale: 'en', today })
+    return render('layout', { ...page, ogImage: null, jsonLd: buildJsonLd(page) })
+  }
+
+  const before = await pageOn('2026-10-21')
+  assert.match(before, /data-countdown="2026-10-22"/, 'до выхода отсчёт идёт')
+  assert.match(before, /Soon on/, 'подпись «скоро» на месте')
+  assert.doesNotMatch(before, /platform-icons--out/, 'ряд ещё не главная кнопка')
+  assert.doesNotMatch(before, /platform-name/, 'имя площадки рядом со знаком не нужно')
+
+  /* День выхода — уже «вышел»: релиз появляется ночью по местному
+     времени площадок, и ждать следующих суток незачем. */
+  for (const today of ['2026-10-22', '2026-11-30']) {
+    const after = await pageOn(today)
+    assert.doesNotMatch(after, /data-countdown=/, `${today}: отсчёту считать нечего`)
+    assert.doesNotMatch(after, /Soon on/, `${today}: «скоро» ушло`)
+    assert.match(after, /platforms-label--out/, `${today}: подпись сменилась`)
+    assert.match(after, /Listen now/, `${today}: запасная подпись из словаря сайта`)
+    assert.match(after, /platform-icons--out/, `${today}: ряд стал главной кнопкой`)
+    assert.match(after, /class="platform-name">Spotify</, `${today}: имя площадки рядом со знаком`)
+  }
+})
+
+/* Своя подпись главнее запасной, и на втором языке тоже. */
+test('подпись после выхода берётся из поля, если редактор её вписал', async () => {
+  const { pageId } = await buildPage()
+
+  const id = await createBlock({
+    pageId, type: 'release', anchor: 'single',
+    settings: {
+      ...defaultSettings('release'),
+      release_date: '2026-10-22',
+      platforms: [{ icon: 'spotify', label: 'Spotify', url: 'https://open.spotify.test/padali' }]
+    }
+  })
+  await saveBlockTexts(id, { en: { listen_label: 'OUT NOW' }, sr: { listen_label: 'IZAŠLO' } })
+  invalidateCache()
+
+  const { render } = await import('../src/services/renderer.js')
+  const { composePage } = await import('../src/services/page-composer.js')
+  const { buildJsonLd } = await import('../src/services/json-ld.js')
+
+  for (const [locale, expected] of [['en', 'OUT NOW'], ['sr', 'IZAŠLO']]) {
+    const page = await composePage({ locale, today: '2026-10-25' })
+    const html = render('layout', { ...page, ogImage: null, jsonLd: buildJsonLd(page) })
+    assert.match(html, new RegExp(`platforms-label--out">${expected}<`), `на ${locale}`)
+    assert.doesNotMatch(html, /Listen now|Slušaj odmah/, `на ${locale} запасная не лезет поверх своей`)
+  }
+})
+
+/* Последняя кнопка ряда ведёт на страницу, где собраны все
+   площадки сразу. Поле адреса отдельно от подписи: подпись
+   переводится, адрес — нет, как и у самих площадок. */
+test('кнопка «ещё» становится ссылкой, когда ей задан адрес', async () => {
+  const { pageId } = await buildPage()
+
+  async function releaseBlock (anchor, moreUrl) {
+    const id = await createBlock({
+      pageId, type: 'release', anchor,
+      settings: {
+        ...defaultSettings('release'),
+        release_date: '2026-10-22',
+        more_url: moreUrl,
+        platforms: [{ icon: 'spotify', label: 'Spotify', url: 'https://open.spotify.test/x' }]
+      }
+    })
+    await saveBlockTexts(id, { en: { more_label: '+ more' } })
+  }
+
+  await releaseBlock('with-url', 'https://padali.band/pocetak')
+  await releaseBlock('inside', '/pocetak')
+  await releaseBlock('no-url', '')
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const cut = (anchor) => new RegExp(`id="${anchor}">[\\s\\S]*?</section>`).exec(body)[0]
+
+  const withUrl = cut('with-url')
+  assert.match(withUrl, /<a class="more" href="https:\/\/padali\.band\/pocetak" target="_blank" rel="noopener">\+ more<\/a>/)
+  assert.doesNotMatch(withUrl, /more--flat/, 'подписью она быть перестала')
+
+  /* Своя страница открывается в этой же вкладке: новая нужна,
+     чтобы не терять наш сайт, а тут мы с него и не уходим. */
+  const inside = cut('inside')
+  assert.match(inside, /<a class="more" href="\/pocetak">\+ more<\/a>/)
+  assert.doesNotMatch(inside, /class="more"[^>]*target/, 'без новой вкладки')
+
+  /* Без адреса — подпись «и другие». Врать ссылкой в никуда хуже,
+     чем оставить надпись. */
+  const without = cut('no-url')
+  assert.match(without, /<span class="more more--flat">\+ more<\/span>/)
+  assert.doesNotMatch(without, /<a class="more"/, 'ссылки в никуда нет')
+})
+
+/* Вторая страница живёт по своему адресу, и адрес из одного
+   отрезка разбирается в два захода: сперва язык, потом слаг.
+   Двух маршрутов «/:что-то» рядом быть не может, и именно этот
+   разбор легко сделать так, что страница с коротким именем
+   окажется недостижимой. */
+test('страница по слагу открывается, на втором языке — с префиксом', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+
+  const landingId = await makePage({ slug: 'pocetak' })
+  const block = await createBlock({
+    pageId: landingId, type: 'richtext', anchor: 'text', isVisible: true,
+    settings: defaultSettings('richtext')
+  })
+  await saveBlockTexts(block, { en: { body: '<p>Landing body</p>' }, sr: { body: '<p>Tekst stranice</p>' } })
+  invalidateCache()
+
+  const en = await app.inject({ method: 'GET', url: '/pocetak' })
+  assert.equal(en.statusCode, 200)
+  assert.match(en.body, /Landing body/)
+
+  const sr = await app.inject({ method: 'GET', url: '/sr/pocetak' })
+  assert.equal(sr.statusCode, 200)
+  assert.match(sr.body, /Tekst stranice/)
+
+  /* Главная отзывается только из корня: та же страница по двум
+     адресам — два разных документа для поисковика. */
+  assert.equal((await app.inject({ method: 'GET', url: '/home' })).statusCode, 301)
+  assert.equal((await app.inject({ method: 'GET', url: '/en/pocetak' })).statusCode, 301)
+
+  // Язык по-прежнему разбирается первым и страницу не заслоняет.
+  assert.equal((await app.inject({ method: 'GET', url: '/sr' })).statusCode, 200)
+  assert.equal((await app.inject({ method: 'GET', url: '/нет-такой' })).statusCode, 404)
+})
+
+/* Неопубликованная страница не отдаётся и в карту сайта не
+   попадает: иначе поисковик придёт по ссылке на 404. */
+test('неопубликованная страница скрыта и из выдачи, и из карты сайта', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+
+  const hidden = await makePage({ slug: 'draft', isPublished: false })
+  await createBlock({
+    pageId: hidden, type: 'richtext', anchor: 'text', isVisible: true,
+    settings: defaultSettings('richtext')
+  })
+  await makePage({ slug: 'pocetak' })
+  invalidateCache()
+
+  assert.equal((await app.inject({ method: 'GET', url: '/draft' })).statusCode, 404)
+
+  const map = (await app.inject({ method: 'GET', url: '/sitemap.xml' })).body
+  assert.doesNotMatch(map, /\/draft</, 'черновика в карте нет')
+  assert.match(map, /<loc>[^<]*\/pocetak<\/loc>/, 'опубликованная есть')
+  assert.match(map, /<loc>[^<]*\/sr\/pocetak<\/loc>/, 'и на втором языке')
+  assert.match(map, /<loc>[^<]*\/<\/loc>/, 'главная осталась в корне')
+})
+
+/* Точный отрезок адреса важнее параметра, параметр важнее
+   звёздочки — так выбирает маршрут find-my-way. Пока статика
+   висела звёздочкой на корне, появившийся разбор страниц
+   «/:язык/:слаг» перехватил «/css/site.css»: язык «css», слаг
+   «site.css». Сайт остался без стилей, и выглядело это как
+   поломка вёрстки, а не маршрутов. */
+test('файлы стилей и скриптов не перехватываются разбором страниц', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+  await makePage({ slug: 'pocetak' })
+  invalidateCache()
+
+  for (const url of ['/css/site.css', '/css/admin.css', '/js/site.js', '/js/admin.js']) {
+    const response = await app.inject({ method: 'GET', url })
+    assert.equal(response.statusCode, 200, `${url} отдаётся`)
+    assert.ok(response.body.length > 100, `${url} не пустой`)
+  }
+
+  /* Два отрезка — и первый из двух букв, как у языка: «js» ловится
+     ровно тем же правилом, которым ловился бы «sr». */
+  assert.doesNotMatch(
+    (await app.inject({ method: 'GET', url: '/js/site.js' })).headers['content-type'] ?? '',
+    /text\/html/,
+    'это файл, а не страница'
+  )
+})
+
+/* ─── Лендинг релиза ────────────────────────────────────────
+   Страница, которую питчат: на ней одна запись и один вопрос —
+   где её слушать. Поэтому ни шапки сайта, ни меню, ни подвала:
+   уводить внимание в мерч и фотографии отсюда незачем. */
+test('лендинг показывается без шапки, меню и подвала сайта', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+
+  const landingPage = await makePage({ slug: 'pocetak' })
+  const block = await createBlock({
+    pageId: landingPage, type: 'landing', anchor: 'listen', isVisible: true,
+    settings: {
+      ...defaultSettings('landing'),
+      spotify_url: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+      platforms: [{ icon: 'spotify', label: 'Spotify', url: 'https://open.spotify.test/x' }]
+    }
+  })
+  await saveBlockTexts(block, { en: { title: 'POČETAK', platforms_label: 'Get the music' } })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/pocetak' })).body
+
+  assert.doesNotMatch(body, /class="topbar"/, 'шапки сайта нет')
+  assert.doesNotMatch(body, /class="quicknav"/, 'меню разделов нет')
+  assert.doesNotMatch(body, /class="wrap site-footer"/, 'подвала сайта нет')
+
+  assert.match(body, /class="landing-hero"/)
+  assert.match(body, /POČETAK/)
+  assert.match(body, /Get the music/)
+
+  /* Главная при этом остаётся с шапкой: признак объявлен у блока,
+     а не включён для всего сайта. */
+  const home = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(home, /class="topbar"/, 'на главной шапка на месте')
+})
+
+/* Плеер — чужая рамка, и адрес ей нужен особый: на обычную
+   страницу Spotify внутри iframe показывает весь сервис целиком
+   вместо одного трека. */
+test('ссылка Spotify превращается в плеер, мусор — ни во что', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+
+  async function landingWith (slug, spotifyUrl) {
+    const pageId = await makePage({ slug })
+    await createBlock({
+      pageId, type: 'landing', anchor: 'listen', isVisible: true,
+      settings: { ...defaultSettings('landing'), spotify_url: spotifyUrl }
+    })
+  }
+
+  await landingWith('good', 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT')
+  await landingWith('bad', 'https://example.com/not-spotify')
+  invalidateCache()
+
+  const good = (await app.inject({ method: 'GET', url: '/good' })).body
+  assert.match(good, /src="https:\/\/open\.spotify\.com\/embed\/track\/4cOdK2wGLETKBW3PvgPWqT\?theme=0"/)
+
+  const bad = (await app.inject({ method: 'GET', url: '/bad' })).body
+  assert.doesNotMatch(bad, /<iframe/, 'чужая ссылка рамку не открывает')
+  assert.doesNotMatch(bad, /example\.com/, 'и в разметку не попадает')
+})
+
+/* Лендинг кидают ссылкой в чат и в сторис, и там видно картинку
+   предпросмотра. Общая фотография группы на странице одного
+   трека читается как ссылка на сайт вообще. */
+test('картинкой предпросмотра у лендинга становится обложка релиза', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  const { processUpload: upload } = await import('../src/services/media-processor.js')
+  await buildPage()
+
+  const { media: cover } = await upload({
+    buffer: await makeImage({ width: 600, height: 600, seed: 42 }),
+    originalName: 'cover.png',
+    mime: 'image/png'
+  })
+
+  const pageId = await makePage({ slug: 'pocetak' })
+  const block = await createBlock({
+    pageId, type: 'landing', anchor: 'listen', isVisible: true,
+    settings: defaultSettings('landing')
+  })
+  await saveBlockMedia(block, { cover: [cover.id] })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/pocetak' })).body
+  const og = /<meta property="og:image" content="([^"]*)"/.exec(body)
+  assert.ok(og, 'картинка предпросмотра объявлена')
+  assert.match(og[1], /\/uploads\//, 'и это загруженный файл, а не пусто')
+  assert.ok(og[1].includes(String(cover.hash).slice(0, 12)), 'адрес ведёт именно на обложку')
+})
+
+/* Лендинг рассылают ссылкой, и поисковик с мессенджером смотрят
+   на canonical и og:url. Пока путь страницы до вёрстки не
+   доезжал, оба показывали на главную: ссылка на один трек
+   разворачивалась в «сайт группы» вообще. */
+test('canonical и og:url второй страницы ведут на неё саму', async () => {
+  const { createPage: makePage } = await import('../src/repositories/pages.js')
+  await buildPage()
+  const pageId = await makePage({ slug: 'pocetak' })
+  await createBlock({
+    pageId, type: 'landing', anchor: 'listen', isVisible: true,
+    settings: defaultSettings('landing')
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/pocetak' })).body
+  assert.match(body, /<link rel="canonical" href="[^"]*\/pocetak">/)
+  assert.match(body, /<meta property="og:url" content="[^"]*\/pocetak">/)
+  assert.match(body, /hreflang="sr" href="[^"]*\/sr\/pocetak"/, 'второй язык — со своим префиксом')
+
+  const home = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(home, /<link rel="canonical" href="[^"]*\/">/, 'главная осталась в корне')
+  assert.doesNotMatch(home, /canonical[^>]*pocetak/, 'и чужого слага не подхватила')
+})
