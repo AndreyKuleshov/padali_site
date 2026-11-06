@@ -3,6 +3,17 @@ import { resolve } from 'node:path'
 /** Переменные, без которых приложение не имеет смысла запускать. */
 const REQUIRED = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'SESSION_SECRET']
 
+/**
+ * Значения по умолчанию берутся через `||`, а не `??`.
+ *
+ * Переменная окружения — всегда строка, и пустая строка значит «не
+ * задано»: именно так её отдают и docker-compose, и Coolify, где
+ * переменную легко завести, забыв значение. `??` ловит только
+ * `undefined`, и пустая строка проходила насквозь: `Number('')`
+ * давал ноль, то есть порт 0, таймаут 0 и мгновенный обрыв запроса,
+ * а пустой артист Bandsintown выключал синхронизацию — админка при
+ * этом писала, что пуст ключ, хотя ключ был на месте.
+ */
 function readEnv (env = process.env) {
   const missing = REQUIRED.filter((key) => !env[key])
   if (missing.length > 0) {
@@ -19,13 +30,13 @@ function readEnv (env = process.env) {
 
   return {
     isProduction,
-    port: Number(env.PORT ?? 3000),
-    host: env.HOST ?? '0.0.0.0',
-    publicUrl: (env.PUBLIC_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
+    port: Number(env.PORT || 3000),
+    host: env.HOST || '0.0.0.0',
+    publicUrl: (env.PUBLIC_URL || 'http://localhost:3000').replace(/\/+$/, ''),
 
     db: {
       host: env.DB_HOST,
-      port: Number(env.DB_PORT ?? 5432),
+      port: Number(env.DB_PORT || 5432),
       database: env.DB_NAME,
       user: env.DB_USER,
       password: env.DB_PASSWORD,
@@ -33,7 +44,7 @@ function readEnv (env = process.env) {
        * Приложение живёт в собственной схеме: база общая с другим
        * проектом, и таблицы не должны пересекаться.
        */
-      schema: env.DB_SCHEMA ?? 'padali'
+      schema: env.DB_SCHEMA || 'padali'
     },
 
     /**
@@ -45,17 +56,17 @@ function readEnv (env = process.env) {
      * можно без правки кода и выкладки.
      */
     openai: {
-      apiKey: env.OPENAI_API_KEY ?? '',
-      model: env.OPENAI_MODEL ?? 'gpt-4.1-mini',
-      baseUrl: (env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/+$/, ''),
-      timeoutMs: Number(env.OPENAI_TIMEOUT_MS ?? 20000)
+      apiKey: env.OPENAI_API_KEY || '',
+      model: env.OPENAI_MODEL || 'gpt-4.1-mini',
+      baseUrl: (env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, ''),
+      timeoutMs: Number(env.OPENAI_TIMEOUT_MS || 20000)
     },
 
     /* Капча на формах. Нет ключей — капчи нет, формы работают как
        раньше: сайт не должен ломаться оттого, что её ещё не завели. */
     turnstile: {
-      siteKey: env.CF_SITE_KEY ?? '',
-      secretKey: env.CF_SECRET_KEY ?? ''
+      siteKey: env.CF_SITE_KEY || '',
+      secretKey: env.CF_SECRET_KEY || ''
     },
 
     /**
@@ -66,13 +77,13 @@ function readEnv (env = process.env) {
      * пустоту из-за ненастроенной почты.
      */
     mail: {
-      host: env.SMTP_HOST ?? '',
-      port: Number(env.SMTP_PORT ?? 587),
-      user: env.SMTP_USER ?? '',
-      password: env.SMTP_PASSWORD ?? '',
+      host: env.SMTP_HOST || '',
+      port: Number(env.SMTP_PORT || 587),
+      user: env.SMTP_USER || '',
+      password: env.SMTP_PASSWORD || '',
       from: env.MAIL_FROM || env.SMTP_USER || 'padali-site@localhost',
-      to: env.MAIL_TO ?? 'padaliband@gmail.com',
-      timeoutMs: Number(env.SMTP_TIMEOUT_MS ?? 8000)
+      to: env.MAIL_TO || 'padaliband@gmail.com',
+      timeoutMs: Number(env.SMTP_TIMEOUT_MS || 8000)
     },
 
     /*
@@ -81,9 +92,9 @@ function readEnv (env = process.env) {
      * и адресата отбивка выключена, и сайт работает так же.
      */
     telegram: {
-      token: env.TELEGRAM_BOT_TOKEN ?? '',
-      chatId: env.TELEGRAM_CHAT_ID ?? '',
-      timeoutMs: Number(env.TELEGRAM_TIMEOUT_MS ?? 6000)
+      token: env.TELEGRAM_BOT_TOKEN || '',
+      chatId: env.TELEGRAM_CHAT_ID || '',
+      timeoutMs: Number(env.TELEGRAM_TIMEOUT_MS || 6000)
     },
 
     /*
@@ -100,12 +111,12 @@ function readEnv (env = process.env) {
      * коде: сменится аккаунт — менять нечего, кроме переменной.
      */
     bandsintown: {
-      apiKey: env.BANDSINTOWN_API_KEY ?? '',
-      artistId: env.BANDSINTOWN_ARTIST_ID ?? '15671864',
-      timeoutMs: Number(env.BANDSINTOWN_TIMEOUT_MS ?? 8000),
+      apiKey: env.BANDSINTOWN_API_KEY || '',
+      artistId: env.BANDSINTOWN_ARTIST_ID || '15671864',
+      timeoutMs: Number(env.BANDSINTOWN_TIMEOUT_MS || 8000),
       /* Как часто ходим за списком. Концерты объявляют не каждый
          час, а дёргать чужой сервис на каждую страницу незачем. */
-      refreshMs: Number(env.BANDSINTOWN_REFRESH_MS ?? 60 * 60 * 1000)
+      refreshMs: Number(env.BANDSINTOWN_REFRESH_MS || 60 * 60 * 1000)
     },
 
     sessionSecret: env.SESSION_SECRET,
@@ -117,7 +128,7 @@ function readEnv (env = process.env) {
      * ради тестов: они логинятся на каждый сценарий и упираются в предел.
      */
     loginRateLimit: {
-      max: Number(env.LOGIN_RATE_LIMIT_MAX ?? 10),
+      max: Number(env.LOGIN_RATE_LIMIT_MAX || 10),
       timeWindow: '15 minutes'
     },
 
@@ -132,7 +143,7 @@ function readEnv (env = process.env) {
      * пароль, изменённый в админке, переменная не перезапишет.
      * Нужны, чтобы завести доступ там, где в админку ещё не войти.
      */
-    bootstrapUsers: String(env.ADMIN_USERS ?? '')
+    bootstrapUsers: String(env.ADMIN_USERS || '')
       .split(',')
       .map((pair) => pair.trim())
       .filter(Boolean)
@@ -148,9 +159,9 @@ function readEnv (env = process.env) {
       .filter((user) => user && user.email && user.password.length >= 10),
 
     /** Сколько дней держать сырые события статистики. */
-    analyticsRetentionDays: Number(env.ANALYTICS_RETENTION_DAYS ?? 180),
+    analyticsRetentionDays: Number(env.ANALYTICS_RETENTION_DAYS || 180),
 
-    uploadDir: resolve(env.UPLOAD_DIR ?? './data/uploads'),
+    uploadDir: resolve(env.UPLOAD_DIR || './data/uploads'),
     /** Предел на один загружаемый файл. */
     uploadMaxBytes: 20 * 1024 * 1024,
     allowedImageMimes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
@@ -169,8 +180,8 @@ function readEnv (env = process.env) {
      * файла. Снимок с телефона — это десятки мегабайт, держать их
      * незачем, а отдавать тем более.
      */
-    masterMaxWidth: Number(env.MASTER_MAX_WIDTH ?? 2560),
-    masterQuality: Number(env.MASTER_QUALITY ?? 90)
+    masterMaxWidth: Number(env.MASTER_MAX_WIDTH || 2560),
+    masterQuality: Number(env.MASTER_QUALITY || 90)
   }
 }
 
