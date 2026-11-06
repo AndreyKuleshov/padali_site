@@ -17,12 +17,11 @@
        style="--gallery-columns: 1; --gallery-columns-mobile: 1; --gallery-rows: 1">
     <div class="<%= many ? 'gallery-track ' : '' %>concert-list"<% if (many) { %> data-gallery-scroll<% } %>>
       <% events.forEach(function (event) { %>
-      <% var atDoor = event.tickets === 'door' %>
-      <% ;/* Пока ничего не известно — ни кнопки, ни цены, даже
-             если в полях что-то осталось от прежнего способа
-             продажи: показать старую ссылку хуже, чем не
-             показать ничего. */ %>
-      <% var noTickets = event.tickets === 'unknown' %>
+      <% ;/* Площадка одной строкой: название и город. Страна в ней
+             не нужна — все концерты пока в одной, а «Beograd,
+             Serbia» на сербской странице читается как перевод для
+             иностранца. */ %>
+      <% var place = [event.venueName, event.venueCity].filter(Boolean).join(', ') %>
       <div class="concert-grid<%= event.poster ? '' : ' concert-grid--no-poster' %>">
         <% if (event.poster) { %>
         <% ;/* Афиши приходят и стоячие, и лежачие, и ряд из них
@@ -36,28 +35,48 @@
         </div>
         <% } %>
         <div class="concert-card">
-          <% if (event.date) { %>
-          <p class="concert-date"><time datetime="<%= event.date %>"><%= it.h.formatDate(event.date) %></time></p>
-          <% } %>
-          <% if (event.venue) { %><p class="concert-venue"><%= event.venue %></p><% } %>
-          <% if (event.note) { %><p class="note"><%= event.note %></p><% } %>
+          <% ;/* В datetime — время площадки как есть, без смещения:
+                 другого у Bandsintown и нет, а выдуманный пояс
+                 сдвинул бы концерт на час в чужом календаре. */ %>
+          <p class="concert-date">
+            <time datetime="<%= event.startsAt %>"><%= it.h.formatDate(event.date) %></time>
+            <% if (event.time) { %><span class="concert-time"><%= event.time %></span><% } %>
+          </p>
+          <% if (place) { %><p class="concert-venue"><%= place %></p><% } %>
+          <% ;/* Описание пишут в Bandsintown абзацами, и переносы в
+                 нём значимы: держит их `white-space` в стилях. */ %>
+          <% if (event.description) { %><p class="note concert-note"><%~ it.h.linkify(event.description) %></p><% } %>
 
-          <% if (!noTickets && (atDoor || event.ticket_url || event.price)) { %>
+          <% ;/* Распродано — вместо кнопки, а не рядом с ней: вести
+                 на закрытую продажу незачем. */ %>
+          <% if (event.soldOut) { %>
           <div class="concert-tickets">
-            <% if (atDoor) { %>
-            <p class="concert-door"><%~ it.h.icon('ticket') %><%= event.ticket_label || it.s('concert.atDoor') %></p>
-            <% } else if (event.ticket_url) { %>
-            <a class="button" href="<%= event.ticket_url %>" target="_blank" rel="noopener">
-              <%~ it.h.icon('ticket') %><%= event.ticket_label || it.s('concert.tickets') %>
+            <p class="concert-door"><%~ it.h.icon('ticket') %><%= it.s('concert.soldOut') %></p>
+          </div>
+          <% } else if (event.ticketUrl || event.price || event.isFree) { %>
+          <div class="concert-tickets">
+            <% if (event.ticketUrl) { %>
+            <a class="button" href="<%= event.ticketUrl %>" target="_blank" rel="noopener">
+              <%~ it.h.icon('ticket') %><%= it.s('concert.tickets') %>
             </a>
+            <% } else if (event.isFree) { %>
+            <p class="concert-door"><%~ it.h.icon('ticket') %><%= it.s('concert.free') %></p>
+            <% } else { %>
+            <% ;/* Продажи по ссылке нет, а цена есть — значит, платят
+                   на входе: другого способа у концерта не остаётся. */ %>
+            <p class="concert-door"><%~ it.h.icon('ticket') %><%= it.s('concert.atDoor') %></p>
             <% } %>
             <% if (event.price) { %>
-            <span class="concert-price"><%= event.price_from ? it.s('concert.priceFrom') + ' ' + event.price : event.price %></span>
+            <span class="concert-price"><%= event.priceFrom ? it.s('concert.priceFrom') + ' ' + event.price : event.price %></span>
             <% } %>
           </div>
           <% } %>
 
-          <% if (event.tag) { %><p><span class="concert-tag"><%= event.tag %></span></p><% } %>
+          <% ;/* Страница события — там состав, карта и напоминание.
+                 Тихой ссылкой, чтобы не спорила с кнопкой билетов. */ %>
+          <% if (event.eventUrl) { %>
+          <p class="concert-more"><a href="<%= event.eventUrl %>" target="_blank" rel="noopener"><%= it.s('concert.details') %></a></p>
+          <% } %>
         </div>
       </div>
       <% }) %>

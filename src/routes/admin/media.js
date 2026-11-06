@@ -158,6 +158,7 @@ async function mediaRoutes (app) {
       const where = [
         usage.blocks.length > 0 ? request.t('media.inBlocks', { count: usage.blocks.length }) : null,
         usage.galleries.length > 0 ? request.t('media.inAlbums', { count: usage.galleries.length }) : null,
+        usage.concerts.length > 0 ? request.t('media.inConcerts', { count: usage.concerts.length }) : null,
         usage.settings.length > 0 ? request.t('media.inSettings') : null
       ].filter(Boolean).join(', ')
       setFlash(reply, 'error', request.t('media.stillUsed', { where }))

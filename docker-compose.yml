@@ -74,6 +74,13 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       TELEGRAM_TIMEOUT_MS: ${TELEGRAM_TIMEOUT_MS:-6000}
 
+      # Концерты из Bandsintown. Без ключа синхронизация выключена,
+      # а раздел показывает последнее, что успело лечь в базу.
+      BANDSINTOWN_API_KEY: ${BANDSINTOWN_API_KEY:-}
+      BANDSINTOWN_ARTIST_ID: ${BANDSINTOWN_ARTIST_ID:-15671864}
+      BANDSINTOWN_TIMEOUT_MS: ${BANDSINTOWN_TIMEOUT_MS:-8000}
+      BANDSINTOWN_REFRESH_MS: ${BANDSINTOWN_REFRESH_MS:-3600000}
+
     volumes:
       # Загруженные изображения. В Coolify сюда монтируется persistent
       # storage: без него фотографии пропадут при следующем деплое.

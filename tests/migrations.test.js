@@ -25,6 +25,7 @@ test('схема содержит все нужные таблицы', async () 
   for (const expected of [
     'locales', 'settings', 'media', 'media_texts', 'galleries', 'gallery_texts',
     'gallery_items', 'pages', 'page_texts', 'blocks', 'block_texts', 'block_media',
+    'concert_events', 'concert_event_texts',
     'admin_users', 'sessions', 'migrations'
   ]) {
     assert.ok(tables.has(expected), `нет таблицы ${expected}`)
@@ -41,9 +42,10 @@ test('тексты и медиа блока удаляются вместе с �
   assert.equal(rows[0].deleteRule, 'CASCADE')
 })
 
-/* Концерт стал списком. Перенос обязателен: на сайте висит
-   ближайший концерт, и без него раздел исчез бы молча — вместе с
-   афишей, местом и ссылкой на билеты. */
+/* Концерт стал списком (миграция 011). Сегодня этот список уже
+   убран миграцией 012 — концерты приходят из Bandsintown, — но
+   база, отстающая на две миграции, проходит через обе по очереди,
+   и первая обязана отработать прежде второй. */
 test('старый концерт переезжает в первое событие списка', async () => {
   const { query } = await import('../src/db/pool.js')
   const { createPage } = await import('../src/repositories/pages.js')
@@ -51,7 +53,7 @@ test('старый концерт переезжает в первое собы�
   const { processUpload } = await import('../src/services/media-processor.js')
   const { makeImage } = await import('./helpers.js')
 
-  const pageId = await createPage({ slug: 'home' })
+  const pageId = await createPage({ slug: 'migration-011' })
   const { media } = await processUpload({
     buffer: await makeImage({ width: 400, height: 500, seed: 91 }),
     originalName: 'poster.png', mime: 'image/png'
@@ -109,4 +111,64 @@ test('используемую картинку база удалить не д�
   )
   assert.equal(rows.length, 2)
   for (const row of rows) assert.equal(row.deleteRule, 'RESTRICT')
+})
+
+
+/* Концерты уехали из блока в свою таблицу (миграция 012). Правила
+   удаления у неё те же, что у остальных: перевод уходит с
+   событием, а афишу база не даст удалить, пока она где-то стоит. */
+test('у таблицы концертов те же правила удаления, что у прочих', async () => {
+  await migrate({ logger: silent })
+  const rows = await query(
+    'SELECT constraint_name AS name, delete_rule AS "deleteRule" ' +
+    'FROM information_schema.referential_constraints ' +
+    'WHERE constraint_schema = ? AND constraint_name IN (?, ?)',
+    [config.db.schema, 'fk_concert_event_texts_event', 'fk_concert_events_poster']
+  )
+  const rules = Object.fromEntries(rows.map((row) => [row.name, row.deleteRule]))
+
+  assert.equal(rules.fk_concert_event_texts_event, 'CASCADE', 'перевод уходит с событием')
+  assert.equal(rules.fk_concert_events_poster, 'RESTRICT', 'афишу не удалить, пока она стоит у концерта')
+})
+
+/* Прежние концерты, заведённые руками, миграция убирает. Показать
+   их больше негде — у блока не осталось полей под них, — а афиша,
+   оставшаяся в block_media, навсегда числилась бы занятой и не
+   удалялась бы из медиатеки. */
+test('ручные концерты и их афиши миграция убирает', async () => {
+  const { createPage } = await import('../src/repositories/pages.js')
+  const { createBlock, saveBlockTexts, saveBlockMedia, getBlock } = await import('../src/repositories/blocks.js')
+  const { processUpload } = await import('../src/services/media-processor.js')
+  const { makeImage } = await import('./helpers.js')
+
+  await migrate({ logger: silent })
+  const pageId = await createPage({ slug: 'migration-012' })
+  const { media } = await processUpload({
+    buffer: await makeImage({ width: 400, height: 500, seed: 92 }),
+    originalName: 'poster-old.png', mime: 'image/png'
+  })
+
+  const id = await createBlock({
+    pageId, type: 'concert', anchor: 'concert',
+    settings: { events: [{ date: '2026-10-16', price: '1000 RSD' }] }
+  })
+  await saveBlockTexts(id, { en: { 'events.0.venue': 'Novi Sad', heading: 'Concert' } })
+  await saveBlockMedia(id, { 'events.0.poster': [media.id] })
+
+  // Те же команды, что в миграции.
+  await query("DELETE FROM block_media WHERE field LIKE 'events.%'" +
+    " AND block_id IN (SELECT id FROM blocks WHERE type = 'concert')")
+  await query("DELETE FROM block_texts WHERE field LIKE 'events.%'" +
+    " AND block_id IN (SELECT id FROM blocks WHERE type = 'concert')")
+  await query("UPDATE blocks SET settings = settings - 'events' WHERE type = 'concert'")
+
+  const cleaned = await getBlock(id)
+  assert.equal(cleaned.settings.events, undefined, 'список событий убран из блока')
+
+  const texts = await query('SELECT field FROM block_texts WHERE block_id = ? ORDER BY field', [id])
+  assert.deepEqual(texts.map((row) => row.field), ['heading'],
+    'заголовок блока остаётся, поля событий уходят')
+
+  const posters = await query('SELECT field FROM block_media WHERE block_id = ?', [id])
+  assert.deepEqual(posters, [], 'афиша отвязана — медиатека снова даст её удалить')
 })

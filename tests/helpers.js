@@ -10,6 +10,7 @@ import { invalidateCache } from '../src/services/cache.js'
 
 const TABLES = [
   'messages',
+  'concert_event_texts', 'concert_events',
   'analytics_views', 'analytics_clicks',
   'block_media', 'block_texts', 'blocks',
   'gallery_items', 'gallery_texts', 'galleries',
@@ -125,6 +126,36 @@ function soon (days) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/**
+ * Концерт в базе — то, что положила бы синхронизация с Bandsintown.
+ *
+ * У блока концертов своих полей под события нет: он их только
+ * показывает. Поэтому тест заводит событие здесь, а не настройками
+ * блока, и bit_id у каждого свой — по нему события и узнаются.
+ */
+let bitCounter = 0
+async function addConcert ({
+  date, time = '20:00:00', showTime = true,
+  venue = 'Kontrapunkt', city = 'Beograd', country = 'Serbia', address = '',
+  eventUrl = '', ticketUrl = '', soldOut = false, isFree = false,
+  description = '', posterId = null, price = '', priceFrom = false,
+  bitId = null
+} = {}) {
+  bitCounter += 1
+  const rows = await query(
+    `INSERT INTO concert_events (
+       bit_id, starts_at, show_time, venue_name, venue_city, venue_country, venue_address,
+       event_url, ticket_url, sold_out, is_free, description, poster_id, price, price_from
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    [
+      bitId ?? `test-${bitCounter}`, `${date}T${time}`, showTime,
+      venue, city, country, address,
+      eventUrl, ticketUrl, soldOut, isFree, description, posterId, price, priceFrom
+    ]
+  )
+  return rows[0].id
+}
+
 /** Та же дата, как её показывает сайт: ДД.ММ.ГГГГ. */
 function asShown (iso) {
   const [year, month, day] = iso.split('-')
@@ -133,5 +164,5 @@ function asShown (iso) {
 
 export {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage,
-  closePool, soon, asShown, TEST_ADMIN
+  closePool, soon, asShown, addConcert, TEST_ADMIN
 }

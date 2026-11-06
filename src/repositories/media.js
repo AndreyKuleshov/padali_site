@@ -138,12 +138,20 @@ async function mediaUsage (id, conn) {
     'SELECT DISTINCT g.id, g.slug FROM gallery_items gi JOIN galleries g ON g.id = gi.gallery_id WHERE gi.media_id = ?',
     [id]
   )
+  /* Афиша концерта — третье место, откуда на файл ссылаются.
+     Без этой проверки медиатека звала бы её неиспользуемой и
+     давала удалить вместе с файлами. */
+  const inConcerts = await runner.all(
+    'SELECT id, starts_at FROM concert_events WHERE poster_id = ?', [id]
+  )
   const inSettings = await settingsUsing([id], runner)
   return {
     blocks: inBlocks,
     galleries: inGalleries,
+    concerts: inConcerts,
     settings: inSettings.get(id) ?? [],
-    isUsed: inBlocks.length + inGalleries.length + (inSettings.get(id)?.length ?? 0) > 0
+    isUsed: inBlocks.length + inGalleries.length + inConcerts.length +
+      (inSettings.get(id)?.length ?? 0) > 0
   }
 }
 
@@ -181,8 +189,11 @@ async function usageCounts (ids, conn) {
        SELECT media_id, COUNT(*) AS uses FROM block_media   WHERE media_id IN (${list}) GROUP BY media_id
        UNION ALL
        SELECT media_id, COUNT(*) AS uses FROM gallery_items WHERE media_id IN (${list}) GROUP BY media_id
+       UNION ALL
+       SELECT poster_id AS media_id, COUNT(*) AS uses FROM concert_events
+         WHERE poster_id IN (${list}) GROUP BY poster_id
      ) AS combined GROUP BY media_id`,
-    [...ids, ...ids]
+    [...ids, ...ids, ...ids]
   )
   const counts = new Map(rows.map((row) => [row.media_id, Number(row.uses)]))
 

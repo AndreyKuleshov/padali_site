@@ -1255,3 +1255,43 @@ input:focus, select:focus, textarea:focus { border-color: var(--neon); outline: 
 }
 
 .form-hint { margin: 0; align-self: center; }
+
+/* ─── Концерты ───────────────────────────────────────────────
+   Пришедшее из Bandsintown и своё разделены не только по смыслу,
+   но и по виду: сверху текст, который не правится, снизу форма из
+   двух полей. Поля вперемешку с текстом читались бы как «здесь
+   можно править всё», а править там нечего. */
+.concert-admin-source { margin-bottom: 20px; }
+
+.concert-admin-source h2 { margin-bottom: 4px; }
+
+.concert-admin-venue { font-size: 1.02rem; margin-bottom: 6px; }
+
+/* Описание пишут в Bandsintown абзацами, и переносы в нём значимы:
+   без pre-line всё схлопывается в простыню. */
+.concert-admin-description {
+  white-space: pre-line;
+  max-width: 68ch;
+  color: var(--soft);
+  margin-bottom: 6px;
+}
+
+.concert-admin-flag {
+  font-family: var(--mono);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 2px 9px;
+  margin-right: 8px;
+}
+
+/* Своё — отделено чертой: граница между «показываем» и «правим»
+   должна быть видна, а не угадываться по порядку. */
+.concert-admin-own {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.concert-admin-own .form-actions { margin-top: 4px; }

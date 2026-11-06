@@ -2,7 +2,7 @@ import test, { beforeEach, after } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   resetDatabase, createTestServer, createTestAdmin, loginAs, form, makeImage,
-  closePool, soon, asShown
+  closePool, soon, asShown, addConcert
 } from './helpers.js'
 import { createPage, savePageTexts } from '../src/repositories/pages.js'
 import { createBlock, updateBlock, saveBlockTexts, saveBlockMedia } from '../src/repositories/blocks.js'
@@ -175,22 +175,20 @@ test('кнопка отправки стоит в строке связи, а в
   assert.doesNotMatch(order, /type="submit"/, 'в окне заказа кнопка ниже, а не в строке')
 })
 
-/* Два способа попасть на концерт: купить по ссылке или взять на
-   входе. Ссылка остаётся в настройках от прошлого концерта, и при
-   «на входе» её показывать нельзя — поведут не туда. */
-test('билеты: по ссылке — кнопка, на входе — строка без ссылки', async () => {
+/* Два способа попасть на концерт, и выбирает между ними не
+   редактор, а сами данные: есть продажа по ссылке — кнопка; нет
+   ссылки, но есть цена — значит, платят на входе. Отдельного
+   переключателя больше нет, потому что в Bandsintown его нет:
+   третий способ сказать одно и то же разъехался бы с первыми
+   двумя. */
+test('билеты: есть ссылка — кнопка, есть только цена — строка «на входе»', async () => {
   const { pageId } = await buildPage()
 
   await createBlock({
-    pageId, type: 'concert', anchor: 'shows',
-    settings: {
-      ...defaultSettings('concert'),
-      events: [
-        { date: soon(7), tickets: 'link', ticket_url: 'https://tickets.example/padali', price: '800 RSD' },
-        { date: soon(40), tickets: 'door', ticket_url: 'https://tickets.example/старый', price: '600 RSD' }
-      ]
-    }
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
   })
+  await addConcert({ date: soon(7), ticketUrl: 'https://tickets.example/padali', price: '800 RSD' })
+  await addConcert({ date: soon(40), price: '600 RSD' })
   invalidateCache()
 
   const body = (await app.inject({ method: 'GET', url: '/' })).body
@@ -199,8 +197,9 @@ test('билеты: по ссылке — кнопка, на входе — ст
 
   assert.match(cards[1], /href="https:\/\/tickets\.example\/padali"/)
   assert.match(cards[1], /800 RSD/)
+  assert.doesNotMatch(cards[1], /concert-door/, 'при живой продаже «на входе» не пишем')
 
-  assert.doesNotMatch(cards[2], /tickets\.example/, 'ссылка этого концерта не показывается')
+  assert.doesNotMatch(cards[2], /tickets\.example/, 'чужой ссылки у этого концерта нет')
   assert.match(cards[2], /concert-door/)
   assert.match(cards[2], /Tickets at the door/)
   assert.match(cards[2], /600 RSD/)
@@ -334,16 +333,11 @@ test('прошедшие концерты уходят со страницы, о
   const { pageId } = await buildPage()
 
   await createBlock({
-    pageId, type: 'concert', anchor: 'shows',
-    settings: {
-      ...defaultSettings('concert'),
-      events: [
-        { date: '2026-12-05', tickets: 'door' },
-        { date: '2026-10-16', tickets: 'link' },
-        { date: '2020-01-01', tickets: 'door' }
-      ]
-    }
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
   })
+  await addConcert({ date: '2026-12-05' })
+  await addConcert({ date: '2026-10-16' })
+  await addConcert({ date: '2020-01-01' })
   invalidateCache()
 
   const page = await composePage({ locale: 'en', today: '2026-11-01' })
@@ -358,6 +352,28 @@ test('прошедшие концерты уходят со страницы, о
   assert.deepEqual(dates, ['2026-10-16', '2026-12-05'], 'ближайший идёт первым')
 })
 
+/* Концерт держится на странице весь свой день: сравнение идёт по
+   дате, а не по времени начала. Иначе раздел исчезал бы в полдень,
+   когда зрители как раз и проверяют, во сколько собираться. */
+test('концерт не исчезает в день концерта', async () => {
+  const { composePage } = await import('../src/services/page-composer.js')
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
+  })
+  await addConcert({ date: '2026-12-05', time: '20:00:00' })
+  invalidateCache()
+
+  const today = await composePage({ locale: 'en', today: '2026-12-05' })
+  assert.equal(today.blocks.find((item) => item.type === 'concert').settings.events.length, 1,
+    'в день концерта он ещё на странице')
+
+  const tomorrow = await composePage({ locale: 'en', today: '2026-12-06' })
+  assert.equal(tomorrow.blocks.find((item) => item.type === 'concert').settings.events.length, 0,
+    'на следующий день уходит')
+})
+
 /* Блок, которому нечего показать, не рисуется — значит, и пункт
    меню на него вёл бы в никуда: страница прокручивалась бы в
    случайное место. */
@@ -366,10 +382,10 @@ test('концерты без будущих событий исчезают и 
   const { pageId } = await buildPage()
 
   const block = await createBlock({
-    pageId, type: 'concert', anchor: 'shows',
-    settings: { ...defaultSettings('concert'), events: [{ date: '2020-01-01', tickets: 'door' }] }
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
   })
   await saveBlockTexts(block, { en: { nav_label: 'Concerts' } })
+  await addConcert({ date: '2020-01-01' })
   invalidateCache()
 
   const page = await composePage({ locale: 'en', today: '2026-11-01' })
@@ -387,12 +403,9 @@ test('«цена от» переводится, а не набирается в 
   const { pageId } = await buildPage()
 
   await createBlock({
-    pageId, type: 'concert', anchor: 'shows',
-    settings: {
-      ...defaultSettings('concert'),
-      events: [{ date: soon(40), tickets: 'door', price: '1000 RSD', price_from: true }]
-    }
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
   })
+  await addConcert({ date: soon(40), price: '1000 RSD', priceFrom: true })
   invalidateCache()
 
   const en = (await app.inject({ method: 'GET', url: '/' })).body
@@ -409,12 +422,9 @@ test('в разметке для поиска есть группа и буду�
   const { pageId } = await buildPage()
 
   await createBlock({
-    pageId, type: 'concert', anchor: 'shows',
-    settings: {
-      ...defaultSettings('concert'),
-      events: [{ date: '2099-12-05', tickets: 'door', price: '1000 RSD' }]
-    }
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
   })
+  await addConcert({ date: '2099-12-05', time: '21:30:00', price: '1000 RSD', venue: 'Kontrapunkt' })
   invalidateCache()
 
   const body = (await app.inject({ method: 'GET', url: '/' })).body
@@ -427,7 +437,8 @@ test('в разметке для поиска есть группа и буду�
 
   const event = graph.find((node) => node['@type'] === 'MusicEvent')
   assert.ok(event, 'концерта в разметке нет')
-  assert.equal(event.startDate, '2099-12-05')
+  assert.equal(event.startDate, '2099-12-05T21:30:00', 'час концерта поиск показывает рядом с датой')
+  assert.equal(event.location.name, 'Kontrapunkt')
   assert.deepEqual(
     { price: event.offers.price, currency: event.offers.priceCurrency },
     { price: '1000', currency: 'RSD' },
@@ -460,34 +471,100 @@ test('отправка формы без скрипта возвращает н�
   assert.deepEqual(ajax.json(), { ok: true })
 })
 
-/* «Пока неизвестно» — это отсутствие сведений, а не пустые поля:
-   ссылка и цена могли остаться от прежнего способа продажи, и
-   показать их значило бы продать билет, которого нет. */
-test('пока неизвестно — ни кнопки, ни цены', async () => {
+/* Ни ссылки на продажу, ни цены — значит, про билеты ничего не
+   известно: строки о них нет вовсе. Выдуманное «на входе» рядом с
+   пустым местом хуже, чем молчание. */
+test('без ссылки и цены строки билетов нет', async () => {
   const { pageId } = await buildPage()
   const show = soon(7)
 
   await createBlock({
-    pageId, type: 'concert', anchor: 'tba',
-    settings: {
-      ...defaultSettings('concert'),
-      events: [{
-        date: show,
-        tickets: 'unknown',
-        ticket_url: 'https://tickets.example/старое',
-        price: '800 RSD'
-      }]
-    }
+    pageId, type: 'concert', anchor: 'tba', settings: defaultSettings('concert')
   })
+  await addConcert({ date: show })
   invalidateCache()
 
   const body = (await app.inject({ method: 'GET', url: '/' })).body
   const section = /<section class="section wrap" id="tba">[\s\S]*?<\/section>/.exec(body)[0]
 
   assert.ok(section.includes(asShown(show)), 'дата остаётся')
-  assert.doesNotMatch(section, /tickets\.example/, 'прежняя ссылка не всплывает')
-  assert.doesNotMatch(section, /800 RSD/, 'прежняя цена не всплывает')
   assert.doesNotMatch(section, /concert-tickets/, 'строки билетов нет вовсе')
+})
+
+/* Распродано — вместо кнопки, а не рядом с ней: вести на закрытую
+   продажу незачем, и ссылка из Bandsintown при этом никуда не
+   девается — она просто не показывается. */
+test('распроданный концерт не показывает кнопку билетов', async () => {
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'out', settings: defaultSettings('concert')
+  })
+  await addConcert({
+    date: soon(7), soldOut: true, ticketUrl: 'https://tickets.example/padali'
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const section = /<section class="section wrap" id="out">[\s\S]*?<\/section>/.exec(body)[0]
+
+  assert.match(section, /Sold out/, 'о распродаже сказано')
+  assert.doesNotMatch(section, /tickets\.example/, 'ссылки на закрытую продажу нет')
+})
+
+/* Ключ приложения Bandsintown подставляет в возвращаемые ссылки.
+   Строку запроса мы срезаем при записи — иначе ключ оказался бы на
+   странице у всех на виду. Сторож стоит на показе: ссылка с
+   параметрами не должна доезжать до разметки ни при каких
+   обстоятельствах. */
+test('ссылки на Bandsintown показываются без строки запроса', async () => {
+  const { pageId } = await buildPage()
+  const { normalizeEvent } = await import('../src/services/bandsintown.js')
+
+  const normalized = normalizeEvent({
+    id: '1', starts_at: `${soon(7)}T20:00:00`,
+    url: 'https://www.bandsintown.com/e/109124617?app_id=СЕКРЕТ&came_from=267',
+    venue: { name: 'Kontrapunkt', city: 'Beograd' },
+    offers: [{ type: 'Tickets', url: 'https://tickets.example/x?app_id=СЕКРЕТ' }]
+  })
+  assert.equal(normalized.eventUrl, 'https://www.bandsintown.com/e/109124617')
+  assert.equal(normalized.ticketUrl, 'https://tickets.example/x')
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'keys', settings: defaultSettings('concert')
+  })
+  await addConcert({
+    date: soon(7), eventUrl: normalized.eventUrl, ticketUrl: normalized.ticketUrl
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.doesNotMatch(body, /app_id/, 'ключа приложения на странице нет')
+  assert.match(body, /bandsintown\.com\/e\/109124617/, 'а сама ссылка на месте')
+})
+
+/* Описание приходит из Bandsintown абзацами, и переносы в нём
+   значимы. Экранирование при этом обязано остаться: текст пишет
+   человек, и угловая скобка в нём — не разметка. */
+test('описание концерта показывается и экранируется', async () => {
+  const { pageId } = await buildPage()
+
+  await createBlock({
+    pageId, type: 'concert', anchor: 'about', settings: defaultSettings('concert')
+  })
+  await addConcert({
+    date: soon(7),
+    description: 'Doors at 20:00\n<b>LUDILO</b> & PADALI\nhttps://kontrapunkt.rs'
+  })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const section = /<section class="section wrap" id="about">[\s\S]*?<\/section>/.exec(body)[0]
+
+  assert.match(section, /concert-note/)
+  assert.match(section, /&lt;b&gt;LUDILO&lt;\/b&gt;/, 'скобки из текста не стали разметкой')
+  assert.match(section, /<a href="https:\/\/kontrapunkt\.rs"/, 'адрес в тексте стал ссылкой')
+  assert.ok(section.includes('Doors at 20:00\n'), 'переносы строк сохранены')
 })
 
 /* Два концерта листаются, как фотографии; один — просто карточка,
@@ -496,10 +573,10 @@ test('несколько концертов листаются, один — н�
   const { pageId } = await buildPage()
 
   const alone = await createBlock({
-    pageId, type: 'concert', anchor: 'one',
-    settings: { ...defaultSettings('concert'), events: [{ date: soon(7) }] }
+    pageId, type: 'concert', anchor: 'one', settings: defaultSettings('concert')
   })
   assert.ok(alone)
+  await addConcert({ date: soon(7) })
   invalidateCache()
 
   let body = (await app.inject({ method: 'GET', url: '/' })).body
@@ -507,13 +584,12 @@ test('несколько концертов листаются, один — н�
   assert.doesNotMatch(section, /gallery-frame--scrollable/)
   assert.doesNotMatch(section, /gallery-arrow/)
 
+  /* Второй концерт один на оба блока: события принадлежат группе,
+     а не блоку, — их показывает каждый, кто есть на странице. */
   await createBlock({
-    pageId, type: 'concert', anchor: 'two',
-    settings: {
-      ...defaultSettings('concert'),
-      events: [{ date: soon(7) }, { date: soon(40) }]
-    }
+    pageId, type: 'concert', anchor: 'two', settings: defaultSettings('concert')
   })
+  await addConcert({ date: soon(40) })
   invalidateCache()
 
   body = (await app.inject({ method: 'GET', url: '/' })).body

@@ -1,9 +1,22 @@
+/*
+ * Концерты приходят из Bandsintown.
+ *
+ * Даты, площадки, билеты и описание заводят там — для афиш,
+ * трекеров и рассылки, — и второй такой же список в админке
+ * неизбежно с ним разъезжается: кто-то переносит концерт в одном
+ * месте и забывает в другом. Поэтому у блока нет полей под
+ * события: он только показывает то, что принесла синхронизация.
+ *
+ * Своя афиша и цена к событию всё-таки нужны — в Bandsintown их
+ * просто нет. Они правятся на отдельном экране, «Концерты», у
+ * каждого события отдельно, и синхронизация их не трогает.
+ */
 export default {
   type: 'concert',
   title: { en: 'Concerts', sr: 'Koncerti' },
   description: {
-    en: 'One or more concerts: poster, date, venue, tickets. Several are flipped through like photos.',
-    sr: 'Jedan ili više koncerata: plakat, datum, mesto, karte. Više njih se lista kao fotografije.'
+    en: 'Upcoming concerts from Bandsintown: date, venue, tickets. Several are flipped through like photos.',
+    sr: 'Predstojeći koncerti iz Bandsintown-a: datum, mesto, karte. Više njih se lista kao fotografije.'
   },
 
   defaults: { anchor: 'concert', navLabel: { en: 'Concert', sr: 'Koncert' } },
@@ -12,87 +25,18 @@ export default {
     { key: 'heading', label: { en: 'Section heading', sr: 'Naslov sekcije' }, input: 'text', general: true }
   ],
 
-  settings: [
-    {
-      key: 'events',
-      label: { en: 'Concerts', sr: 'Koncerti' },
-      input: 'repeater',
-      tabs: true,
-      /* Прошедший концерт со страницы уходит сам, оставшиеся идут
-         по возрастанию даты: иначе «Ближайший концерт» врал бы со
-         следующего утра. */
-      upcoming: 'date',
-      addLabel: { en: 'Add concert', sr: 'Dodaj koncert' },
-      tabLabel: { en: 'Concert', sr: 'Koncert' },
-      fields: [
-        { key: 'poster', label: { en: 'Poster', sr: 'Plakat' }, input: 'media', size: { w: 1280, h: 1600 } },
-        { key: 'date', label: { en: 'Date', sr: 'Datum' }, input: 'date', required: true },
-        { key: 'venue', label: { en: 'Venue', sr: 'Mesto' }, input: 'text', translatable: true },
-        { key: 'note', label: { en: 'Note', sr: 'Napomena' }, input: 'textarea', rows: 2, translatable: true },
-        {
-          key: 'tickets',
-          label: { en: 'Tickets', sr: 'Karte' },
-          input: 'select',
-          options: ['link', 'door', 'unknown'],
-          optionLabels: {
-            link: { en: 'Sold by a link', sr: 'Prodaju se preko linka' },
-            door: { en: 'At the door', sr: 'Na ulazu' },
-            unknown: { en: 'Not known yet', sr: 'Još nije poznato' }
-          },
-          default: 'link'
-        },
-        /* Что к чему относится: адрес нужен только продаже по
-           ссылке, подпись кнопки и цена — обоим способам продажи,
-           а пока ничего не известно, не нужно ничего. Лишние поля
-           прячутся, набранное в них остаётся: вернув способ
-           продажи, редактор получит свои значения обратно. */
-        {
-          key: 'ticket_url',
-          label: { en: 'Ticket link', sr: 'Link za karte' },
-          input: 'url',
-          showIf: { field: 'tickets', value: 'link' }
-        },
-        {
-          key: 'ticket_label',
-          label: { en: 'Ticket button label', sr: 'Tekst dugmeta za karte' },
-          input: 'text',
-          translatable: true,
-          showIf: { field: 'tickets', value: ['link', 'door'] },
-          /* Пустую подпись сайт заполняет сам, и подсказка в поле
-             показывает чем — на каждом языке и для выбранного
-             способа продажи. Редактор вписал «BUY» ровно потому,
-             что поле выглядело просто пустым. */
-          placeholderFrom: {
-            field: 'tickets',
-            strings: { link: 'concert.tickets', door: 'concert.atDoor' }
-          }
-        },
-        /* «от» — слово, а не часть числа: набранное в поле цены, оно
-           оставалось английским на сербской странице. Теперь это
-           флажок, а слово берётся из словаря сайта. */
-        {
-          key: 'price_from',
-          label: { en: 'Price is a minimum («from»)', sr: 'Cena je najniža («od»)' },
-          input: 'checkbox',
-          showIf: { field: 'tickets', value: ['link', 'door'] }
-        },
-        {
-          key: 'price',
-          label: { en: 'Price', sr: 'Cena' },
-          input: 'price',
-          showIf: { field: 'tickets', value: ['link', 'door'] },
-          hint: {
-            en: 'Amount and currency. Leave the amount empty to hide the price.',
-            sr: 'Iznos i valuta. Ostavite iznos prazan da se cena sakrije.'
-          }
-        },
-        { key: 'tag', label: { en: 'Tag', sr: 'Oznaka' }, input: 'text', translatable: true }
-      ]
-    }
-  ],
+  /* Полей у блока нет, и подсказка — единственное место, где можно
+     сказать редактору, куда идти за концертами. Иначе пустой блок
+     выглядит сломанным. */
+  note: {
+    en: 'Concerts come from Bandsintown: add and edit them there. The poster and the price are not in Bandsintown — set them here, per concert.',
+    sr: 'Koncerti dolaze iz Bandsintown-a: tamo ih dodajete i menjate. Plakat i cena u Bandsintown-u ne postoje — njih postavljate ovde, za svaki koncert.'
+  },
+  noteLink: { url: '/admin/concerts', label: { en: 'Concerts', sr: 'Koncerti' } },
 
   /* Блок без будущих концертов не рисуется — значит, и пункта меню
-     на него быть не должно: он прокрутил бы страницу в никуда. */
+     на него быть не должно: он прокрутил бы страницу в никуда.
+     События кладёт в settings композитор страницы. */
   isEmpty: (settings) => !Array.isArray(settings?.events) || settings.events.length === 0,
 
   template: 'blocks/concert'

@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { parseBlockForm, asUrl, asDate } from '../src/services/block-form.js'
 import gallery from '../src/blocks/gallery.js'
 import links from '../src/blocks/links.js'
-import concert from '../src/blocks/concert.js'
 
 test('ссылка с небезопасной схемой отбрасывается', () => {
   assert.equal(asUrl('https://example.com'), 'https://example.com')
@@ -96,20 +95,33 @@ test('цена собирается из суммы и валюты, без ва
   assert.equal(price({ price: '1000', price_currency: 'XXX' }), '', 'валюта не из списка')
 })
 
-/* В строке концерта цена собирается тем же правилом: подполе
-   повторителя проходит через ту же сборку, что и настройка. */
+/* Цена в строке повторителя собирается тем же правилом: подполе
+   проходит через ту же сборку, что и настройка. Описание на месте
+   по той же причине, что и выше: проверяется тип поля, а не то,
+   какой блок сегодня держит цену. */
 test('цена строки повторителя собирается так же', () => {
-  const parsed = parseBlockForm(concert, {
+  const withRows = {
+    type: 'test', title: { en: 'T' }, template: 'blocks/test',
+    settings: [{
+      key: 'rows', label: { en: 'Rows' }, input: 'repeater',
+      fields: [
+        { key: 'date', label: { en: 'Date' }, input: 'date' },
+        { key: 'price', label: { en: 'Price' }, input: 'price' }
+      ]
+    }]
+  }
+
+  const parsed = parseBlockForm(withRows, {
     settings: {
-      events: {
-        0: { date: '2026-10-16', price: '1000', price_currency: 'RSD', tickets: 'link' },
-        1: { date: '2026-11-20', price: '500', tickets: 'door' }
+      rows: {
+        r0: { date: '2026-10-16', price: '1000', price_currency: 'RSD' },
+        r1: { date: '2026-11-20', price: '500' }
       }
     }
   }, ['en'])
 
-  assert.equal(parsed.settings.events[0].price, '1000 RSD')
-  assert.equal(parsed.settings.events[1].price, '', 'без валюты цены нет и здесь')
+  assert.equal(parsed.settings.rows[0].price, '1000 RSD')
+  assert.equal(parsed.settings.rows[1].price, '', 'без валюты цены нет и здесь')
 })
 
 /* Имя поля валюты не приписывается к имени суммы: «price[m7]_currency»

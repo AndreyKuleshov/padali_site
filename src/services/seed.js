@@ -128,29 +128,19 @@ async function ensureSeeded ({ logger = console } = {}) {
     sticker: markId ? [markId] : []
   })
 
+  /* У блока концертов своих полей под события нет: они приходят из
+     Bandsintown. Сид заводит сам блок с заголовком, а расписание
+     подтянет первая же синхронизация. */
   const concert = await createBlock({
     pageId,
     type: 'concert',
     anchor: 'concert',
-    settings: { ...defaultSettings('concert'), date: '2026-10-16', ticket_url: '' }
+    settings: defaultSettings('concert')
   })
   await saveBlockTexts(concert, {
-    en: {
-      nav_label: 'Concert',
-      heading: 'Upcoming concert',
-      venue: 'Novi Sad — SKC NS “Fabrika”',
-      note: 'Supported by MM Concerts and Serbian Hellbangers.',
-      tag: 'FSP · 16.10.2026'
-    },
-    sr: {
-      nav_label: 'Koncert',
-      heading: 'Naredni koncert',
-      venue: 'Novi Sad — SKC NS „Fabrika“',
-      note: 'Uz podršku MM Concerts i Serbian Hellbangers.',
-      tag: 'FSP · 16.10.2026'
-    }
+    en: { nav_label: 'Concert', heading: 'Upcoming concerts' },
+    sr: { nav_label: 'Koncert', heading: 'Naredni koncerti' }
   })
-  if (posterId) await saveBlockMedia(concert, { poster: [posterId] })
 
   /* ─── Альбом и блок-галерея ───────────────────────────── */
   const galleryId = await createGallery('photos')

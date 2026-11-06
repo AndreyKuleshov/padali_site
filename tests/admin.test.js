@@ -206,28 +206,21 @@ test('multipart не проносит запрос мимо проверки т�
     'тексты на месте')
 })
 
-/* Концерт стал строкой повторителя: у каждого свои тексты на двух
-   языках и своя афиша. Переводимое подполе уходит не в settings, а
-   в тексты блока под ключом «events.<номер>.<поле>» — до этой
-   правки шаблон рисовал его как settings[...], а разбор ждал
-   text[...], и переводы молча пропадали. */
-test('у каждого концерта свои тексты и своя афиша', async () => {
-  const { processUpload } = await import('../src/services/media-processor.js')
-  const { makeImage } = await import('./helpers.js')
-  const { getBlockMedia } = await import('../src/repositories/blocks.js').then((m) => m)
+/* Удалённая строка оставляет в форме дыру: браузер шлёт строки 0 и
+   2. Сервер обязан сомкнуть ряд, иначе у оставшейся строки
+   оказались бы чужие значения. Наступали дважды, и оба раза —
+   на номере строки в имени поля: числовой ключ qs считает индексом
+   массива, поэтому номер пишется с буквой.
 
-  const first = (await processUpload({
-    buffer: await makeImage({ width: 300, height: 400, seed: 95 }),
-    originalName: 'afisha-1.png', mime: 'image/png'
-  })).media
-  const second = (await processUpload({
-    buffer: await makeImage({ width: 300, height: 400, seed: 96 }),
-    originalName: 'afisha-2.png', mime: 'image/png'
-  })).media
-
+   Раньше это проверялось на концертах — у них в строке были и
+   тексты, и афиша. Концерты теперь приходят из Bandsintown, и
+   строк у них нет; площадки лендинга — единственный оставшийся
+   повторитель с тремя подполями. Тексты и афиши строки больше не
+   объявляет ни один блок, и проверять на них нечего.*/
+test('удаление строки повторителя из середины смыкает ряд', async () => {
   await app.inject({
     method: 'POST', url: '/admin/blocks',
-    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'concert' })
+    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'landing' })
   })
   const [block] = await listBlocks(pageId)
 
@@ -237,175 +230,40 @@ test('у каждого концерта свои тексты и своя аф�
     ...form({
       _csrf: session.csrf,
       is_visible: 'on',
-      'text[en][heading]': 'Concerts',
-      'settings[events][r0][date]': '2026-10-16',
-      'settings[events][r0][tickets]': 'link',
-      'text[en][events.0.venue]': 'Novi Sad',
-      'text[sr][events.0.venue]': 'Novi Sad',
-      'text[en][events.0.note]': 'С гостями',
-      'media[events.0.poster][]': String(first.id),
-      'settings[events][r1][date]': '2026-11-20',
-      'settings[events][r1][tickets]': 'door',
-      'text[en][events.1.venue]': 'Beograd',
-      'media[events.1.poster][]': String(second.id)
+      // средняя площадка удалена в браузере — строки 1 в форме нет
+      'settings[platforms][r0][icon]': 'spotify',
+      'settings[platforms][r0][label]': 'Остался первым',
+      'settings[platforms][r0][url]': 'https://open.spotify.com/track/x',
+      'settings[platforms][r2][icon]': 'tidal',
+      'settings[platforms][r2][label]': 'Был третьим',
+      'settings[platforms][r2][url]': 'https://tidal.com/track/z'
     })
   })
 
   const saved = await getBlock(block.id)
-  assert.equal(saved.settings.events.length, 2)
-  assert.equal(saved.settings.events[1].tickets, 'door')
-
-  const texts = await getBlockTexts(block.id)
-  assert.equal(texts.en['events.0.venue'], 'Novi Sad')
-  assert.equal(texts.sr['events.0.venue'], 'Novi Sad')
-  assert.equal(texts.en['events.0.note'], 'С гостями')
-  assert.equal(texts.en['events.1.venue'], 'Beograd')
-  assert.equal(texts.en.heading, 'Concerts', 'заголовок остаётся у блока')
-
-  const media = await getBlockMedia(block.id)
-  assert.deepEqual(media['events.0.poster'], [first.id], 'афиша у своего концерта')
-  assert.deepEqual(media['events.1.poster'], [second.id])
-
-  /* И обратно: форма обязана рисовать ровно эти имена. Без этой
-     проверки тест стерёг бы только разбор, а разметка могла
-     вернуться к settings[...] — переводы бы молча пропадали. */
-  const page = (await app.inject({
-    method: 'GET', url: `/admin/blocks/${block.id}`, cookies: session.cookies
-  })).body
-
-  assert.match(page, /name="text\[en\]\[events\.0\.venue\]"/)
-  assert.match(page, /name="text\[sr\]\[events\.0\.venue\]"/)
-  assert.match(page, /name="media\[events\.1\.poster\]\[\]"/)
-  assert.match(page, /name="settings\[events\]\[r1\]\[price_currency\]"/,
-    'у каждого концерта своя валюта, а не одна на всех')
-  assert.doesNotMatch(page, /name="settings\[events\]\[r0\]\[venue\]"/,
-    'переводимое подполе не уходит в settings')
+  assert.equal(saved.settings.platforms.length, 2, 'дыра сомкнулась')
+  assert.equal(saved.settings.platforms[1].label, 'Был третьим', 'бывший третий встал вторым')
+  assert.equal(saved.settings.platforms[1].icon, 'tidal', 'и значения приехали вместе с ним')
 })
 
-/* Удалённый концерт оставляет в форме дыру: браузер шлёт строки
-   0 и 2. Сервер обязан сомкнуть ряд и увести за строкой её тексты
-   и афишу — иначе после удаления первого концерта у второго
-   оказалась бы чужая афиша или вовсе никакой. */
-test('удаление концерта из середины смыкает ряд', async () => {
-  const { processUpload } = await import('../src/services/media-processor.js')
-  const { makeImage } = await import('./helpers.js')
-  const { getBlockMedia } = await import('../src/repositories/blocks.js')
-
-  const first = (await processUpload({
-    buffer: await makeImage({ width: 300, height: 400, seed: 97 }),
-    originalName: 'ostalsya.png', mime: 'image/png'
-  })).media
-  const third = (await processUpload({
-    buffer: await makeImage({ width: 300, height: 400, seed: 98 }),
-    originalName: 'byl-tretim.png', mime: 'image/png'
-  })).media
-
+/* Концерты приходят из Bandsintown, и своих полей под события у
+   блока нет: форма говорит об этом прямо и даёт ссылку туда, где
+   правятся афиша и цена. Без этой подсказки пустая форма выглядит
+   сломанной, и редактор идёт искать поля, которых нет. */
+test('форма концертов объясняет, где теперь события', async () => {
   await app.inject({
     method: 'POST', url: '/admin/blocks',
     cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'concert' })
   })
   const [block] = await listBlocks(pageId)
-
-  await app.inject({
-    method: 'POST', url: `/admin/blocks/${block.id}`,
-    cookies: session.cookies,
-    ...form({
-      _csrf: session.csrf,
-      is_visible: 'on',
-      // средний концерт удалён в браузере — строки 1 в форме нет
-      'settings[events][r0][date]': '2026-10-16',
-      'settings[events][r0][tickets]': 'link',
-      'text[en][events.0.venue]': 'Остался первым',
-      'media[events.0.poster][]': String(first.id),
-      'settings[events][r2][date]': '2026-12-05',
-      'settings[events][r2][tickets]': 'door',
-      'text[en][events.2.venue]': 'Был третьим',
-      'text[sr][events.2.venue]': 'Bio treći',
-      'media[events.2.poster][]': String(third.id)
-    })
-  })
-
-  const saved = await getBlock(block.id)
-  assert.equal(saved.settings.events.length, 2, 'дыра сомкнулась')
-  assert.equal(saved.settings.events[1].tickets, 'door', 'бывший третий встал вторым')
-
-  const texts = await getBlockTexts(block.id)
-  assert.equal(texts.en['events.1.venue'], 'Был третьим', 'текст уехал за своей строкой')
-  assert.equal(texts.sr['events.1.venue'], 'Bio treći')
-  assert.equal(texts.en['events.2.venue'], undefined, 'по старому номеру текста не осталось')
-
-  const media = await getBlockMedia(block.id)
-  assert.deepEqual(media['events.0.poster'], [first.id], 'у первого своя афиша')
-  assert.deepEqual(media['events.1.poster'], [third.id], 'у второго — та, что была у третьего')
-  assert.equal(media['events.2.poster'], undefined, 'по старому номеру афиши не осталось')
-})
-
-/* Ссылка на билеты нужна не всегда: при продаже на входе поле
-   прячется. Условие объявлено в дескрипторе, а разметка обязана
-   назвать управляющее поле ИМЕННО ЭТОЙ строки — иначе вторая
-   вкладка слушала бы выбор первой. */
-test('поле ссылки привязано к выбору своей строки', async () => {
-  await app.inject({
-    method: 'POST', url: '/admin/blocks',
-    cookies: session.cookies, ...form({ _csrf: session.csrf, type: 'concert' })
-  })
-  const [block] = await listBlocks(pageId)
-
-  await app.inject({
-    method: 'POST', url: `/admin/blocks/${block.id}`,
-    cookies: session.cookies,
-    ...form({
-      _csrf: session.csrf,
-      is_visible: 'on',
-      'settings[events][r0][date]': '2026-10-16',
-      'settings[events][r0][tickets]': 'link',
-      'settings[events][r1][date]': '2026-11-20',
-      'settings[events][r1][tickets]': 'door'
-    })
-  })
 
   const page = (await app.inject({
     method: 'GET', url: `/admin/blocks/${block.id}`, cookies: session.cookies
   })).body
 
-  const cells = [...page.matchAll(/data-show-if="([^"]*)" data-show-if-value="([^"]*)"/g)]
-    .map(([, name, value]) => `${name}=${value}`)
-
-  /* Ссылка — только продаже по ссылке; подпись кнопки, флажок «от»
-     и цена — обоим способам продажи. При «пока неизвестно» прячутся
-     все четыре. */
-  const perRow = ['link', 'link door', 'link door', 'link door']
-  assert.deepEqual(cells, ['r0', 'r1', 'r__INDEX__'].flatMap(
-    (row) => perRow.map((value) => `settings[events][${row}][tickets]=${value}`)
-  ), 'каждая строка смотрит на свой выбор, и заготовка — тоже')
-
-  /* Условие стоит на обёртке самого поля ссылки, а не где-то рядом:
-     скрытие должно уносить и подпись. */
-  assert.match(page, /<div class="repeater-cell" data-show-if="settings\[events\]\[r1\]\[tickets\]"[^>]*>\s*<span class="cell-label">Ticket link<\/span>/)
-
-  /* Кавычки в атрибутах — настоящие, а не &quot;: печать куска
-     разметки через <%= уже ломала data-album-id. */
-  assert.doesNotMatch(page, /data-show-if=&quot;/)
-
-  /* Подпись кнопки сайт подставляет сам, и подсказка показывает
-     чем — на каждом языке и для каждого способа продажи. Строки
-     берутся из словаря сайта: вторая копия разъехалась бы с ним. */
-  const { siteTranslator } = await import('../src/i18n/site.js')
-  const hints = [...page.matchAll(/data-placeholders="([^"]*)"/g)]
-    .map(([, json]) => JSON.parse(json.replaceAll('&quot;', '"')))
-
-  assert.deepEqual(hints[0], {
-    link: siteTranslator('en')('concert.tickets'),
-    door: siteTranslator('en')('concert.atDoor')
-  }, 'английскому полю — английские подписи')
-  assert.deepEqual(hints[1], {
-    link: siteTranslator('sr')('concert.tickets'),
-    door: siteTranslator('sr')('concert.atDoor')
-  }, 'сербскому — сербские')
-  assert.notDeepEqual(hints[0], hints[1])
-
-  assert.match(page, /data-placeholder-from="settings\[events\]\[r1\]\[tickets\]"/,
-    'подсказка смотрит на выбор своей строки')
+  assert.match(page, /Bandsintown/, 'сказано, откуда берутся концерты')
+  assert.match(page, /href="\/admin\/concerts"/, 'и куда идти за афишей и ценой')
+  assert.doesNotMatch(page, /name="settings\[events\]/, 'полей под события у формы нет')
 })
 
 test('неверный пароль не пускает', async () => {

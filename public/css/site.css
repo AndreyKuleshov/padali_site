@@ -666,16 +666,33 @@ body.no-scroll { overflow: hidden; }
 
 .concert-door svg { width: 16px; height: 16px; }
 
-.concert-tag {
-  display: inline-block;
-  font-family: var(--display);
-  font-size: 0.76rem;
-  letter-spacing: 0.03em;
+/* Время рядом с датой, но тише её: день ищут глазами, час уточняют. */
+.concert-time {
+  font-size: 0.68em;
   color: var(--soft);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 3px 11px;
+  margin-left: 10px;
 }
+
+/* Описание приходит из Bandsintown абзацами, и переносы в нём
+   значимы: «двери в 20:00» отдельной строкой, состав отдельной.
+   Разметки в тексте нет, поэтому держим их `pre-line` — иначе всё
+   схлопнется в одну простыню. Стоит ниже `.note`: силой селекторы
+   равны, и решает порядок в файле. */
+.concert-note {
+  white-space: pre-line;
+  max-width: 52ch;
+  margin-bottom: 14px;
+}
+
+/* Ссылка на страницу события — тихая: она не должна спорить с
+   кнопкой билетов, стоящей прямо над ней. */
+.concert-more {
+  font-size: 0.86rem;
+  margin-bottom: 0;
+}
+
+.concert-more a { color: var(--soft); }
+.concert-more a:hover { color: var(--neon); }
 
 .button {
   display: inline-flex;

@@ -26,7 +26,6 @@ export default {
      сайта. Знает об этом дескриптор, а не вёрстка: только он знает,
      что лендинг решает одну задачу и соседей себе не просит. */
   standalone: true,
-  
 
   texts: [
     { key: 'title', label: { en: 'Track or album name', sr: 'Naziv pesme ili albuma' }, input: 'text', general: true },

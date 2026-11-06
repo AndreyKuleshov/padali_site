@@ -10,6 +10,7 @@ import userRoutes from './users.js'
 import analyticsRoutes from './analytics.js'
 import translateRoutes from './translate.js'
 import messageRoutes from './messages.js'
+import concertRoutes from './concerts.js'
 
 /*
  * Загрузка файлов — единственное, что проверяет токен само: тело там
@@ -62,6 +63,7 @@ async function adminRoutes (app) {
     await scope.register(analyticsRoutes)
     await scope.register(translateRoutes)
     await scope.register(messageRoutes)
+    await scope.register(concertRoutes)
   })
 }
 

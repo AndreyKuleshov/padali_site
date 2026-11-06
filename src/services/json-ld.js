@@ -19,18 +19,46 @@ function upcoming (events, today) {
 
 function eventNode (event, band, locale) {
   const { amount, currency } = splitPrice(event.price ?? '')
+  const place = [event.venueName, event.venueCity].filter(Boolean).join(', ')
   const node = {
     '@type': 'MusicEvent',
-    name: `${band.name}${event.venue ? ' — ' + event.venue : ''}`,
-    startDate: event.date,
+    name: `${band.name}${place ? ' — ' + place : ''}`,
+    /* Со временем, когда оно объявлено: час концерта поиск
+       показывает рядом с датой, а выдумывать его нельзя — у
+       события бывает объявлен только день. */
+    startDate: event.showTime ? event.startsAt : event.date,
     inLanguage: locale,
     performer: { '@type': 'MusicGroup', name: band.name },
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode'
   }
 
-  if (event.venue) node.location = { '@type': 'Place', name: event.venue }
+  if (event.venueName) {
+    node.location = { '@type': 'Place', name: event.venueName }
+    /* Адрес кладём разобранным: строкой поиск его не связывает с
+       картой, и событие показывается без места. */
+    const address = {
+      '@type': 'PostalAddress',
+      ...(event.venueAddress ? { streetAddress: event.venueAddress } : {}),
+      ...(event.venueCity ? { addressLocality: event.venueCity } : {}),
+      ...(event.venueCountry ? { addressCountry: event.venueCountry } : {})
+    }
+    if (Object.keys(address).length > 1) node.location.address = address
+  }
+
+  /* Описание берём то же, что стоит на странице: переведённое, а
+     нет перевода — исходное. Обещать поисковику текст, которого
+     посетитель не увидит, нельзя. */
+  if (event.description) node.description = event.description
+  if (event.eventUrl) node.url = event.eventUrl
   if (event.poster?.src) node.image = config.publicUrl + event.poster.src
+
+  /* Распродано — это состояние предложения, а не отсутствие
+     события: поиск тогда так и пишет, вместо того чтобы вести на
+     закрытую продажу. */
+  const availability = event.soldOut
+    ? 'https://schema.org/SoldOut'
+    : 'https://schema.org/InStock'
 
   /* Цена без валюты — не предложение: schema.org требует код
      валюты, и половинчатое предложение поиск отбрасывает целиком
@@ -40,11 +68,11 @@ function eventNode (event, band, locale) {
       '@type': 'Offer',
       price: amount,
       priceCurrency: currency,
-      availability: 'https://schema.org/InStock',
-      ...(event.ticket_url ? { url: event.ticket_url } : {})
+      availability,
+      ...(event.ticketUrl ? { url: event.ticketUrl } : {})
     }
-  } else if (event.ticket_url) {
-    node.offers = { '@type': 'Offer', url: event.ticket_url, availability: 'https://schema.org/InStock' }
+  } else if (event.ticketUrl) {
+    node.offers = { '@type': 'Offer', url: event.ticketUrl, availability }
   }
 
   return node

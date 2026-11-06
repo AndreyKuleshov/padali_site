@@ -1,0 +1,98 @@
+<%~ include('/admin/partials/head', Object.assign({}, it, { pageTitle: it.t('concerts.title') })) %>
+
+<div class="page-head">
+  <div>
+    <h1><%= it.t('concerts.title') %></h1>
+    <p class="hint"><%= it.t('concerts.subtitle') %></p>
+  </div>
+  <% ;/* Обновление идёт само раз в час; кнопка — чтобы не ждать
+         этот час после правки в Bandsintown. */ %>
+  <form method="post" action="/admin/concerts/refresh">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+    <button type="submit" class="btn btn--small"<% if (!it.configured) { %> disabled<% } %>><%= it.t('concerts.refresh') %></button>
+  </form>
+</div>
+
+<% if (!it.configured) { %>
+<section class="card">
+  <p><%= it.t('concerts.notConfigured') %></p>
+</section>
+<% } %>
+
+<% if (it.syncedAt) { %>
+<p class="hint"><%= it.t('concerts.syncedAt', { when: it.h.formatDateTime(it.syncedAt, it.adminLocale) }) %></p>
+<% } %>
+
+<% if (it.events.length === 0) { %>
+<p class="empty"><%= it.t('concerts.empty') %></p>
+<% } %>
+
+<% it.events.forEach(function (event) { %>
+<section class="card concert-admin">
+  <% ;/* Всё, что пришло из Bandsintown, — текстом, не полями:
+         поле приглашает править, а править это здесь нельзя. */ %>
+  <div class="concert-admin-source">
+    <h2>
+      <%= it.h.formatDate(event.date) %><% if (event.time) { %> · <%= event.time %><% } %>
+    </h2>
+    <p class="concert-admin-venue">
+      <%= [event.venueName, event.venueCity, event.venueCountry].filter(Boolean).join(', ') %>
+    </p>
+    <% if (event.venueAddress) { %><p class="hint"><%= event.venueAddress %></p><% } %>
+
+    <p class="hint">
+      <% if (event.soldOut) { %><span class="concert-admin-flag"><%= it.t('concerts.soldOut') %></span><% } %>
+      <% if (event.isFree) { %><span class="concert-admin-flag"><%= it.t('concerts.free') %></span><% } %>
+      <% if (event.ticketUrl) { %><a href="<%= event.ticketUrl %>" target="_blank" rel="noopener"><%= it.t('concerts.ticketLink') %></a><% } %>
+      <% if (event.eventUrl) { %><a href="<%= event.eventUrl %>" target="_blank" rel="noopener"><%= it.t('concerts.atBandsintown') %></a><% } %>
+    </p>
+
+    <% if (event.description) { %>
+    <p class="concert-admin-description"><%= event.description %></p>
+    <p class="hint"><%= it.t('concerts.descriptionHint') %></p>
+    <% } %>
+  </div>
+
+  <% ;/* А это — наше. Форма у каждого концерта своя: общая с
+         номерами строк в именах полей уже уводила правку к
+         соседу. */ %>
+  <form method="post" action="/admin/concerts/<%= event.id %>" class="concert-admin-own">
+    <input type="hidden" name="_csrf" value="<%= it.csrf %>">
+
+    <%~ include('/admin/partials/media-field', Object.assign({}, it, {
+          field: {
+            label: it.t('concerts.poster'),
+            size: { w: 1280, h: 1600 },
+            hint: it.t('concerts.posterHint')
+          },
+          name: 'poster',
+          chosen: event.poster ? [event.poster] : []
+        })) %>
+
+    <div class="field">
+      <label for="price_<%= event.id %>"><%= it.t('concerts.price') %></label>
+      <%~ include('/admin/partials/price-input', Object.assign({}, it, {
+            id: 'price_' + event.id,
+            name: 'price',
+            currencyName: 'price_currency',
+            value: event.price
+          })) %>
+      <p class="hint"><%= it.t('concerts.priceHint') %></p>
+    </div>
+
+    <div class="field">
+      <label class="checkbox">
+        <input type="checkbox" name="price_from" value="1"<% if (event.priceFrom) { %> checked<% } %>>
+        <span><%= it.t('concerts.priceFrom') %></span>
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary"><%= it.t('common.save') %></button>
+    </div>
+  </form>
+</section>
+<% }) %>
+
+<%~ include('/admin/partials/media-picker', it) %>
+<%~ include('/admin/partials/foot', it) %>

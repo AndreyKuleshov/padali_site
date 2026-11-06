@@ -19,6 +19,8 @@ import { syncManagedAssets } from './services/managed-assets.js'
 import { purgeOlderThan } from './repositories/analytics.js'
 import { purgeExpiredSessions } from './repositories/sessions.js'
 import { repairMedia } from './services/media-repair.js'
+import { syncConcerts } from './services/concert-sync.js'
+import { isBandsintownConfigured } from './services/bandsintown.js'
 import publicRoutes from './routes/public.js'
 import adminRoutes from './routes/admin/index.js'
 
@@ -148,6 +150,18 @@ async function start () {
     await purge()
     const purgeTimer = setInterval(purge, 24 * 60 * 60 * 1000)
     purgeTimer.unref()
+
+    /* Расписание концертов забираем, не дожидаясь ответа: чужой
+       сервис не должен задерживать запуск сайта. Не ответил —
+       страница покажет прошлую копию из базы, а следующий заход
+       попробует снова. Сама функция не бросает и не отвергает
+       обещание, поэтому .catch тут не нужен. */
+    if (isBandsintownConfigured()) {
+      const refresh = () => { syncConcerts({ logger: app.log }) }
+      const concertTimer = setInterval(refresh, config.bandsintown.refreshMs)
+      concertTimer.unref()
+      refresh()
+    }
 
     await app.listen({ port: config.port, host: config.host })
   } catch (error) {

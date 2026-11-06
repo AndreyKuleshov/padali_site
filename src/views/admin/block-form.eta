@@ -29,6 +29,19 @@
   </div>
 </div>
 
+<% ;/* Блок, у которого содержимое приходит не из формы, обязан
+       сказать об этом здесь: иначе пустая форма выглядит сломанной,
+       и редактор идёт искать поля, которых нет. Куда идти — тоже
+       говорит дескриптор, а не вёрстка. */ %>
+<% if (descriptor.note) { %>
+<section class="card">
+  <p><%= it.localize(descriptor.note) %></p>
+  <% if (descriptor.noteLink) { %>
+  <p><a class="btn btn--small" href="<%= descriptor.noteLink.url %>"><%= it.localize(descriptor.noteLink.label) %></a></p>
+  <% } %>
+</section>
+<% } %>
+
 <form method="post" action="/admin/blocks/<%= block.id %>" class="block-form">
   <input type="hidden" name="_csrf" value="<%= it.csrf %>">
 

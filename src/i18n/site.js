@@ -57,6 +57,9 @@ const DICTIONARY = {
     'concert.priceFrom': 'from',
     'concert.tickets': 'Tickets',
     'concert.atDoor': 'Tickets at the door',
+    'concert.soldOut': 'Sold out',
+    'concert.free': 'Free entry',
+    'concert.details': 'Event details',
 
     'contact.message': 'Message',
     'contact.contact': 'How we reach you',
@@ -105,6 +108,9 @@ const DICTIONARY = {
     'concert.priceFrom': 'od',
     'concert.tickets': 'Karte',
     'concert.atDoor': 'Karte na ulazu',
+    'concert.soldOut': 'Rasprodato',
+    'concert.free': 'Ulaz slobodan',
+    'concert.details': 'O događaju',
 
     'contact.message': 'Poruka',
     'contact.contact': 'Kako da vam odgovorimo',

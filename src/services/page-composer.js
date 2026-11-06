@@ -5,6 +5,7 @@ import {
   itemsForGalleries, itemFieldsForGalleries, textsForGalleries
 } from '../repositories/galleries.js'
 import { getMediaByIds, textsForMedia } from '../repositories/media.js'
+import { listUpcomingEvents, textsForEvents } from '../repositories/concerts.js'
 import { listLocales, getDefaultLocale } from '../repositories/locales.js'
 import { getAllSettings } from '../repositories/settings.js'
 import { pictureSources } from './media-processor.js'
@@ -133,11 +134,21 @@ async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date
     textsForGalleries(galleryIds)
   ])
 
+  /* Концерты лежат не в блоке, а своей таблицей: их пишет
+     синхронизация с Bandsintown, а не форма. Запрос идёт только
+     когда на странице есть кому их показать. */
+  const concertEvents = blockRows.some((block) => block.type === 'concert')
+    ? await listUpcomingEvents(today)
+    : []
+  const concertTexts = await textsForEvents(concertEvents.map((event) => event.id))
+
   // Логотип сайта — обычная запись медиатеки, забираем тем же запросом.
   const siteLogoId = Number(settings.logo_id)
   const mediaIds = [...new Set([
     ...[...mediaByBlock.values()].flatMap((byField) => Object.values(byField).flat()),
     ...[...itemsByGallery.values()].flat(),
+    // Афиша концерта — обычная запись медиатеки, забираем тем же запросом.
+    ...concertEvents.map((event) => event.posterId).filter(Boolean),
     ...(Number.isInteger(siteLogoId) && siteLogoId > 0 ? [siteLogoId] : [])
   ])]
   const [mediaById, textsByMedia] = await Promise.all([
@@ -148,6 +159,15 @@ async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date
   const toView = (mediaId) => viewMedia(
     mediaById.get(mediaId), textsByMedia.get(mediaId), activeLocale, defaultLocale
   )
+
+  /* Описание показываем переведённым, а нет перевода — исходным:
+     на языке оригинала оно понятнее, чем пустое место. */
+  const concerts = concertEvents.map((event) => ({
+    ...event,
+    poster: toView(event.posterId),
+    description: pick(concertTexts.get(event.id), activeLocale, defaultLocale, 'description') ||
+      event.description
+  }))
 
   const blocks = sortBlocks(blockRows).map((block) => {
     const descriptor = getBlockType(block.type)
@@ -167,6 +187,11 @@ async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date
         field, block.settings?.[field.key], blockTexts, media, activeLocale, defaultLocale, today
       )
     }
+
+    /* Концерты блок не хранит — он их показывает. Кладём сюда же,
+       в settings, чтобы `isEmpty` судил о блоке по тому же, что
+       видит шаблон. */
+    if (block.type === 'concert') settingsResolved.events = concerts
 
     let gallery = null
     const galleryId = Number(block.settings?.gallery_id)
