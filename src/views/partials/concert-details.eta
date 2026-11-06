@@ -1,0 +1,64 @@
+<%
+  /* Подробности концерта: афиша, рассказ, билеты. Один и тот же
+     кусок у ближайшего концерта, который раскрыт карточкой, и у
+     свёрнутой строки — поэтому он здесь, а не в двух копиях. */
+  var event = it.event
+  var s = it.s
+  var h = it.h
+  var sizes = '(max-width: ' + h.layout.narrow + 'px) 100vw, 240px'
+%>
+<div class="concert-details<%= event.poster ? '' : ' concert-details--no-poster' %>">
+  <% if (event.poster) { %>
+  <% ;/* Афиши приходят и стоячие, и лежачие. В две колонки афиша
+         встаёт по своему кадру, а в столбик высоту ей задаёт
+         отношение сторон, и остаток закрывает она же, размытая, —
+         иначе карточки под афишами начинаются вразнобой. Второй
+         снимок — тот же файл, браузер качает его один раз, а в две
+         колонки прячут стили. */ %>
+  <div class="poster-box">
+    <%~ include('/partials/picture', { media: event.poster, sizes: sizes, className: 'poster-blur', decorative: true }) %>
+    <%~ include('/partials/picture', { media: event.poster, sizes: sizes, lightbox: true }) %>
+  </div>
+  <% } %>
+
+  <div class="concert-body">
+    <% ;/* Описание пишут в Bandsintown абзацами, и переносы в нём
+           значимы: держит их `white-space` в стилях. */ %>
+    <% if (event.description) { %><p class="note concert-note"><%~ h.linkify(event.description) %></p><% } %>
+
+    <% ;/* Страница события — там состав, карта и напоминание.
+           Тихой ссылкой, чтобы не спорила с билетами. */ %>
+    <% if (event.eventUrl) { %>
+    <p class="concert-more"><a href="<%= event.eventUrl %>" target="_blank" rel="noopener"><%= s('concert.details') %></a></p>
+    <% } %>
+  </div>
+
+  <% ;/* Подвал во всю ширину: слева чем кончается дело — кнопка или
+         надпись, — справа цена. Так строка занимает всю ширину
+         карточки, а цена оказывается там, где взгляд останавливается
+         сам. */ %>
+  <% if (event.soldOut) { %>
+  <div class="concert-tickets">
+    <% ;/* Распродано — вместо кнопки, а не рядом с ней: вести на
+           закрытую продажу незачем. */ %>
+    <p class="concert-door"><%~ h.icon('ticket') %><%= s('concert.soldOut') %></p>
+  </div>
+  <% } else if (event.ticketUrl || event.price || event.isFree) { %>
+  <div class="concert-tickets">
+    <% if (event.ticketUrl) { %>
+    <a class="button" href="<%= event.ticketUrl %>" target="_blank" rel="noopener">
+      <%~ h.icon('ticket') %><%= s('concert.tickets') %>
+    </a>
+    <% } else if (event.isFree) { %>
+    <p class="concert-door"><%~ h.icon('ticket') %><%= s('concert.free') %></p>
+    <% } else { %>
+    <% ;/* Продажи по ссылке нет, а цена есть — значит, платят на
+           входе: другого способа у концерта не остаётся. */ %>
+    <p class="concert-door"><%~ h.icon('ticket') %><%= s('concert.atDoor') %></p>
+    <% } %>
+    <% if (event.price) { %>
+    <span class="concert-price"><%= event.priceFrom ? s('concert.priceFrom') + ' ' + event.price : event.price %></span>
+    <% } %>
+  </div>
+  <% } %>
+</div>

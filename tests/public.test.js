@@ -193,7 +193,7 @@ test('билеты: есть ссылка — кнопка, есть тольк�
 
   const body = (await app.inject({ method: 'GET', url: '/' })).body
   const section = /<section class="section wrap" id="shows">[\s\S]*?<\/section>/.exec(body)[0]
-  const cards = section.split('class="concert-grid')
+  const cards = section.split(/class="concert[ "]/)
 
   assert.match(cards[1], /href="https:\/\/tickets\.example\/padali"/)
   assert.match(cards[1], /800 RSD/)
@@ -567,9 +567,11 @@ test('описание концерта показывается и экрани
   assert.ok(section.includes('Doors at 20:00\n'), 'переносы строк сохранены')
 })
 
-/* Два концерта листаются, как фотографии; один — просто карточка,
-   без ленты и стрелок: листать нечего. */
-test('несколько концертов листаются, один — нет', async () => {
+/* Концерты идут столбиком: в ленте карточки тянулись по самой
+   высокой, и у короткого концерта шапка расползалась на пустую
+   коробку. Да и все даты должны быть видны сразу — ради них на
+   страницу и приходят. */
+test('несколько концертов идут столбиком, а не лентой', async () => {
   const { pageId } = await buildPage()
 
   const alone = await createBlock({
@@ -581,7 +583,7 @@ test('несколько концертов листаются, один — н�
 
   let body = (await app.inject({ method: 'GET', url: '/' })).body
   let section = /<section class="section wrap" id="one">[\s\S]*?<\/section>/.exec(body)[0]
-  assert.doesNotMatch(section, /gallery-frame--scrollable/)
+  assert.doesNotMatch(section, /gallery-frame/)
   assert.doesNotMatch(section, /gallery-arrow/)
 
   /* Второй концерт один на оба блока: события принадлежат группе,
@@ -589,15 +591,76 @@ test('несколько концертов листаются, один — н�
   await createBlock({
     pageId, type: 'concert', anchor: 'two', settings: defaultSettings('concert')
   })
-  await addConcert({ date: soon(40) })
+  await addConcert({ date: soon(40), price: '600 RSD' })
   invalidateCache()
 
   body = (await app.inject({ method: 'GET', url: '/' })).body
   section = /<section class="section wrap" id="two">[\s\S]*?<\/section>/.exec(body)[0]
-  assert.match(section, /gallery-frame--scrollable/)
-  assert.match(section, /data-gallery-scroll/)
-  assert.match(section, /gallery-arrow--next/)
-  assert.equal((section.match(/class="concert-grid/g) || []).length, 2)
+
+  /* Ближайший — карточка, второй — свёрнутая строка. */
+  assert.equal((section.match(/class="concert"/g) || []).length, 1)
+  assert.equal((section.match(/class="concert concert--row"/g) || []).length, 1)
+  assert.match(section, /<summary class="concert-row">/)
+
+  /* Ни ленты, ни стрелок, ни крючка для скрипта прокрутки. */
+  assert.doesNotMatch(section, /gallery-frame|gallery-track|data-gallery-scroll/)
+  assert.doesNotMatch(section, /gallery-arrow/)
+})
+
+/* Свёрнутая строка — не обрезка: подробности остаются в разметке,
+   иначе разметка для поисковика обещала бы описание, которого на
+   странице нет. А у концерта, где кроме даты ничего не объявлено,
+   раскрывать нечего — и значка раскрытия быть не должно. */
+test('свёрнутая строка держит подробности, пустая не раскрывается', async () => {
+  const { pageId } = await buildPage()
+  await createBlock({
+    pageId, type: 'concert', anchor: 'rows', settings: defaultSettings('concert')
+  })
+  await addConcert({ date: soon(3) })
+  await addConcert({ date: soon(20), venue: 'Dom omladine', price: '900 RSD', description: 'Zimska turneja.' })
+  await addConcert({ date: soon(50), venue: 'Samo datum' })
+  invalidateCache()
+
+  const body = (await app.inject({ method: 'GET', url: '/' })).body
+  const section = /<section class="section wrap" id="rows">[\s\S]*?<\/section>/.exec(body)[0]
+  const rows = section.split(/<(?:details|div) class="concert concert--row"/).slice(1)
+  assert.equal(rows.length, 2)
+
+  assert.match(rows[0], /Zimska turneja\./, 'рассказ остаётся в разметке свёрнутой строки')
+  assert.match(rows[0], /900 RSD/)
+  assert.match(rows[0], /concert-row-sign/, 'есть чем показать, что строка раскрывается')
+
+  assert.doesNotMatch(rows[1], /concert-row-sign/, 'раскрывать нечего — и значка нет')
+  assert.doesNotMatch(rows[1], /concert-details/)
+})
+
+/* Концерт держится на странице весь свой день — зритель ещё может
+   прийти к концу, — а назавтра уходит сам. Вместе с последним
+   концертом уходит и раздел, и пункт меню: пункт, прокручивающий в
+   никуда, хуже отсутствующего. Отсечку задаёт день из ключа кэша,
+   поэтому страница меняется ровно в полночь, а не когда её тронут. */
+test('вчерашний концерт уносит и раздел, и пункт меню', async () => {
+  const { pageId } = await buildPage()
+  const block = await createBlock({
+    pageId, type: 'concert', anchor: 'gigs', settings: defaultSettings('concert')
+  })
+  await saveBlockTexts(block, { en: { nav_label: 'Gigs', heading: 'Gigs' } })
+
+  await addConcert({ date: soon(-1), bitId: 'вчерашний' })
+  invalidateCache()
+
+  let body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.doesNotMatch(body, /id="gigs"/, 'прошедший концерт раздел не держит')
+  assert.doesNotMatch(body, /#gigs/, 'и пункта меню на него нет')
+
+  /* Концерт сегодняшний, но уже начавшийся: он всё равно на месте. */
+  await addConcert({ date: soon(0), time: '09:00:00', bitId: 'сегодня утром' })
+  invalidateCache()
+
+  body = (await app.inject({ method: 'GET', url: '/' })).body
+  assert.match(body, /id="gigs"/, 'в свой день концерт показывается')
+  assert.match(body, /<a href="#gigs">Gigs<\/a>/)
+  assert.doesNotMatch(body, /вчерашний/, 'вчерашний при этом не вернулся')
 })
 
 test('в head есть canonical и hreflang на обе версии', async () => {

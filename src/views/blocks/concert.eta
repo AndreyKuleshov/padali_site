@@ -1,93 +1,89 @@
 <%
   var block = it.block
   var events = Array.isArray(block.settings.events) ? block.settings.events : []
-  /* Листаем только когда есть что: один концерт — просто карточка,
-     без ленты и стрелок. */
-  var many = events.length > 1
 %>
 <% if (events.length > 0) { %>
 <section class="section wrap"<% if (block.anchor) { %> id="<%= block.anchor %>"<% } %>>
   <% if (block.text.heading) { %><h2><%= block.text.heading %></h2><% } %>
 
-  <% ;/* Та же лента, что у фотографий: прокрутка с примагничиванием,
-         стрелки для мыши, свайп на телефоне. Разметка общая со
-         скриптом initGalleryScrollers — он находит ленту по
-         data-gallery-scroll. */ %>
-  <div class="gallery-frame<%= many ? ' gallery-frame--scrollable' : '' %> concert-frame"
-       style="--gallery-columns: 1; --gallery-columns-mobile: 1; --gallery-rows: 1">
-    <div class="<%= many ? 'gallery-track ' : '' %>concert-list"<% if (many) { %> data-gallery-scroll<% } %>>
-      <% events.forEach(function (event) { %>
-      <% ;/* Площадка одной строкой: название и город. Страна в ней
-             не нужна — все концерты пока в одной, а «Beograd,
-             Serbia» на сербской странице читается как перевод для
-             иностранца. */ %>
-      <% var place = [event.venueName, event.venueCity].filter(Boolean).join(', ') %>
-      <div class="concert-grid<%= event.poster ? '' : ' concert-grid--no-poster' %>">
-        <% if (event.poster) { %>
-        <% ;/* Афиши приходят и стоячие, и лежачие, и ряд из них
-               выглядел рваным. Кадр вписывается целиком, а пустоту
-               вокруг заполняет он же, размытый: так не срезается
-               край афиши и не скачет высота. Оба снимка — один и
-               тот же файл, браузер качает его один раз. */ %>
-        <div class="poster-box">
-          <%~ include('/partials/picture', { media: event.poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', className: 'poster-blur', decorative: true }) %>
-          <%~ include('/partials/picture', { media: event.poster, sizes: '(max-width: ' + it.h.layout.narrow + 'px) 100vw, 200px', lightbox: true }) %>
-        </div>
-        <% } %>
-        <div class="concert-card">
-          <% ;/* В datetime — время площадки как есть, без смещения:
-                 другого у Bandsintown и нет, а выдуманный пояс
-                 сдвинул бы концерт на час в чужом календаре. */ %>
-          <p class="concert-date">
-            <time datetime="<%= event.startsAt %>"><%= it.h.formatDate(event.date) %></time>
-            <% if (event.time) { %><span class="concert-time"><%= event.time %></span><% } %>
-          </p>
-          <% if (place) { %><p class="concert-venue"><%= place %></p><% } %>
-          <% ;/* Описание пишут в Bandsintown абзацами, и переносы в
-                 нём значимы: держит их `white-space` в стилях. */ %>
-          <% if (event.description) { %><p class="note concert-note"><%~ it.h.linkify(event.description) %></p><% } %>
+  <% ;/* Ближайший концерт — карточка целиком, остальные — строки:
+         дата, площадка, цена. Лентой это было нельзя: в ряду сетки
+         все карточки тянутся по самой высокой, и у короткого
+         концерта шапка расползалась на пустую коробку. Да и даты
+         нужны все сразу — ради них сюда и приходят.
 
-          <% ;/* Распродано — вместо кнопки, а не рядом с ней: вести
-                 на закрытую продажу незачем. */ %>
-          <% if (event.soldOut) { %>
-          <div class="concert-tickets">
-            <p class="concert-door"><%~ it.h.icon('ticket') %><%= it.s('concert.soldOut') %></p>
-          </div>
-          <% } else if (event.ticketUrl || event.price || event.isFree) { %>
-          <div class="concert-tickets">
-            <% if (event.ticketUrl) { %>
-            <a class="button" href="<%= event.ticketUrl %>" target="_blank" rel="noopener">
-              <%~ it.h.icon('ticket') %><%= it.s('concert.tickets') %>
-            </a>
-            <% } else if (event.isFree) { %>
-            <p class="concert-door"><%~ it.h.icon('ticket') %><%= it.s('concert.free') %></p>
-            <% } else { %>
-            <% ;/* Продажи по ссылке нет, а цена есть — значит, платят
-                   на входе: другого способа у концерта не остаётся. */ %>
-            <p class="concert-door"><%~ it.h.icon('ticket') %><%= it.s('concert.atDoor') %></p>
-            <% } %>
-            <% if (event.price) { %>
-            <span class="concert-price"><%= event.priceFrom ? it.s('concert.priceFrom') + ' ' + event.price : event.price %></span>
-            <% } %>
-          </div>
-          <% } %>
+         Строка разворачивается в ту же карточку. Разворачивает её
+         <details>: без скрипта, с клавиатуры, и поиск по странице
+         находит текст внутри свёрнутого. Заодно это держит обещание
+         разметки для поисковика — описание и афиша остаются на
+         странице, а не исчезают ради краткости. */ %>
+  <div class="concert-list">
+    <% events.forEach(function (event, index) { %>
+    <% ;/* Площадка одной строкой: название и город. Страна в ней
+           не нужна — все концерты пока в одной, а «Beograd,
+           Serbia» на сербской странице читается как перевод для
+           иностранца. */ %>
+    <%
+      var place = [event.venueName, event.venueCity].filter(Boolean).join(', ')
+      /* Разворачивать нечего, если афиши, рассказа и билетов нет:
+         у объявленной даты бывает только дата. */
+      var details = Boolean(event.poster || event.description || event.eventUrl ||
+        event.soldOut || event.ticketUrl || event.price || event.isFree)
+      var price = event.price
+        ? (event.priceFrom ? it.s('concert.priceFrom') + ' ' + event.price : event.price)
+        : ''
+      var state = event.soldOut ? it.s('concert.soldOut')
+        : event.isFree ? it.s('concert.free')
+        : event.ticketUrl && !price ? it.s('concert.tickets') : ''
+    %>
 
-          <% ;/* Страница события — там состав, карта и напоминание.
-                 Тихой ссылкой, чтобы не спорила с кнопкой билетов. */ %>
-          <% if (event.eventUrl) { %>
-          <p class="concert-more"><a href="<%= event.eventUrl %>" target="_blank" rel="noopener"><%= it.s('concert.details') %></a></p>
-          <% } %>
-        </div>
+    <% if (index === 0) { %>
+    <div class="concert">
+      <% ;/* Шапка ближайшего: дата, под ней площадка. Билеты не
+             здесь, а подвалом подробностей — три коротких строки
+             одна под другой оставляли две трети ширины пустыми. */ %>
+      <div class="concert-head">
+        <% ;/* В datetime — время площадки как есть, без смещения:
+               другого у Bandsintown и нет, а выдуманный пояс сдвинул
+               бы концерт на час в чужом календаре. */ %>
+        <p class="concert-date">
+          <time datetime="<%= event.startsAt %>"><%= it.h.formatDate(event.date) %></time>
+          <% if (event.time) { %><span class="concert-time"><%~ it.h.icon('clock') %><%= event.time %></span><% } %>
+        </p>
+        <% if (place) { %><p class="concert-venue"><%= place %></p><% } %>
       </div>
-      <% }) %>
+      <% if (details) { %><%~ include('/partials/concert-details', { event: event, s: it.s, h: it.h }) %><% } %>
     </div>
 
-    <% if (many) { %>
-    <button class="gallery-arrow gallery-arrow--prev" type="button" hidden
-            aria-label="<%= it.s('gallery.previous') %>"><%~ it.h.icon('arrow-left') %></button>
-    <button class="gallery-arrow gallery-arrow--next" type="button" hidden
-            aria-label="<%= it.s('gallery.next') %>"><%~ it.h.icon('arrow-right') %></button>
+    <% } else if (details) { %>
+    <details class="concert concert--row">
+      <summary class="concert-row">
+        <span class="concert-date">
+          <time datetime="<%= event.startsAt %>"><%= it.h.formatDate(event.date) %></time>
+          <% if (event.time) { %><span class="concert-time"><%= event.time %></span><% } %>
+        </span>
+        <% if (place) { %><span class="concert-venue"><%= place %></span><% } %>
+        <% if (state) { %><span class="concert-row-state"><%= state %></span>
+        <% } else if (price) { %><span class="concert-price"><%= price %></span><% } %>
+        <span class="concert-row-sign"><%~ it.h.icon('arrow-right') %></span>
+      </summary>
+      <%~ include('/partials/concert-details', { event: event, s: it.s, h: it.h }) %>
+    </details>
+
+    <% } else { %>
+    <% ;/* Разворачивать нечего — строка остаётся строкой, без
+           значка и без лишнего обещания. */ %>
+    <div class="concert concert--row">
+      <div class="concert-row">
+        <span class="concert-date">
+          <time datetime="<%= event.startsAt %>"><%= it.h.formatDate(event.date) %></time>
+          <% if (event.time) { %><span class="concert-time"><%= event.time %></span><% } %>
+        </span>
+        <% if (place) { %><span class="concert-venue"><%= place %></span><% } %>
+      </div>
+    </div>
     <% } %>
+    <% }) %>
   </div>
 </section>
 <% } %>

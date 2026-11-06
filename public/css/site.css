@@ -574,24 +574,135 @@ body.no-scroll { overflow: hidden; }
 
 /* ─── Концерт ────────────────────────────────────────────── */
 
-.concert-grid {
+/* Ближайший концерт — карточка, остальные — строки, которые
+   разворачиваются в такую же. Лентой это было нельзя: в ряду сетки
+   все карточки тянутся по самой высокой, и у короткого концерта
+   шапка расползалась на пустую коробку, а под карточкой оставалась
+   дыра со стрелками посередине. */
+.concert-list {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 28px;
+  gap: 10px;
 }
 
-.concert-grid--no-poster { grid-template-columns: 1fr; }
+.concert {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
 
-/* Высота афиши — по карточке рядом. Снимки приходят и стоячие, и
-   лежачие: по своей высоте они рвали ряд, а обрезка по ширине
-   срезала афише края, где обычно и написано, кто играет. Кадр
-   вписывается целиком, остаток занимает он же, размытый.
-   Селектор у размытого слоя из двух классов намеренно: `.poster-box
-   img` весомее одиночного класса и перебил бы его, где бы тот ни
-   стоял. */
+/* Шапка ближайшего: дата, под ней площадка. */
+.concert-head { padding: 24px 26px 20px; }
+
+/* Час — тем же кеглем, что день, и у правого края: строка берёт
+   всю ширину карточки, а два числа становятся парой, между которой
+   пусто, а не датой с довеском. Тише даты он остаётся цветом. */
+.concert-head .concert-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.concert-head .concert-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Циферблат темнее часа: он подпись к числу, а не само число.
+   Темнее — но не до невидимости: `--line-strong` и заведён как
+   граница, с которой фигуру на тёмном ещё видно (3:1). */
+.concert-head .concert-time svg {
+  width: 0.62em;
+  height: 0.62em;
+  color: var(--line-strong);
+}
+
+/* Свёрнутая строка: дата, площадка, цена и значок — во всю ширину,
+   цена у правого края, где взгляд останавливается сам. */
+.concert-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: baseline;
+  gap: 2px 18px;
+  padding: 16px 26px;
+  cursor: pointer;
+  /* Свой треугольник у details не нужен: о том, что строка
+     раскрывается, говорит значок справа. */
+  list-style: none;
+}
+
+.concert-row::-webkit-details-marker { display: none; }
+.concert-row:hover .concert-date { color: var(--neon); }
+
+/* Значок поворачивается, когда строка раскрыта: одна стрелка вместо
+   двух иконок, и сразу видно, в каком состоянии строка. */
+.concert-row-sign {
+  color: var(--soft);
+  display: flex;
+  align-self: center;
+}
+
+.concert-row-sign svg {
+  width: 14px;
+  height: 14px;
+  transition: transform .15s;
+}
+
+.concert[open] .concert-row-sign svg { transform: rotate(90deg); }
+
+/* В раскрытой строке цена уже есть в подвале, рядом с кнопкой, —
+   в шапке она повторяется. Прячем, не вынимая: вынутая схлопнула бы
+   колонку, и строка дёргалась бы при каждом раскрытии. */
+.concert[open] > .concert-row .concert-price,
+.concert[open] > .concert-row .concert-row-state { visibility: hidden; }
+
+/* Надпись вместо цены — «распродано», «вход свободный», «билеты»:
+   это не деньги, поэтому и не неон. */
+.concert-row-state {
+  font-family: var(--display);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+
+/* В строке дата — одна из колонок, а не заголовок: мельче. */
+.concert--row .concert-date { font-size: 1.25rem; margin-bottom: 0; }
+.concert--row .concert-venue { font-size: 1rem; }
+
+/* Подробности: афиша слева, рассказ справа, билеты подвалом.
+   Волосяная линия сверху принадлежит им, а не шапке: у свёрнутой
+   строки её тогда нет вовсе, и она не делит пустоту. */
+.concert-details {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-areas: 'poster body' 'foot foot';
+  /* Ряды держат свою высоту: иначе лишняя делится между ними
+     поровну и линии разъезжаются по пустой карточке. */
+  align-content: start;
+  gap: 0 26px;
+  padding: 20px 26px 24px;
+  border-top: 1px solid var(--line);
+}
+
+.concert-details--no-poster {
+  grid-template-columns: 1fr;
+  grid-template-areas: 'body' 'foot';
+}
+
+.concert-body { grid-area: body; }
+
+/* Афиша встаёт по своему отношению сторон и прижата к верху.
+   Тянуть её по высоте карточки нельзя: описание из Bandsintown
+   бывает в десять строк, карточка вырастает — и вместе с ней росла
+   пустота вокруг афиши. Размытая заливка занимала две трети
+   столбца, а сама афиша оказывалась самым мелким, что есть на
+   экране. Обрезкой не отделаться: по краям афиши пишут, кто
+   играет. */
 .poster-box {
+  grid-area: poster;
   position: relative;
-  min-height: 240px;
+  align-self: start;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--bg-2);
@@ -600,12 +711,17 @@ body.no-scroll { overflow: hidden; }
 .poster-box img {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
   display: block;
-  object-fit: contain;
 }
 
+/* Размытая подложка нужна там, где афише задано отношение сторон,
+   — на узком экране. В две колонки заполнять нечего: коробка ровно
+   по кадру, и подложка выключена. Селектор из двух классов
+   намеренно: `.poster-box img` весомее одиночного класса и перебил
+   бы его, где бы тот ни стоял. */
 .poster-box .poster-blur {
+  display: none;
   position: absolute;
   inset: 0;
   object-fit: cover;
@@ -614,42 +730,69 @@ body.no-scroll { overflow: hidden; }
   transform: scale(1.15);
 }
 
-.concert-card {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  padding: 24px 26px;
-}
-
 .concert-date {
   font-family: var(--display);
-  font-size: 1.5rem;
+  font-size: clamp(1.6rem, 4.4vw, 1.9rem);
+  line-height: 1.05;
   color: var(--ink);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  transition: color .15s;
 }
 
-.concert-venue { font-size: 1.02rem; margin-bottom: 10px; }
+/* Площадка — второе, что ищут после даты, и это должно быть видно.
+   Цветом, а не насыщенностью: Archivo приезжает двумя начертаниями,
+   и всё, что жирнее 500, браузер подделает. */
+.concert-venue {
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 1.05rem;
+  margin-bottom: 0;
+}
 
-/* Билеты и цена одной строкой. На узком экране переносятся:
-   «Tickets at the door» рядом с ценой в 320 точек не помещается. */
+/* Час тише дня: день ищут глазами, час уточняют. */
+.concert-time { color: var(--soft); }
+
+/* В свёрнутой строке он жмётся к дате и мельчает: там дата — одна
+   из четырёх колонок, и вторым крупным числом строка переполнится. */
+.concert--row .concert-time {
+  font-size: 0.58em;
+  letter-spacing: 0.04em;
+  margin-left: 12px;
+}
+
+/* Подвал подробностей: слева кнопка или надпись, справа цена.
+   Раньше билеты стояли третьей строкой шапки, прижатые к левому
+   краю: две трети ширины пустовали, а цена — то, за чем приходят, —
+   лежала в самом неприметном месте. На узком экране строка
+   переносится: «Tickets at the door» рядом с ценой в 320 точек не
+   помещается. */
 .concert-tickets {
+  grid-area: foot;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 14px;
-  margin-bottom: 14px;
+  border-top: 1px solid var(--line);
+  margin: 20px 0 0;
+  padding-top: 16px;
 }
 
 .concert-tickets .button,
 .concert-tickets .concert-door { margin-bottom: 0; }
 
-/* Цена заметнее прочего в карточке: её ищут глазами. */
+/* Цена заметнее прочего: её ищут глазами. */
 .concert-price {
   font-family: var(--display);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   color: var(--neon);
 }
 
-/* Билеты на входе: рамка, а не кнопка — жать не на что. */
+/* Кроме случая, когда рядом стоит неоновая кнопка билетов: два
+   неона в одной строке спорят за взгляд, и непонятно, что из них
+   нажимают. Акцент остаётся кнопке. */
+.concert-tickets .button ~ .concert-price { color: var(--ink); }
+
 /* «Билеты на входе» — сообщение, а не кнопка. В рамке с иконкой
    билета оно читалось как выключённая кнопка, и по нему жали. */
 .concert-door {
@@ -661,17 +804,10 @@ body.no-scroll { overflow: hidden; }
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--soft);
-  padding: 10px 0;
+  padding: 0;
 }
 
 .concert-door svg { width: 16px; height: 16px; }
-
-/* Время рядом с датой, но тише её: день ищут глазами, час уточняют. */
-.concert-time {
-  font-size: 0.68em;
-  color: var(--soft);
-  margin-left: 10px;
-}
 
 /* Описание приходит из Bandsintown абзацами, и переносы в нём
    значимы: «двери в 20:00» отдельной строкой, состав отдельной.
@@ -680,12 +816,13 @@ body.no-scroll { overflow: hidden; }
    равны, и решает порядок в файле. */
 .concert-note {
   white-space: pre-line;
-  max-width: 52ch;
+  max-width: 54ch;
+  font-size: 0.95rem;
   margin-bottom: 14px;
 }
 
-/* Ссылка на страницу события — тихая: она не должна спорить с
-   кнопкой билетов, стоящей прямо над ней. */
+/* Ссылка на страницу события — тихая: она не должна спорить с ценой
+   и кнопкой билетов. */
 .concert-more {
   font-size: 0.86rem;
   margin-bottom: 0;
@@ -1057,14 +1194,29 @@ img[data-lightbox] { cursor: zoom-in; }
   .menu-toggle { display: inline-flex; order: 1; }
   .topbar-right .social-row { display: none; }
   /* В столбик высоту афише задать не по чему — рядом нет карточки,
-     — поэтому задаём её сами, отношением сторон. Иначе каждая
-     афиша своей высоты: карточки под ними начинаются вразнобой, и
-     лента концертов выглядит рваной. 4:5 чуть шире стоячей афиши,
-     а лежачая ложится в неё с полями, которые закрывает размытый
-     кадр. Карточке отдаём весь остаток высоты, чтобы у всех
-     концертов она кончалась на одной линии. */
-  .concert-grid { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .poster-box { aspect-ratio: 4 / 5; height: auto; min-height: 0; align-self: start; }
+     — поэтому задаём её сами, отношением сторон. Иначе каждая афиша
+     своей высоты: строки под ними начинаются вразнобой. 4:5 чуть
+     шире стоячей афиши, а лежачая ложится в неё с полями, которые
+     закрывает размытый кадр. */
+  .concert-head { padding: 20px 20px 16px; }
+  .concert-details {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'poster' 'body' 'foot';
+    padding: 18px 20px 20px;
+  }
+  /* В строке четыре колонки не помещаются: дата, цена и значок
+     первой строкой, площадка второй во всю ширину. Места в сетке
+     назначены поимённо: по потоку площадка, занимая всю ширину,
+     выталкивала цену со значком на третью строку. */
+  .concert-row { grid-template-columns: 1fr auto auto; padding: 16px 20px; }
+  .concert--row .concert-date { grid-area: 1 / 1; }
+  .concert--row .concert-price,
+  .concert--row .concert-row-state { grid-area: 1 / 2; }
+  .concert-row-sign { grid-area: 1 / 3; }
+  .concert--row .concert-venue { grid-area: 2 / 1 / 3 / -1; }
+  .poster-box { aspect-ratio: 4 / 5; margin-bottom: 18px; }
+  .poster-box img { height: 100%; object-fit: contain; }
+  .poster-box .poster-blur { display: block; }
 
   /* Узкий экран: весь кадр целиком, остаток закрывает размытая
      копия. Обрезкой тут не отделаться — снимок вдвое шире окна.

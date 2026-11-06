@@ -81,6 +81,12 @@ const LINK_ICONS = {
     '<path d="M3 6.5h18v11H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' +
     '<path d="M3.5 7l8.5 6 8.5-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
 
+  /* Циферблат к часу концерта: стрелки на 12 и на 3, как на
+     вывесках — узнаётся с одного взгляда и в 12 точек. */
+  clock:
+    '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+    '<path d="M12 7.2V12l3.2 1.9" fill="none" stroke="currentColor" stroke-width="1.6" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/>',
   ticket:
     '<path d="M3 8.5a2 2 0 012-2h14a2 2 0 012 2v1.2a2.3 2.3 0 000 4.6v1.2a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.2a2.3 2.3 0 000-4.6z" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
     '<path d="M14 7v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.5"/>'
