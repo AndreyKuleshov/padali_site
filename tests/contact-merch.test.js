@@ -496,7 +496,7 @@ test('состав альбома отдаётся формой блока', asy
 })
 
 /** Форма блока про состав альбома не знает — стереть его нельзя. */
-test('дозагрузка дописывает в конец и не трогает цены', async () => {
+test('дозагрузка ставит новое в начало и не трогает цены', async () => {
   const album = await createGallery('merch')
   const first = await photo(42)
   const second = await photo(43)
@@ -511,7 +511,7 @@ test('дозагрузка дописывает в конец и не трога
 
   assert.equal(response.statusCode, 200)
   assert.equal(response.json().added, 1)
-  assert.deepEqual(await getGalleryItems(album), [first, second], 'новое в конце')
+  assert.deepEqual(await getGalleryItems(album), [second, first], 'новое впереди')
 
   const fields = (await itemFieldsForGalleries([album])).get(album)
   assert.equal(fields.get(first).price, '2500 RSD', 'цена уцелела')

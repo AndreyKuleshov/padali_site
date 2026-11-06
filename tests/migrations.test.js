@@ -172,3 +172,44 @@ test('ручные концерты и их афиши миграция убир
   const posters = await query('SELECT field FROM block_media WHERE block_id = ?', [id])
   assert.deepEqual(posters, [], 'афиша отвязана — медиатека снова даст её удалить')
 })
+
+/* Переворот уже набранных альбомов. Проверяем ровно тем SQL, что
+   лежит в миграции: перепечатанный в тест, он стерёг бы копию, а не
+   то, что поедет в прод. */
+test('миграция переворачивает фотоальбом и не трогает мерч', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { createPage } = await import('../src/repositories/pages.js')
+  const { createBlock } = await import('../src/repositories/blocks.js')
+  const { createGallery, setGalleryItems, getGalleryItems } = await import('../src/repositories/galleries.js')
+  const { processUpload } = await import('../src/services/media-processor.js')
+  const { makeImage } = await import('./helpers.js')
+
+  await migrate({ logger: silent })
+  const pageId = await createPage({ slug: 'migration-013' })
+
+  const shots = []
+  for (let seed = 31; seed <= 33; seed += 1) {
+    const { media } = await processUpload({
+      buffer: await makeImage({ width: 300, height: 300, seed }),
+      originalName: `order-${seed}.png`, mime: 'image/png'
+    })
+    shots.push(media.id)
+  }
+
+  const photos = await createGallery('m013-photos')
+  const merch = await createGallery('m013-merch')
+  await setGalleryItems(photos, shots)
+  await setGalleryItems(merch, shots)
+  await createBlock({ pageId, type: 'gallery', settings: { gallery_id: photos } })
+  await createBlock({ pageId, type: 'merch', settings: { gallery_id: merch } })
+
+  const sql = await readFile(
+    new URL('../src/db/migrations/013_newest_photos_first.sql', import.meta.url), 'utf8'
+  )
+  await query(sql)
+
+  assert.deepEqual(await getGalleryItems(photos), [...shots].reverse(),
+    'фотоальбом перевёрнут: свежее сверху')
+  assert.deepEqual(await getGalleryItems(merch), shots,
+    'у мерча порядок товаров расставлен осознанно — он остаётся')
+})

@@ -155,7 +155,14 @@ async function setGalleryItems (galleryId, items, conn) {
 }
 
 /**
- * Дописать фотографии в конец альбома.
+ * Добавить фотографии в НАЧАЛО альбома.
+ *
+ * Свежие снимки интереснее прошлогодних, а дописанные в конец они
+ * оказывались за двумя экранами прокрутки: альбом наполняют
+ * порциями, и порядок загрузки — это порядок от старых к новым.
+ * Перетаскивание никуда не делось: редактор по-прежнему
+ * расставляет снимки как хочет, меняется только место, куда они
+ * попадают сами.
  *
  * Не setGalleryItems: тот переписывает состав целиком и снёс бы
  * проставленные цены. Повторы пропускаем — ключ таблицы их всё
@@ -163,7 +170,7 @@ async function setGalleryItems (galleryId, items, conn) {
  *
  * @returns {Promise<number>} сколько добавилось
  */
-async function appendGalleryItems (galleryId, mediaIds, conn) {
+async function prependGalleryItems (galleryId, mediaIds, conn) {
   const runner = db(conn)
   const existing = new Set(
     (await runner.all('SELECT media_id FROM gallery_items WHERE gallery_id = ?', [galleryId]))
@@ -179,16 +186,18 @@ async function appendGalleryItems (galleryId, mediaIds, conn) {
   }
   if (fresh.length === 0) return 0
 
-  const last = await runner.one(
-    'SELECT COALESCE(MAX(position), -1) AS maxposition FROM gallery_items WHERE gallery_id = ?',
-    [galleryId]
+  /* Освобождаем начало: прежние съезжают ровно на столько, сколько
+     пришло. Уникальности у позиции нет, поэтому сдвиг одним
+     запросом не упрётся в ключ на полпути. */
+  await runner.run(
+    'UPDATE gallery_items SET position = position + ? WHERE gallery_id = ?',
+    [fresh.length, galleryId]
   )
-  const start = Number(last.maxposition) + 1
 
   await runner.run(
     'INSERT INTO gallery_items (gallery_id, media_id, position) VALUES ' +
       fresh.map(() => '(?, ?, ?)').join(', '),
-    fresh.flatMap((mediaId, index) => [galleryId, mediaId, start + index])
+    fresh.flatMap((mediaId, index) => [galleryId, mediaId, index])
   )
   await runner.run('UPDATE galleries SET updated_at = now() WHERE id = ?', [galleryId])
   return fresh.length
@@ -288,5 +297,5 @@ async function writeItemTexts (conn, galleryId, mediaId, title) {
 export {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery, deleteGallery,
   textsForGalleries, getGalleryTexts, saveGalleryTexts,
-  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, appendGalleryItems, removeGalleryItems, setGalleryItemFields
+  itemsForGalleries, itemFieldsForGalleries, getGalleryItems, setGalleryItems, prependGalleryItems, removeGalleryItems, setGalleryItemFields
 }

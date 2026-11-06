@@ -3,7 +3,7 @@ import { blocksUsingGallery } from '../../repositories/blocks.js'
 import {
   listGalleries, getGallery, getGalleryBySlug, createGallery, renameGallery,
   deleteGallery, getGalleryTexts, textsForGalleries, saveGalleryTexts,
-  getGalleryItems, setGalleryItems, itemFieldsForGalleries, appendGalleryItems, removeGalleryItems
+  getGalleryItems, setGalleryItems, itemFieldsForGalleries, prependGalleryItems, removeGalleryItems
 } from '../../repositories/galleries.js'
 import { getMediaByIds, listMediaForPicker } from '../../repositories/media.js'
 import { listLocales } from '../../repositories/locales.js'
@@ -104,7 +104,7 @@ async function galleryRoutes (app) {
       return reply.code(400).send({ ok: false, message: request.t('media.noFiles') })
     }
 
-    const added = await appendGalleryItems(id, mediaIds)
+    const added = await prependGalleryItems(id, mediaIds)
     afterWrite()
     return reply.send({ ok: true, added })
   })

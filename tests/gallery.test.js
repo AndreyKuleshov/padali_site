@@ -4,7 +4,7 @@ import { resetDatabase, makeImage, closePool } from './helpers.js'
 import { createPage } from '../src/repositories/pages.js'
 import { createBlock, saveBlockTexts } from '../src/repositories/blocks.js'
 import {
-  createGallery, saveGalleryTexts, setGalleryItems, getGalleryItems
+  createGallery, saveGalleryTexts, setGalleryItems, getGalleryItems, prependGalleryItems
 } from '../src/repositories/galleries.js'
 import { saveMediaTexts } from '../src/repositories/media.js'
 import { processUpload } from '../src/services/media-processor.js'
@@ -46,6 +46,27 @@ async function makeGallery (slug, mediaIds, titles) {
 function galleryBlocks (page) {
   return page.blocks.filter((block) => block.type === 'gallery')
 }
+
+/* Альбом наполняют порциями, и порядок загрузки — это порядок от
+   старых к новым: дописанные в конец свежие кадры оказывались за
+   двумя экранами прокрутки. Теперь они встают в начало — но
+   перетаскивание сильнее: расставил редактор, значит расставил. */
+test('добавленные снимки встают в начало, перетаскивание сильнее', async () => {
+  const album = await createGallery('order')
+  await setGalleryItems(album, [photos[0], photos[1]])
+
+  assert.equal(await prependGalleryItems(album, [photos[2], photos[3]]), 2)
+  assert.deepEqual(await getGalleryItems(album),
+    [photos[2], photos[3], photos[0], photos[1]], 'новые впереди, прежние сдвинулись')
+
+  assert.equal(await prependGalleryItems(album, [photos[0]]), 0, 'повтор не добавляется')
+  assert.deepEqual(await getGalleryItems(album),
+    [photos[2], photos[3], photos[0], photos[1]], 'и порядок от него не едет')
+
+  await setGalleryItems(album, [photos[0], photos[3], photos[2], photos[1]])
+  assert.deepEqual(await getGalleryItems(album),
+    [photos[0], photos[3], photos[2], photos[1]], 'перетаскивание остаётся за редактором')
+})
 
 test('два разных альбома живут на одной странице независимо', async () => {
   const live = await makeGallery('live', photos.slice(0, 3), { en: { title: 'Live' }, sr: { title: 'Uživo' } })
