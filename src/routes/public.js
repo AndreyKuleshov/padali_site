@@ -19,6 +19,7 @@ import { checkContact } from '../services/contact-check.js'
 import { verifyTurnstile } from '../services/turnstile.js'
 import { siteTranslator } from '../i18n/site.js'
 import { buildJsonLd } from '../services/json-ld.js'
+import { buildLlmsTxt } from '../services/llms-txt.js'
 
 /** Сегодня по часам сервера, «ГГГГ-ММ-ДД». */
 function today () {
@@ -254,9 +255,35 @@ async function publicRoutes (app) {
     return reply.send({ ok: result.ok })
   })
 
+  /*
+   * Пускаем всех, включая обходчиков моделей: отдельных «Allow»
+   * под каждого заводить незачем — `User-agent: *` их уже
+   * разрешает, а список имён устаревает молча и создаёт
+   * впечатление, будто неназванным вход закрыт.
+   */
   app.get('/robots.txt', async (request, reply) => {
     reply.type('text/plain; charset=utf-8')
-    return `User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${config.publicUrl}/sitemap.xml\n`
+    return [
+      'User-agent: *',
+      'Allow: /',
+      'Disallow: /admin',
+      '',
+      `Sitemap: ${config.publicUrl}/sitemap.xml`,
+      `# Сводка сайта простым текстом: ${config.publicUrl}/llms.txt`,
+      ''
+    ].join('\n')
+  })
+
+  /*
+   * Сводка для агентов. Кэшируется тем же кэшем и с тем же днём в
+   * ключе, что и страницы: концерты уходят из неё по той же
+   * отсечке, а правка из админки сбрасывает кэш целиком.
+   */
+  app.get('/llms.txt', async (request, reply) => {
+    const key = cacheKey(['llms', today()])
+    const cached = getCached(key) ?? setCached(key, { text: await buildLlmsTxt(today()) })
+    reply.type('text/plain; charset=utf-8')
+    return cached.text
   })
 
   app.get('/sitemap.xml', async (request, reply) => {
@@ -267,13 +294,35 @@ async function publicRoutes (app) {
     /* Каждая страница на каждом языке. Главная живёт в корне, у
        остальных слаг в адресе — и второй язык ставит свой префикс
        перед слагом, а не вместо него. */
+    const address = (locale, page) => {
+      const prefix = locale === defaultLocale ? '' : `/${locale}`
+      return config.publicUrl +
+        (page.slug === HOME_SLUG ? (prefix || '/') : `${prefix}/${page.slug}`)
+    }
+
+    /* У каждой записи перечислены все языки страницы, включая её
+       собственный — так этого просит Google. Без перечня две
+       версии остаются двумя разными страницами с одинаковым
+       смыслом, и поиск сам решает, которую показать сербу. */
     const urls = pages.flatMap((page) => locales.map((locale) => {
-      const prefix = locale.code === defaultLocale ? '' : `/${locale.code}`
-      const path = page.slug === HOME_SLUG ? (prefix || '/') : `${prefix}/${page.slug}`
-      return `  <url><loc>${config.publicUrl}${path}</loc></url>`
+      const alternates = [
+        ...locales.map((row) => [row.code, address(row.code, page)]),
+        ['x-default', address(defaultLocale, page)]
+      ].map(([code, href]) =>
+        `    <xhtml:link rel="alternate" hreflang="${code}" href="${href}"/>`)
+      return [
+        '  <url>',
+        `    <loc>${address(locale.code, page)}</loc>`,
+        ...alternates,
+        '  </url>'
+      ].join('\n')
     }))
+
     reply.type('application/xml; charset=utf-8')
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' +
+      ' xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' +
+      `${urls.join('\n')}\n</urlset>\n`
   })
 
   app.get('/', async (request, reply) => {

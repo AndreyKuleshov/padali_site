@@ -446,6 +446,123 @@ test('в разметке для поиска есть группа и буду�
   )
 })
 
+/** Разметка со страницы, разобранная. */
+function graphOf (body) {
+  const raw = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(body)
+  assert.ok(raw, 'разметки на странице нет')
+  return JSON.parse(raw[1])['@graph']
+}
+
+/*
+ * Имя группы бралось от заголовка страницы, и на лендинге
+ * «POČETAK — PADALI» разметка объявляла группу с таким именем:
+ * поисковик получал две разные группы вместо одной. Имя группы —
+ * имя сайта, то есть заголовок главной, на любой странице.
+ */
+test('на лендинге группа та же, что на главной, а запись — её запись', async () => {
+  await buildPage()
+  const pageId = await createPage({ slug: 'pocetak' })
+  await savePageTexts(pageId, { en: { title: 'POČETAK — PADALI', description: 'New single' } })
+
+  const id = await createBlock({
+    pageId, type: 'landing', anchor: 'listen',
+    settings: {
+      ...defaultSettings('landing'),
+      spotify_url: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+      platforms: [{ icon: 'deezer', label: 'Deezer', url: 'https://deezer.test/pocetak' }]
+    }
+  })
+  // «by PADALI» — подпись для глаза, а не имя исполнителя.
+  await saveBlockTexts(id, { en: { title: 'POČETAK', by: 'by PADALI' } })
+  invalidateCache()
+
+  const graph = graphOf((await app.inject({ method: 'GET', url: '/pocetak' })).body)
+  const bands = graph.filter((node) => node['@type'] === 'MusicGroup')
+  assert.equal(bands.length, 1, 'групп в разметке ровно одна')
+  assert.equal(bands[0].name, 'PADALI', 'и зовётся она именем сайта, а не заголовком лендинга')
+
+  const record = graph.find((node) => node['@type'] === 'MusicRecording')
+  assert.ok(record, 'записи в разметке нет')
+  assert.equal(record.name, 'POČETAK')
+  assert.deepEqual(record.byArtist, { '@id': bands[0]['@id'] },
+    'исполнитель — ссылка на ту же группу, а не выдуманный «by PADALI»')
+  assert.match(record.url, /\/pocetak$/, 'адрес записи — её страница, а не главная')
+  assert.ok(record.sameAs.includes('https://deezer.test/pocetak'),
+    'площадки — это та же запись в чужих витринах')
+
+  /* Узел сайта поисковик берёт за имя сайта в выдаче и ждёт его на
+     главной: на внутренней странице тот же узел заводит второй
+     сайт внутри сайта. */
+  assert.ok(!graph.some((node) => node['@type'] === 'WebSite'), 'на лендинге узла сайта нет')
+  const home = graphOf((await app.inject({ method: 'GET', url: '/' })).body)
+  const site = home.find((node) => node['@type'] === 'WebSite')
+  assert.equal(site?.name, 'PADALI', 'а на главной есть')
+  assert.equal(site.publisher['@id'], bands[0]['@id'], 'и издаёт его та же группа')
+})
+
+/* Трек и альбом — разные вещи для поиска, и спрашивать об этом
+   редактора незачем: вид записи стоит в самой ссылке Spotify. */
+test('альбомная ссылка даёт альбом, а не запись', async () => {
+  await buildPage()
+  const pageId = await createPage({ slug: 'album' })
+  const id = await createBlock({
+    pageId, type: 'landing', anchor: 'listen',
+    settings: {
+      ...defaultSettings('landing'),
+      spotify_url: 'https://open.spotify.com/album/4cOdK2wGLETKBW3PvgPWqT'
+    }
+  })
+  await saveBlockTexts(id, { en: { title: 'PRVI' } })
+  invalidateCache()
+
+  const graph = graphOf((await app.inject({ method: 'GET', url: '/album' })).body)
+  assert.ok(graph.some((node) => node['@type'] === 'MusicAlbum'), 'альбом объявлен альбомом')
+  assert.ok(!graph.some((node) => node['@type'] === 'MusicRecording'), 'и записью одновременно не стал')
+})
+
+/* Две языковые версии — это одна страница, а не две одинаковые.
+   Без перечня языков поиск сам решает, которую показать сербу. */
+test('карта сайта перечисляет языковые версии каждой страницы', async () => {
+  await buildPage()
+  invalidateCache()
+
+  const map = (await app.inject({ method: 'GET', url: '/sitemap.xml' })).body
+  assert.match(map, /xmlns:xhtml="http:\/\/www\.w3\.org\/1999\/xhtml"/, 'без объявления имён ссылки недействительны')
+
+  const entries = map.split('<url>').slice(1)
+  assert.equal(entries.length, 2, 'главная на двух языках')
+  for (const entry of entries) {
+    assert.match(entry, /hreflang="en" href="[^"]+\/"/)
+    assert.match(entry, /hreflang="sr" href="[^"]+\/sr"/)
+    assert.match(entry, /hreflang="x-default" href="[^"]+\/"/)
+  }
+})
+
+/*
+ * Сводка для агентов собирается из тех же данных, что и страницы.
+ * Написанная руками, она разошлась бы с сайтом на первой правке, и
+ * заметить это было бы некому: читают её не люди.
+ */
+test('сводка для агентов повторяет страницы, а не живёт своей жизнью', async () => {
+  const { pageId } = await buildPage()
+  await createBlock({
+    pageId, type: 'concert', anchor: 'shows', settings: defaultSettings('concert')
+  })
+  await addConcert({ date: soon(30), venue: 'Kontrapunkt', city: 'Beograd', price: '1000 RSD' })
+  await addConcert({ date: '2020-01-01', venue: 'Давно и неправда' })
+  invalidateCache()
+
+  const summary = (await app.inject({ method: 'GET', url: '/llms.txt' })).body
+  assert.match(summary, /^# PADALI/, 'имя группы первой строкой')
+  assert.match(summary, /Rapcore band/, 'описание — то же, что в head')
+  assert.match(summary, /Kontrapunkt, Beograd, Serbia — 1000 RSD/, 'будущий концерт с местом и ценой')
+  assert.doesNotMatch(summary, /Давно и неправда/, 'прошедший концерт ушёл отсюда так же, как со страницы')
+  assert.match(summary, /Instagram|Languages/, 'ссылки на себя в других местах')
+
+  const robots = (await app.inject({ method: 'GET', url: '/robots.txt' })).body
+  assert.match(robots, /\/llms\.txt/, 'из robots.txt на сводку есть указатель')
+})
+
 /* Без скрипта браузер приходит на /send сам. Показать ему голый
    JSON нельзя, а терять написанное — тем более: до правки у формы
    не было action, и текст сообщения уезжал в адресную строку. */

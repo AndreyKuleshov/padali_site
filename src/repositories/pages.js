@@ -15,7 +15,7 @@ const HOME_SLUG = 'home'
  * страницу», которой на деле некуда было деться. Поэтому имена
  * языков запрещаем на входе, а не разбираемся потом.
  */
-const RESERVED_SLUGS = new Set([HOME_SLUG, 'admin', 'uploads', 'sitemap.xml', 'robots.txt'])
+const RESERVED_SLUGS = new Set([HOME_SLUG, 'admin', 'uploads', 'sitemap.xml', 'robots.txt', 'llms.txt'])
 
 async function getPageBySlug (slug, conn) {
   return db(conn).one(

@@ -11,6 +11,14 @@ import { getAllSettings } from '../repositories/settings.js'
 import { pictureSources } from './media-processor.js'
 import { siteTranslator } from '../i18n/site.js'
 
+/**
+ * Запасное имя сайта, когда заголовок главной пуст.
+ *
+ * Им же зовётся группа в разметке для поиска, поэтому пустым оно
+ * быть не может: объект без имени поисковик не берёт вовсе.
+ */
+const BAND_NAME = 'PADALI'
+
 /** Значение на нужном языке, иначе на языке по умолчанию, иначе пустая строка. */
 function pick (textsByLocale, locale, defaultLocale, field) {
   return textsByLocale?.[locale]?.[field]
@@ -271,9 +279,19 @@ async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date
 
   const pageTextsResolved = resolveTexts(pageTexts, activeLocale, defaultLocale)
 
+  /* Имя сайта — заголовок главной, а не той страницы, которую
+     сейчас собираем. Лендинг релиза называется «POČETAK — PADALI»,
+     и разметка для поиска объявляла группу с таким именем: на
+     двух страницах выходили две разные группы вместо одной. */
+  const siteName = page.slug === HOME_SLUG
+    ? (pageTextsResolved.title || BAND_NAME)
+    : await homeTitle(activeLocale, defaultLocale)
+
   return {
     page,
     locale: activeLocale,
+    /** Имя группы и сайта: одно на все страницы. */
+    siteName,
     /** Обвязка сайта: подписи стрелок, кнопок и ответов форм. */
     s: siteTranslator(activeLocale),
     defaultLocale,
@@ -282,7 +300,7 @@ async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date
     /** Логотип из настроек; шапка и подвал берут его, когда своего нет. */
     siteLogo: toView(siteLogoId),
     meta: {
-      title: pageTextsResolved.title || 'PADALI',
+      title: pageTextsResolved.title || BAND_NAME,
       description: pageTextsResolved.description || ''
     },
     blocks,
@@ -300,6 +318,14 @@ async function composePage ({ slug = HOME_SLUG, locale, today = isoDate(new Date
     // Пока подвала-блока нет, показывается прежний статический.
     hasFooterBlock: blocks.some((block) => block.type === 'footer')
   }
+}
+
+/** Заголовок главной: его правят на экране настроек сайта. */
+async function homeTitle (locale, defaultLocale) {
+  const home = await getPageBySlug(HOME_SLUG)
+  if (!home) return BAND_NAME
+  const texts = resolveTexts(await getPageTexts(home.id), locale, defaultLocale)
+  return texts.title || BAND_NAME
 }
 
 export { composePage, pick }

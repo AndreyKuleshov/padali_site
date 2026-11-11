@@ -17,6 +17,10 @@
 <link rel="alternate" hreflang="x-default" href="<%= it.h.publicUrl + it.h.localeUrl(it.defaultLocale, it.defaultLocale, it.path) %>">
 
 <meta property="og:type" content="website">
+<% ;/* Имя сайта отдельно от заголовка: у лендинга заголовок —
+       название трека, и без этой строки репост выглядел ссылкой
+       неизвестно куда. */ %>
+<meta property="og:site_name" content="<%= it.siteName %>">
 <meta property="og:title" content="<%= it.meta.title %>">
 <meta property="og:description" content="<%= it.meta.description %>">
 <meta property="og:url" content="<%= it.h.publicUrl + it.h.localeUrl(it.locale, it.defaultLocale, it.path) %>">
